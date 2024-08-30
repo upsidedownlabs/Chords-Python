@@ -88,7 +88,6 @@ def read_arduino_data(ser, csv_writer):
         
         if(len(buffer) >= sync_index + PACKET_LENGTH):
             packet = buffer[sync_index:sync_index+PACKET_LENGTH]
-            print(packet)
             if len(packet) == 17 and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
                 counter = packet[3]  # Counter is at index 3
 
@@ -96,8 +95,7 @@ def read_arduino_data(ser, csv_writer):
                 if previous_sample_number is not None and counter != (previous_sample_number + 1) % 256:
                     missing_samples += (counter - previous_sample_number - 1) % 256
                     print(f"Error: Expected counter {previous_sample_number + 1} but received {counter}. Missing samples: {missing_samples}")
-                    exit()
-                    
+
                 previous_sample_number = counter  # Update previous sample number to current counter
 
                 total_packet_count += 1  # Increment packet count only after initial samples are ignored
@@ -119,7 +117,6 @@ def read_arduino_data(ser, csv_writer):
                 del buffer[:sync_index + PACKET_LENGTH]
             else:
                 del buffer[:sync_index + 1]
-                print("Invalid Data Packet")  # Print message if data packet is invalid
 
 def start_timer():
     """
