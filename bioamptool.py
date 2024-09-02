@@ -48,11 +48,7 @@ SYNC_BYTE1 = 0xA5  # First sync byte value
 SYNC_BYTE2 = 0x5A  # Second sync byte value
 END_BYTE = 0x01  # End byte value for the packet
 verbose_mode = False  # Flag for verbose output
-
-# LSL Stream Setup
 lsl_outlet = None  # LSL outlet for streaming data
-
-# Initialize global variables for 10-second data counting
 data_count_10_sec = 0  # Count of data points in the last 10 seconds
 last_10_sec_time = None  # Last time when the 10-second count was logged
 
@@ -225,10 +221,10 @@ if __name__ == "__main__":
             port = args.port  # Use specified port
         else:
             port = auto_detect_arduino(baudrate=args.baudrate)  # Auto-detect Arduino port
-        
         if port is None:
             print("Arduino port not specified or detected. Exiting.")  # Print message if no port detected
         else:
             parse_data(port, args.baudrate, lsl_flag=args.lsl, csv_flag=args.csv, verbose_flag=args.verbose)  # Start data parsing
     else:
         parser.print_help()  # Print help message if no valid arguments are provided
+        
