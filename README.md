@@ -1,6 +1,6 @@
 ## BioAmp-Tool-Python
 
-The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, and optionally log this data to CSV or stream it via Lab Streaming Layer (LSL). It provides real-time data processing and statistical analysis over 10-second and 10-minute intervals.
+The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, and optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL).
 
 ## Features
 
