@@ -1,85 +1,103 @@
-# BioAmp-Tool-Python
+## BioAmp-Tool-Python
 
-A python tool to record data from BioAmp hardware.This project is designed to read data from an Arduino via a serial connection, process the data, and stream it using the Lab Streaming Layer (LSL) protocol. It also logs the processed data to a CSV file for further analysis.
+The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, and optionally log this data to CSV or stream it via Lab Streaming Layer (LSL). It provides real-time data processing and statistical analysis over 10-second and 10-minute intervals.
 
 ## Features
 
-- Auto-detects connected Arduino devices.
-- Reads and processes data packets from Arduino.
-- Streams data via LSL for real-time analysis.
-- Logs data to a CSV file, including counters and channel data.
-- Calculates and logs sampling rate and drift.
-- Handles missing samples and prints relevant errors.
+- **Automatic Arduino Detection:** Automatically detects connected Arduino devices via serial ports.
+- **Data Reading:** Reads and processes data packets from the Arduino.
+- **CSV Logging:** Optionally logs data to a CSV file.
+- **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
+- **Verbose Output:** Provides detailed statistics and error reporting.
 
 ## Requirements
 
-- Python 3.7 or higher
-- [pySerial](https://pypi.org/project/pyserial/)
-- [pylsl](https://pypi.org/project/pylsl/)
-- An Arduino device capable of sending serial data packets
+- Python 3.x
+- `pyserial` library (for serial communication)
+- `pylsl` library (for LSL streaming)
+- `argparse`, `time`, `csv`, `datetime` (standard libraries)
 
 ## Installation
 
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/upsidedownlabs/BioAmp-Tool-Python.git
-    ```
-
-2. **Install the required Python packages**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+1. Ensure you have Python 3.x installed.
+2. Install the required Python libraries:
+   ```bash
+   pip install pyserial pylsl
+   ```
 
 ## Usage
 
-1. **Connect your Arduino** to your computer via USB.
+To use the script, you can run it from the command line with various options:
 
-2. **Run the script** with the desired options:
-    ```bash
-    python bioamptool.py --detect
-    ```
-
-3. **View the output** on your console, which will include minute-by-minute data counts, 10-minute summaries, sampling rate , any detected errors or drift.
-
-## Command-line Options
-
-- `-d, --detect`: Auto-detect the Arduino COM port.
-- `-p, --port`: Specify the COM port (e.g., `COM3` on Windows or `/dev/ttyUSB0` on Linux).
-- `-b, --baudrate`: Set the baud rate for serial communication (default is `57600`).
-
-Example:
 ```bash
-python bioamptool.py --detect
+python bioamp_tool.py [options]
 ```
+
+### Options
+
+- `-p`, `--port` <port>: Specify the serial port to use (e.g., COM3, /dev/ttyUSB0).
+- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 57600).
+- `--csv`: Enable CSV logging. Data will be saved to a file with a timestamped name.
+- `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
+- `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
+
+
+## Script Functions
+
+### `auto_detect_arduino(baudrate, timeout=1)`
+
+Detects an Arduino connected via serial port. Returns the port name if detected.
+
+### `read_arduino_data(ser, csv_writer=None)`
+
+Reads and processes data from the Arduino. Writes data to CSV and/or LSL stream if enabled.
+
+### `start_timer()`
+
+Initializes timers for 10-second and 10-minute intervals.
+
+### `log_ten_second_data(verbose=False)`
+
+Logs and resets data for the 10-second interval.
+
+### `log_ten_minute_data(verbose=False)`
+
+Logs data and statistics for the 10-minute interval.
+
+### `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, verbose=False)`
+
+Parses data from Arduino and manages logging and streaming.
+
+### `main()`
+
+Handles command-line argument parsing and initiates data processing.
 
 ## Data Logging
 
-- **CSV Output**: The script saves the processed data in a CSV file named `packet_data.csv`.
-  - The CSV contains the following columns:
-    - `Counter`: The sample counter from the Arduino.
-    - `Channel1` to `Channel6`: The data values from each channel.
+ -CSV Output: The script saves the processed data in a CSV file named data_%Y-%m-%d_%H-%M-%S.csv.
 
-- **Log Intervals**: The script logs data counts every minute and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
+The CSV contains the following columns:
+  -Counter: The sample counter from the Arduino.
+            Channel1 to Channel6: The data values from each channel.
+  -Log Intervals: The script logs data counts every minute and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
 
-## LSL Streaming
+### LSL Streaming
 
-- **Stream Name**: `BioAmpDataStream`
-- **Stream Type**: `EXG`
-- **Channel Count**: `6`
-- **Sampling Rate**: `250 Hz`
-- **Data Format**: `float32`
-
-Use an LSL viewer (e.g., BrainVision Recorder) to visualize the streamed data in real-time.
+Stream Name: BioAmpDataStream
+Stream Type: EXG
+Channel Count: 6
+Sampling Rate: 250 Hz
+Data Format: float32
+Use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data in real-time.
 
 ## Troubleshooting
 
-- **Arduino Not Detected**: Ensure your Arduino is properly connected and recognized by your system. Use the `--detect` option to automatically find the Arduino port.
-- **Invalid Data Packets**: If you see messages about invalid data packets, check the data format and synchronization bytes being sent from the Arduino.
-- **Zero LSL Stream Utilization**: If the LSL stream shows 0% utilization, verify the stream is properly set up and data is being pushed to the outlet.
+- **Arduino Not Detected:** Ensure the Arduino is properly connected and powered. Check the serial port and baud rate settings.
+- **CSV File Not Created:** Ensure you have write permissions in the directory where the script is run.
+- **LSL Stream Issues:** Verify that the `pylsl` library is installed and configured correctly.
 
 ## Contributors
 
-We are thankful to our awesome contributors, the list below is alphabetically sorted.
+We are thankful to our awesome contributors.
 
-- [Payal Lakra](https://github.com/payallakra)
-
+@PayalLakra

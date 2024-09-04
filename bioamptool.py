@@ -55,7 +55,6 @@ def auto_detect_arduino(baudrate, timeout=1):
     Automatically detects the Arduino by scanning all available serial ports.
     Args:baudrate (int): The baud rate for serial communication.
          timeout (int): Timeout for the serial connection attempt.
-    Returns:str: The port name if Arduino is detected, else None.
     """
     ports = serial.tools.list_ports.comports()  # Get a list of all available serial ports
     for port in ports:  # Iterate over each port
