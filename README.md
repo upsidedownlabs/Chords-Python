@@ -5,7 +5,7 @@ The BioAmp Tool is a Python script designed to interface with an Arduino-based b
 ## Features
 
 - **Automatic Arduino Detection:** Automatically detects connected Arduino devices via serial ports.
-- **Data Reading:** Reads and processes data packets from the Arduino.
+- **Data Reading:** Reads ModularEEG P2 format data packets from the Arduino's serial port.
 - **CSV Logging:** Optionally logs data to a CSV file.
 - **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
 - **Verbose Output:** Provides detailed statistics and error reporting.
