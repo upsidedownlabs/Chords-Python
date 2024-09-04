@@ -26,6 +26,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 from pylsl import StreamInfo, StreamOutlet  # Import necessary classes for LSL streaming
 import argparse  # Import for parsing command-line arguments
 import serial  # Import for serial communication

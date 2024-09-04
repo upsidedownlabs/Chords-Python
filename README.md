@@ -35,7 +35,7 @@ python bioamp_tool.py [options]
 
 ### Options
 
-- `-p`, `--port` <port>: Specify the serial port to use (e.g., COM3, /dev/ttyUSB0).
+- `-p`, `--port` <port>: Specify the serial port to use (e.g., COM5, /dev/ttyUSB0).
 - `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 57600).
 - `--csv`: Enable CSV logging. Data will be saved to a file with a timestamped name.
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
