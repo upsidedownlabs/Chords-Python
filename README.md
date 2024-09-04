@@ -74,20 +74,21 @@ Handles command-line argument parsing and initiates data processing.
 
 ## Data Logging
 
- -CSV Output: The script saves the processed data in a CSV file named data_%Y-%m-%d_%H-%M-%S.csv.
+- **CSV Output**: The script saves the processed data in a CSV file named `packet_data.csv`.
+  - The CSV contains the following columns:
+    - `Counter`: The sample counter from the Arduino.
+    - `Channel1` to `Channel6`: The data values from each channel.
 
-The CSV contains the following columns:
-  -Counter: The sample counter from the Arduino.
-            Channel1 to Channel6: The data values from each channel.
-  -Log Intervals: The script logs data counts every minute and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
+- **Log Intervals**: The script logs data counts every minute and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
 
-### LSL Streaming
+## LSL Streaming
 
-Stream Name: BioAmpDataStream
-Stream Type: EXG
-Channel Count: 6
-Sampling Rate: 250 Hz
-Data Format: float32
+- **Stream Name**: `BioAmpDataStream`
+- **Stream Type**: `EXG`
+- **Channel Count**: `6`
+- **Sampling Rate**: `250 Hz`
+- **Data Format**: `float32`
+
 Use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data in real-time.
 
 ## Troubleshooting
@@ -98,6 +99,7 @@ Use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data 
 
 ## Contributors
 
-We are thankful to our awesome contributors.
+We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
-@PayalLakra
+- [Payal Lakra](https://github.com/payallakra)
+ 
