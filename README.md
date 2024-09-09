@@ -48,35 +48,35 @@ python bioamp_tool.py [options]
 
 ## Script Functions
 
-### `auto_detect_arduino(baudrate, timeout=1)`
+ `auto_detect_arduino(baudrate, timeout=1)`
 
 Detects an Arduino connected via serial port. Returns the port name if detected.
 
-### `read_arduino_data(ser, csv_writer=None)`
+`read_arduino_data(ser, csv_writer=None)`
 
 Reads and processes data from the Arduino. Writes data to CSV and/or LSL stream if enabled.
 
-### `start_timer()`
+ `start_timer()`
 
 Initializes timers for 1-second and 10-minute intervals.
 
-### `log_one_second_data(verbose=False)`
+ `log_one_second_data(verbose=False)`
 
 Logs and resets data for the 1-second interval.
 
-### `log_ten_minute_data(verbose=False)`
+ `log_ten_minute_data(verbose=False)`
 
 Logs data and statistics for the 10-minute interval.
 
-### `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False)`
+ `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False)`
 
 Parses data from Arduino and manages logging, streaming, and GUI updates.
 
-### `init_gui()`
+ `init_gui()`
 
 Initializes and displays the GUI with six real-time plots, one for each bio-signal channel.
 
-### `main()`
+ `main()`
 
 Handles command-line argument parsing and initiates data processing.
 

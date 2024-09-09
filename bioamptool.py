@@ -272,7 +272,7 @@ def main():
     global verbose
     parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool")  # Create argument parser
     parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
-    parser.add_argument('-b', '--baudrate', type=int, default=57600, help="Set baud rate for the serial communication")  # Baud rate argument
+    parser.add_argument('-b', '--baudrate', type=int, default=57600, help="Set baud rate for the serial communication")  # Baud rate argument default = 57600
     parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
     parser.add_argument('--lsl', action='store_true', help="Start LSL stream")  # LSL streaming flag
     parser.add_argument('--gui', action='store_true', help="Start GUI for real-time plotting")  # GUI flag
