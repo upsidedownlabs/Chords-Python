@@ -206,7 +206,7 @@ def log_ten_minute_data(verbose=False):
         print(f"Total data count after 10 minutes: {cumulative_packet_count}")  # Print cumulative data count
         sampling_rate = cumulative_packet_count / (10 * 60)  # Calculate sampling rate
         print(f"Sampling rate: {sampling_rate:.2f} samples/second")  # Print sampling rate
-        expected_sampling_rate = 500  # Expected sampling rate
+        expected_sampling_rate = 250  # Expected sampling rate
         drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift
         print(f"Drift: {drift:.2f} seconds/hour")  # Print drift
     cumulative_packet_count = 0  # Reset cumulative packet count
