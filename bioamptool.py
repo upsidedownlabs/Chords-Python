@@ -38,7 +38,6 @@ import serial.tools.list_ports  # To list available serial ports
 import numpy as np  # For handling numeric arrays
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
-import threading  # For multi-threading
 
 # Initialize global variables for tracking and processing data
 total_packet_count = 0  # Total packets received in the last second
