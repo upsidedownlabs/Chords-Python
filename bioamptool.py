@@ -27,227 +27,273 @@
 # SOFTWARE.
 
 
-from pylsl import StreamInfo, StreamOutlet  # Import necessary classes for LSL streaming
-import argparse  # Import for parsing command-line arguments
-import serial  # Import for serial communication
-import time  # Import for time-related functions
-import csv  # Import for handling CSV files
-from datetime import datetime  # Import for handling date and time
-import serial.tools.list_ports  # Import for serial port detection utilities
+# Import necessary modules
+from pylsl import StreamInfo, StreamOutlet  # For LSL (Lab Streaming Layer) to stream data
+import argparse  # For command-line argument parsing
+import serial  # For serial communication with Arduino
+import time  # For time-related functions
+import csv  # For handling CSV file operations
+from datetime import datetime  # For getting current timestamps
+import serial.tools.list_ports  # To list available serial ports
+import numpy as np  # For handling numeric arrays
+import pyqtgraph as pg  # For real-time plotting
+from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
+import threading  # For multi-threading
 
-# Initialize global variables
-total_packet_count = 0  # Tracks the number of packets received in the last 10 seconds
-cumulative_packet_count = 0  # Tracks the number of packets received in the last 10 minutes
-start_time = None  # Stores the start time for the 10-second interval
-last_ten_minute_time = None  # Stores the start time for the 10-minute interval
-previous_sample_number = None  # Stores the previous sample number for detecting missing samples
-missing_samples = 0  # Tracks the number of missing samples
-buffer = bytearray()  # A buffer to hold incoming data until it forms a complete packet
+# Initialize global variables for tracking and processing data
+total_packet_count = 0  # Total packets received in the last second
+cumulative_packet_count = 0  # Total packets received in the last 10 minutes
+start_time = None  # Track the start time for packet counting
+last_ten_minute_time = None  # Track the last 10-minute interval
+previous_sample_number = None  # Store the previous sample number for detecting missing samples
+missing_samples = 0  # Count of missing samples due to packet loss
+buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
 PACKET_LENGTH = 17  # Expected length of each data packet
-SYNC_BYTE1 = 0xA5  # First byte of the synchronization pattern
-SYNC_BYTE2 = 0x5A  # Second byte of the synchronization pattern
-END_BYTE = 0x01  # End byte of each packet
-lsl_outlet = None  # LSL stream outlet, initially set to None
-verbose = False  # Flag for verbose output, initially set to False
+SYNC_BYTE1 = 0xA5  # First byte of sync marker
+SYNC_BYTE2 = 0x5A  # Second byte of sync marker
+END_BYTE = 0x01  # End byte marker
+lsl_outlet = None  # Placeholder for LSL stream outlet
+verbose = False  # Flag for verbose output mode
+data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
+csv_filename = None  # Store CSV filename
+samples_per_second = 0  # Number of samples received per second
 
+# Function to automatically detect the Arduino's serial port
 def auto_detect_arduino(baudrate, timeout=1):
-    """
-    Automatically detects the Arduino by scanning all available serial ports.
-    Args:baudrate (int): The baud rate for serial communication.
-         timeout (int): Timeout for the serial connection attempt.
-    """
-    ports = serial.tools.list_ports.comports()  # Get a list of all available serial ports
-    for port in ports:  # Iterate over each port
+    ports = serial.tools.list_ports.comports()  # List available serial ports
+    for port in ports:  # Iterate through each port
         try:
-            ser = serial.Serial(port.device, baudrate=baudrate, timeout=timeout)  # Try to open the serial port
-            time.sleep(1)  # Wait for the port to stabilize
-            response = ser.readline().strip()  # Read a line of response from the device
-            if response:  # If a response is received
+            ser = serial.Serial(port.device, baudrate=baudrate, timeout=timeout)  # Try opening the port
+            time.sleep(1)  # Wait for the device to initialize
+            response = ser.readline().strip()  # Try reading from the port
+            if response:  # If response is received, assume it's the Arduino
                 ser.close()  # Close the serial connection
-                print(f"Arduino detected at {port.device}")  # Print the detected port
-                return port.device  # Return the detected port
-            ser.close()  # Close the serial connection if no response
-        except (OSError, serial.SerialException):  # Handle exceptions for serial port access
+                print(f"Arduino detected at {port.device}")  # Notify the user
+                return port.device  # Return the port name
+            ser.close()  # Close the port if no response
+        except (OSError, serial.SerialException):  # Handle exceptions if the port can't be opened
             pass
-    print("Arduino not detected")  # Print if no Arduino is detected
-    return None  # Return None if no Arduino is detected
+    print("Arduino not detected")  # Notify if no Arduino is found
+    return None  # Return None if not found
 
+# Function to read data from Arduino
 def read_arduino_data(ser, csv_writer=None):
-    """
-    Reads data from Arduino and processes it. Optionally writes to CSV and LSL stream.
-    Args: ser (serial.Serial): The serial object connected to Arduino.
-          csv_writer (csv.writer, optional): CSV writer object to log data. Defaults to None.
-    """
-    global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer
-    raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial buffer
-    buffer.extend(raw_data)  # Append the new data to the buffer
+    global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer, data
 
-    while len(buffer) >= PACKET_LENGTH:  # Check if the buffer has enough data for a full packet
-        sync_index = buffer.find(bytes([SYNC_BYTE1, SYNC_BYTE2]))  # Look for the synchronization pattern
+    raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
+    buffer.extend(raw_data)  # Add received data to the buffer
 
-        if sync_index == -1:  # If sync pattern is not found
-            buffer.clear()  # Clear the buffer
+    while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
+        sync_index = buffer.find(bytes([SYNC_BYTE1, SYNC_BYTE2]))  # Search for the sync marker
+
+        if sync_index == -1:  # If sync marker not found, clear the buffer
+            buffer.clear()
             continue
         
-        if len(buffer) >= sync_index + PACKET_LENGTH:  # Check if there's enough data for a complete packet after sync
+        if len(buffer) >= sync_index + PACKET_LENGTH:  # Check if a full packet is available
             packet = buffer[sync_index:sync_index + PACKET_LENGTH]  # Extract the packet
-            # Verify packet structure
             if len(packet) == PACKET_LENGTH and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
-                counter = packet[3]  # Extract the packet counter
+                # Extract the packet if it is valid (correct length, sync bytes, and end byte)
+                counter = packet[3]  # Read the counter byte (for tracking sample order)
 
-                # Check for missing samples
+                # Check for missing samples by comparing the counter values
                 if previous_sample_number is not None and counter != (previous_sample_number + 1) % 256:
-                    missing_samples += (counter - previous_sample_number - 1) % 256
+                    missing_samples += (counter - previous_sample_number - 1) % 256  # Calculate missing samples
                     if verbose:
                         print(f"Error: Expected counter {previous_sample_number + 1} but received {counter}. Missing samples: {missing_samples}")
 
                 previous_sample_number = counter  # Update the previous sample number
-                total_packet_count += 1  # Increment packet count for 10-second interval
-                cumulative_packet_count += 1  # Increment cumulative packet count for 10-minute interval
+                total_packet_count += 1  # Increment total packet count for the current second
+                cumulative_packet_count += 1  # Increment cumulative packet count for the last 10 minutes
 
-                channel_data = []  # Initialize list to store channel data
-                for i in range(4, 16, 2):  # Extract channel data from the packet
+                # Extract channel data (6 channels, 2 bytes per channel)
+                channel_data = []
+                for i in range(4, 16, 2):  # Loop through channel data bytes
                     high_byte = packet[i]
                     low_byte = packet[i + 1]
-                    value = (high_byte << 8) | low_byte  # Combine high and low bytes to form the actual value
-                    channel_data.append(float(value))  # Append the value to the channel data list
+                    value = (high_byte << 8) | low_byte  # Combine high and low bytes
+                    channel_data.append(float(value))  # Convert to float and add to channel data
 
-                if csv_writer:  # If CSV writer is provided
-                    csv_writer.writerow([counter] + channel_data)  # Write data to CSV
-                if lsl_outlet:  # If LSL outlet is initialized
-                    lsl_outlet.push_sample(channel_data)  # Push data to LSL stream
+                if csv_writer:  # If CSV logging is enabled, write the data to the CSV file
+                    csv_writer.writerow([counter] + channel_data)
+                if lsl_outlet:  # If LSL streaming is enabled, send the data to the LSL stream
+                    lsl_outlet.push_sample(channel_data)
 
-                del buffer[:sync_index + PACKET_LENGTH]  # Remove processed packet from the buffer
+                # Update the data array for real-time plotting
+                data = np.roll(data, -1, axis=1)  # Shift data to the left
+                data[:, -1] = channel_data  # Add new channel data to the right end of the array
+
+                del buffer[:sync_index + PACKET_LENGTH]  # Remove the processed packet from the buffer
             else:
-                del buffer[:sync_index + 1]  # Remove only the incorrect part of the buffer
+                del buffer[:sync_index + 1]  # If the packet is invalid, remove only the sync marker
 
-def start_timer():
-    """
-    Initializes the timers for 10-second and 10-minute intervals.
-    """
-    global start_time, last_ten_minute_time, total_packet_count, cumulative_packet_count
-    time.sleep(0.5)  # Brief delay to ensure stable timing
-    current_time = time.time()  # Get the current time
-    start_time = current_time  # Set the start time for the 10-second interval
-    last_ten_minute_time = current_time  # Set the start time for the 10-minute interval
-    total_packet_count = 0  # Reset the 10-second packet counter
-    cumulative_packet_count = 0  # Reset the 10-minute packet counter
+# Function to initialize the real-time plotting GUI
+def init_gui():
+    global plots, curves, app, win, timer, status_bar, samples_label, lsl_label, csv_label
 
-def log_ten_second_data(verbose=False):
-    """
-    Logs and resets data for the 10-second interval.
-    Args: verbose (bool, optional): If True, prints the number of samples in the last 10 seconds. Defaults to False.
-    """
-    global total_packet_count
-    if verbose:
-        print(f"Data count for the last 10 seconds: {total_packet_count} samples")  # Print the number of samples
-    total_packet_count = 0  # Reset the packet count for the next 10 seconds
+    app = QtWidgets.QApplication([])  # Create the Qt application
+    win = QtWidgets.QWidget()  # Create the main window
+    layout = QtWidgets.QVBoxLayout()  # Create a vertical layout for the window
+    win.setLayout(layout)  # Set the layout to the window
+    win.setWindowTitle("Real-Time Arduino Data")  # Set the window title
 
-def log_ten_minute_data(verbose=False):
-    """
-    Logs data and statistics for the 10-minute interval.
-    Args: verbose (bool, optional): If True, prints the number of samples and sampling statistics for the last 10 minutes. Defaults to False.
-    """
-    global cumulative_packet_count, last_ten_minute_time
+    # Create plots for each channel (6 in total)
+    plots = []
+    curves = []
+    colors = ['r', 'g', 'b', 'y', 'm', 'c']  # Different colors for each channel
+    for i in range(6):
+        plot = pg.PlotWidget(title=f"Channel {i + 1}")  # Create a plot widget for each channel
+        layout.addWidget(plot)  # Add the plot to the layout
+        curve = plot.plot(pen=colors[i])  # Create a curve (line) for plotting data, with a different color
+        curve.setDownsampling(auto=True)  # Automatically downsample if needed
+        curve.setClipToView(True)  # Clip the data to the view
+        plots.append(plot)  # Store the plot
+        curves.append(curve)  # Store the curve
 
-    if verbose:
-        print(f"Total data count after 10 minutes: {cumulative_packet_count} samples")  # Print the total number of samples
-        
-        # Calculate and print the sampling rate over the last 10 minutes
-        sampling_rate = cumulative_packet_count / (10 * 60)
-        print(f"Sampling rate: {sampling_rate:.2f} samples/second")
-
-        # Calculate and print the drift in sampling rate
-        expected_sampling_rate = 250  # Expected sampling rate in samples per second
-        drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift in seconds per hour
-        print(f"Drift: {drift:.2f} seconds/hour")
-
-    cumulative_packet_count = 0  # Reset the cumulative packet count for the next 10 minutes
-    last_ten_minute_time = time.time()  # Update the last 10-minute start time
-
-def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, verbose=False):
-    """
-    Parses data from Arduino and manages the data logging and streaming process.
-    Args:port (str): The serial port to use.
-         baudrate (int): The baud rate for serial communication.
-         lsl_flag (bool, optional): If True, enables LSL streaming. Defaults to False.
-         csv_flag (bool, optional): If True, enables CSV logging. Defaults to False.
-         verbose (bool, optional): If True, enables verbose output. Defaults to False.
-    """
-    global total_packet_count, cumulative_packet_count, start_time, lsl_outlet, last_ten_minute_time
-
-    csv_writer = None  # Initialize CSV writer as None
-    csv_filename = None  # Initialize CSV filename as None
-
-    if lsl_flag:  # If LSL streaming is enabled
-        # Initialize LSL stream with the specified parameters
-        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, 250, 'float32', 'UpsideDownLabs')
-        lsl_outlet = StreamOutlet(lsl_stream_info)  # Create an LSL outlet
-        print("LSL stream started")  # Print confirmation
-        time.sleep(0.5)  # Brief delay for LSL outlet setup
+    # Create a status bar at the bottom for displaying information
+    status_bar = QtWidgets.QHBoxLayout()
     
-    if csv_flag:  # If CSV logging is enabled
-        # Generate a unique filename based on the current date and time
-        csv_filename = f"data_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
-        print(f"CSV recording started. Data will be saved to {csv_filename}")  # Print confirmation
+    # CSV recording status label
+    csv_label = QtWidgets.QLabel("CSV Recording: Not started")
+    status_bar.addWidget(csv_label)
 
-    # Open the serial port with the specified parameters
+    # LSL status label
+    lsl_label = QtWidgets.QLabel("LSL Status: Not started")
+    status_bar.addWidget(lsl_label)
+
+    # Samples per second and missing samples label
+    samples_label = QtWidgets.QLabel("Samples per second: 0 (0 missing)")
+    status_bar.addWidget(samples_label)
+
+    layout.addLayout(status_bar)  # Add the status bar to the layout
+
+    win.show()  # Show the window
+
+    # Function to update the plots
+    def update():
+        global data, samples_per_second, missing_samples
+        for i in range(6):
+            curves[i].setData(data[i])  # Update each curve with new data
+        samples_label.setText(f"Samples per second: {samples_per_second} ({missing_samples} missing)")  # Update the samples/missing count
+
+    # Create a timer to update the plots every 20ms
+    timer = QtCore.QTimer()
+    timer.timeout.connect(update)  # Connect the timer to the update function
+    timer.start(20)  # Start the timer with a 20ms interval
+
+# Function to start timers for logging data
+def start_timer():
+    global start_time, last_ten_minute_time, total_packet_count, cumulative_packet_count
+    time.sleep(0.5)  # Give some time to settle before starting
+    current_time = time.time()  # Get the current time
+    start_time = current_time  # Set the start time for packet counting
+    last_ten_minute_time = current_time  # Set the start time for 10-minute interval logging
+    total_packet_count = 0  # Initialize total packet count
+    cumulative_packet_count = 0  # Initialize cumulative packet count
+
+# Function to log data every second
+def log_one_second_data(verbose=False):
+    global total_packet_count, samples_per_second
+    samples_per_second = total_packet_count  # Update the samples per second
+    if verbose:
+        print(f"Data count for the last second: {total_packet_count} samples, Missing samples: {missing_samples}")  # Print verbose output
+    total_packet_count = 0  # Reset total packet count for the next second
+
+# Function to log data for 10-minute intervals
+def log_ten_minute_data(verbose=False):
+    global cumulative_packet_count, last_ten_minute_time
+    if verbose:
+        print(f"Total data count after 10 minutes: {cumulative_packet_count}")  # Print cumulative data count
+        sampling_rate = cumulative_packet_count / (10 * 60)  # Calculate sampling rate
+        print(f"Sampling rate: {sampling_rate:.2f} samples/second")  # Print sampling rate
+        expected_sampling_rate = 500  # Expected sampling rate
+        drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift
+        print(f"Drift: {drift:.2f} seconds/hour")  # Print drift
+    cumulative_packet_count = 0  # Reset cumulative packet count
+    last_ten_minute_time = time.time()  # Update the last 10-minute interval start time
+
+# Main function to parse command-line arguments and handle data acquisition
+def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False):
+    global total_packet_count, cumulative_packet_count, start_time, lsl_outlet, last_ten_minute_time, csv_filename
+
+    csv_writer = None  # Placeholder for CSV writer
+
+    # Start LSL streaming if requested
+    if lsl_flag:
+        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, 250, 'float32', 'UpsideDownLabs')  # Define LSL stream info
+        lsl_outlet = StreamOutlet(lsl_stream_info)  # Create LSL outlet
+        print("LSL stream started")  # Notify user
+        time.sleep(0.5)  # Wait for the LSL stream to start
+    
+    # Start CSV logging if requested
+    if csv_flag:
+        csv_filename = f"data_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"  # Create timestamped filename
+        print(f"CSV recording started. Data will be saved to {csv_filename}")  # Notify user
+    # Initialize GUI if requested
+    if gui_flag:
+        init_gui()  # Initialize GUI
+        if lsl_flag:
+            lsl_label.setText("LSL Status: Started")  # Update LSL status in the GUI
+        if csv_flag:
+            csv_label.setText(f"CSV Recording: {csv_filename}")  # Update CSV status in the GUI
+
+    # Open serial connection
     with serial.Serial(port, baudrate, timeout=0.1) as ser:
-        csv_file = open(csv_filename, mode='w', newline='') if csv_flag else None  # Open CSV file if needed
-        
-        if csv_file:  # If CSV file is opened
-            csv_writer = csv.writer(csv_file)  # Initialize CSV writer
-            # Write the header row to the CSV file
-            csv_writer.writerow(['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])
+        csv_file = open(csv_filename, mode='w', newline='') if csv_flag else None  # Open CSV file if logging is enabled
+        if csv_file:
+            csv_writer = csv.writer(csv_file)  # Create CSV writer
+            csv_writer.writerow(['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])  # Write header
 
-        start_timer()  # Start the timers for 10-second and 10-minute intervals
+        start_timer()  # Start timers for logging
 
         try:
-            while True:  # Main loop for data reading and processing
+            while True:
                 read_arduino_data(ser, csv_writer)  # Read and process data from Arduino
-
                 current_time = time.time()  # Get the current time
+                elapsed_time = current_time - start_time  # Time elapsed since the last second
+                elapsed_since_last_10_minutes = current_time - last_ten_minute_time  # Time elapsed since the last 10-minute interval
 
-                # Calculate elapsed time since last 10-second and 10-minute logs
-                elapsed_time = current_time - start_time
-                elapsed_since_last_10_minutes = current_time - last_ten_minute_time
+                if elapsed_time >= 1:  # Check if one second has passed
+                    log_one_second_data(verbose)  # Log data for the last second
+                    start_time = current_time  # Reset the start time for the next second
+                if elapsed_since_last_10_minutes >= 600:  # Check if 10 minutes have passed
+                    log_ten_minute_data(verbose)  # Log data for the last 10 minutes
+                if gui_flag:
+                    QtWidgets.QApplication.processEvents()  # Process GUI events if GUI is enabled
+                
+        except KeyboardInterrupt:  # Handle interruption (Ctrl+C)
+            if csv_file:
+                csv_file.close()  # Close CSV file
+                print(f"CSV recording stopped. Data saved to {csv_filename}.")  # Notify user
+            print(f"Exiting.\nTotal missing samples: {missing_samples}")  # Print final missing samples count
 
-                if elapsed_time >= 10:  # If 10 seconds have passed
-                    log_ten_second_data(verbose)  # Log data for the 10-second interval
-                    start_time = current_time  # Reset the start time for the next 10 seconds
-                if elapsed_since_last_10_minutes >= 600:  # If 10 minutes have passed
-                    log_ten_minute_data(verbose)  # Log data for the 10-minute interval
-        except KeyboardInterrupt:  # Handle keyboard interrupt (Ctrl+C)
-            if csv_file:  # If CSV file is opened
-                csv_file.close()  # Close the CSV file
-                print(f"CSV recording stopped. Data saved to {csv_filename}.")  # Print confirmation
-            print(f"Exiting.\nTotal missing samples: {missing_samples}")  # Print the total number of missing samples
-
+# Main entry point of the script
 def main():
-    """
-    Main function to handle argument parsing and initiate data processing.
-    """
     global verbose
-    parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool")  # Initialize argument parser
-    parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Argument for specifying the serial port
-    parser.add_argument('-b', '--baudrate', type=int, default=57600, help="Set baud rate for the serial communication")# baud rate
-    parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # Flag to enable CSV logging
-    parser.add_argument('--lsl', action='store_true', help="Start LSL stream")  # Flag to enable LSL streaming
-    parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output with statistical data")  #  verbose output
+    parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool")  # Create argument parser
+    parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
+    parser.add_argument('-b', '--baudrate', type=int, default=57600, help="Set baud rate for the serial communication")  # Baud rate argument
+    parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
+    parser.add_argument('--lsl', action='store_true', help="Start LSL stream")  # LSL streaming flag
+    parser.add_argument('--gui', action='store_true', help="Start GUI for real-time plotting")  # GUI flag
+    parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output with statistical data")  # Verbose flag
 
     args = parser.parse_args()  # Parse command-line arguments
-    verbose = args.verbose  # Set the global verbose flag
+    verbose = args.verbose  # Set verbose mode
 
-    if not args.csv and not args.lsl:  # Check if neither CSV nor LSL is enabled
-        parser.print_help()  # Print help message
+    # Check if any logging or GUI options are selected, else show help
+    if not args.csv and not args.lsl and not args.gui:
+        parser.print_help()  # Print help if no options are selected
         return
-    # Get the specified port or auto-detect Arduino if no port is specified
-    port = args.port or auto_detect_arduino(args.baudrate)
-    if port is None:  # If no port is found or specified
-        print("Arduino port not specified or detected. Exiting.")  # Print error message
-        return
-    # Start data parsing and processing
-    parse_data(port, args.baudrate, lsl_flag=args.lsl, csv_flag=args.csv, verbose=args.verbose)
 
+    port = args.port or auto_detect_arduino(args.baudrate)  # Get the port from arguments or auto-detect
+    if port is None:
+        print("Arduino port not specified or detected. Exiting.")  # Notify if no port is available
+        return
+
+    # Start data acquisition
+    parse_data(port, args.baudrate, lsl_flag=args.lsl, csv_flag=args.csv, gui_flag=args.gui, verbose=args.verbose)
+
+# Run the main function if this script is executed
 if __name__ == "__main__":
-    main()  # Call the main function when script is executed directly
+    main()
