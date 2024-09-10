@@ -5,7 +5,7 @@ The BioAmp Tool is a Python script designed to interface with an Arduino-based b
 ## Features
 
 - **Automatic Arduino Detection:** Automatically detects connected Arduino devices via serial ports.
-- **Data Reading:** Reads and processes data packets from the Arduino.
+- **Data Reading:** Read  ModularEEG P2 format data packets from the Arduino's serial port.
 - **CSV Logging:** Optionally logs data to a CSV file.
 - **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
 - **Verbose Output:** Provides detailed statistics and error reporting, including sampling rate and drift.
@@ -26,16 +26,24 @@ The BioAmp Tool is a Python script designed to interface with an Arduino-based b
 1. Ensure you have Python 3.x installed.
 2. Install the required Python libraries:
     ```bash
-    pip install pyqtgraph pyqt5 numpy pyserial pylsl
+    pip install -r requirements.txt
     ```
 
 ## Usage
 
 To use the script, run it from the command line with various options:
 
-```bash
-python bioamp_tool.py [options]
-```
+First Create Virtual Environment
+
+  ```bash
+   python -m venv venv      #Create Virtual Environment
+   .\venv\Scripts\activate  #to activate environment 
+  ```
+Then,
+
+  ```bash
+  python bioamp_tool.py [options]
+  ```
 
 ### Options
 
@@ -48,17 +56,6 @@ python bioamp_tool.py [options]
 
 ## Script Functions
 
-<<<<<<< HEAD
-- `auto_detect_arduino(baudrate, timeout=1)`
-
-Detects an Arduino connected via serial port. Returns the port name if detected.
-
-- `read_arduino_data(ser, csv_writer=None)`
-
-Reads and processes data from the Arduino. Writes data to CSV and/or LSL stream if enabled.
-
-- `start_timer()`
-=======
  `auto_detect_arduino(baudrate, timeout=1)`
 
 Detects an Arduino connected via serial port. Returns the port name if detected.
@@ -68,43 +65,26 @@ Detects an Arduino connected via serial port. Returns the port name if detected.
 Reads and processes data from the Arduino. Writes data to CSV and/or LSL stream if enabled.
 
  `start_timer()`
->>>>>>> dad0c5ce4e301f8187a6a047dda450833539ab61
 
 Initializes timers for 1-second and 10-minute intervals.
 
-<<<<<<< HEAD
-- `log_ten_second_data(verbose=False)`
-=======
  `log_one_second_data(verbose=False)`
->>>>>>> dad0c5ce4e301f8187a6a047dda450833539ab61
 
 Logs and resets data for the 1-second interval.
 
-<<<<<<< HEAD
-- `log_ten_minute_data(verbose=False)`
-
-Logs data and statistics for the 10-minute interval.
-
-- `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, verbose=False)`
-=======
  `log_ten_minute_data(verbose=False)`
 
 Logs data and statistics for the 10-minute interval.
 
  `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False)`
->>>>>>> dad0c5ce4e301f8187a6a047dda450833539ab61
 
 Parses data from Arduino and manages logging, streaming, and GUI updates.
 
-<<<<<<< HEAD
-- `main()`
-=======
  `init_gui()`
 
 Initializes and displays the GUI with six real-time plots, one for each bio-signal channel.
 
  `main()`
->>>>>>> dad0c5ce4e301f8187a6a047dda450833539ab61
 
 Handles command-line argument parsing and initiates data processing.
 
@@ -137,9 +117,4 @@ If GUI is not enabled, you can use an LSL viewer (e.g., BrainVision LSL Viewer) 
 
 We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
-<<<<<<< HEAD
 - [Payal Lakra](https://github.com/payallakra)
- 
-=======
-- [Payal Lakra](https://github.com/payallakra)
->>>>>>> dad0c5ce4e301f8187a6a047dda450833539ab61
