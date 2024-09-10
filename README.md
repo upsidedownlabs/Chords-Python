@@ -1,14 +1,15 @@
-## BioAmp-Tool-Python
+## BioAmp Tool - Python
 
-The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, and optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL).
+The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
 
 ## Features
 
 - **Automatic Arduino Detection:** Automatically detects connected Arduino devices via serial ports.
-- **Data Reading:** Reads ModularEEG P2 format data packets from the Arduino's serial port.
+- **Data Reading:** Read  ModularEEG P2 format data packets from the Arduino's serial port.
 - **CSV Logging:** Optionally logs data to a CSV file.
 - **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
-- **Verbose Output:** Provides detailed statistics and error reporting.
+- **Verbose Output:** Provides detailed statistics and error reporting, including sampling rate and drift.
+- **GUI:** Live plotting of six channels using a PyQt-based GUI.
 
 ## Requirements
 
@@ -16,70 +17,85 @@ The BioAmp Tool is a Python script designed to interface with an Arduino-based b
 - `pyserial` library (for serial communication)
 - `pylsl` library (for LSL streaming)
 - `argparse`, `time`, `csv`, `datetime` (standard libraries)
+- `pyqtgraph` library (for GUI)
+- `PyQt5` library
+- `numpy` library
 
 ## Installation
 
 1. Ensure you have Python 3.x installed.
 2. Install the required Python libraries:
-   ```bash
-   pip install pyserial pylsl
-   ```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 
-To use the script, you can run it from the command line with various options:
+To use the script, run it from the command line with various options:
 
-```bash
-python bioamp_tool.py [options]
-```
+First Create Virtual Environment
+
+  ```bash
+   python -m venv venv      #Create Virtual Environment
+   .\venv\Scripts\activate  #to activate environment 
+  ```
+Then,
+
+  ```bash
+  python bioamp_tool.py [options]
+  ```
 
 ### Options
 
 - `-p`, `--port` <port>: Specify the serial port to use (e.g., COM5, /dev/ttyUSB0).
-- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 57600).
-- `--csv`: Enable CSV logging. Data will be saved to a file with a timestamped name.
+- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 115200).
+- `--csv`: Enable CSV logging. Data will be saved to a timestamped file.
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
-
+- `--gui`: Enable the real-time data plotting GUI.
 
 ## Script Functions
 
-- `auto_detect_arduino(baudrate, timeout=1)`
+ `auto_detect_arduino(baudrate, timeout=1)`
 
 Detects an Arduino connected via serial port. Returns the port name if detected.
 
-- `read_arduino_data(ser, csv_writer=None)`
+`read_arduino_data(ser, csv_writer=None)`
 
 Reads and processes data from the Arduino. Writes data to CSV and/or LSL stream if enabled.
 
-- `start_timer()`
+ `start_timer()`
 
-Initializes timers for 10-second and 10-minute intervals.
+Initializes timers for 1-second and 10-minute intervals.
 
-- `log_ten_second_data(verbose=False)`
+ `log_one_second_data(verbose=False)`
 
-Logs and resets data for the 10-second interval.
+Logs and resets data for the 1-second interval.
 
-- `log_ten_minute_data(verbose=False)`
+ `log_ten_minute_data(verbose=False)`
 
 Logs data and statistics for the 10-minute interval.
 
-- `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, verbose=False)`
+ `parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False)`
 
-Parses data from Arduino and manages logging and streaming.
+Parses data from Arduino and manages logging, streaming, and GUI updates.
 
-- `main()`
+ `init_gui()`
+
+Initializes and displays the GUI with six real-time plots, one for each bio-signal channel.
+
+ `main()`
 
 Handles command-line argument parsing and initiates data processing.
 
 ## Data Logging
 
-- **CSV Output**: The script saves the processed data in a CSV file named `packet_data.csv`.
-  - The CSV contains the following columns:
+- **CSV Output**: The script saves the processed data in a CSV file with a timestamped name.
+  - The CSV file contains the following columns:
     - `Counter`: The sample counter from the Arduino.
     - `Channel1` to `Channel6`: The data values from each channel.
 
-- **Log Intervals**: The script logs data counts every minute and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
+- **Log Intervals**: The script logs data counts every second and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
 
 ## LSL Streaming
 
@@ -89,7 +105,7 @@ Handles command-line argument parsing and initiates data processing.
 - **Sampling Rate**: `250 Hz`
 - **Data Format**: `float32`
 
-Use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data in real-time.
+If GUI is not enabled, you can use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data in real-time.
 
 ## Troubleshooting
 
@@ -102,4 +118,3 @@ Use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data 
 We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
 - [Payal Lakra](https://github.com/payallakra)
- 
