@@ -38,6 +38,7 @@ import serial.tools.list_ports  # To list available serial ports
 import numpy as np  # For handling numeric arrays
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
+import msvcrt  #for keyboard interruptions
 
 # Initialize global variables for tracking and processing data
 total_packet_count = 0  # Total packets received in the last second
@@ -47,15 +48,18 @@ last_ten_minute_time = None  # Track the last 10-minute interval
 previous_sample_number = None  # Store the previous sample number for detecting missing samples
 missing_samples = 0  # Count of missing samples due to packet loss
 buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
-PACKET_LENGTH = 17  # Expected length of each data packet
-SYNC_BYTE1 = 0xA5  # First byte of sync marker
-SYNC_BYTE2 = 0x5A  # Second byte of sync marker
+PACKET_LENGTH = 16  # Expected length of each data packet
+SYNC_BYTE1 = 0xc7  # First byte of sync marker
+SYNC_BYTE2 = 0x7c  # Second byte of sync marker
 END_BYTE = 0x01  # End byte marker
+NUM_CHANNELS = 6
+HEADER_LENGTH = 3
 lsl_outlet = None  # Placeholder for LSL stream outlet
 verbose = False  # Flag for verbose output mode
 data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
 csv_filename = None  # Store CSV filename
 samples_per_second = 0  # Number of samples received per second
+
 
 # Function to automatically detect the Arduino's serial port
 def auto_detect_arduino(baudrate, timeout=1):
@@ -81,7 +85,6 @@ def read_arduino_data(ser, csv_writer=None):
 
     raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
     buffer.extend(raw_data)  # Add received data to the buffer
-
     while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
         sync_index = buffer.find(bytes([SYNC_BYTE1, SYNC_BYTE2]))  # Search for the sync marker
 
@@ -93,7 +96,7 @@ def read_arduino_data(ser, csv_writer=None):
             packet = buffer[sync_index:sync_index + PACKET_LENGTH]  # Extract the packet
             if len(packet) == PACKET_LENGTH and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
                 # Extract the packet if it is valid (correct length, sync bytes, and end byte)
-                counter = packet[3]  # Read the counter byte (for tracking sample order)
+                counter = packet[2]  # Read the counter byte (for tracking sample order)
 
                 # Check for missing samples by comparing the counter values
                 if previous_sample_number is not None and counter != (previous_sample_number + 1) % 256:
@@ -107,9 +110,9 @@ def read_arduino_data(ser, csv_writer=None):
 
                 # Extract channel data (6 channels, 2 bytes per channel)
                 channel_data = []
-                for i in range(4, 16, 2):  # Loop through channel data bytes
-                    high_byte = packet[i]
-                    low_byte = packet[i + 1]
+                for channel in range(NUM_CHANNELS):  # Loop through channel data bytes
+                    high_byte = packet[2*channel + HEADER_LENGTH]
+                    low_byte = packet[2*channel + HEADER_LENGTH + 1]
                     value = (high_byte << 8) | low_byte  # Combine high and low bytes
                     channel_data.append(float(value))  # Convert to float and add to channel data
 
@@ -249,6 +252,7 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
         start_timer()  # Start timers for logging
 
         try:
+            ser.write(b'START\n')
             while True:
                 read_arduino_data(ser, csv_writer)  # Read and process data from Arduino
                 current_time = time.time()  # Get the current time
@@ -262,13 +266,22 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
                     log_ten_minute_data(verbose)  # Log data for the last 10 minutes
                 if gui_flag:
                     QtWidgets.QApplication.processEvents()  # Process GUI events if GUI is enabled
-                
-        except KeyboardInterrupt:  # Handle interruption (Ctrl+C)
-            if csv_file:
-                csv_file.close()  # Close CSV file
-                print(f"CSV recording stopped. Data saved to {csv_filename}.")  # Notify user
-            print(f"Exiting.\nTotal missing samples: {missing_samples}")  # Print final missing samples count
+                    
+                if msvcrt.kbhit() and msvcrt.getch() == b'q':  # Exit the loop if 'q' is pressed
+                    ser.write(b'STOP\n')
+                    print("Process interrupted by user")
+                    break
 
+        except KeyboardInterrupt:
+            ser.write(b'STOP\n')
+            print("Process interrupted by user")
+
+        finally:
+            if csv_file:
+                csv_file.close()
+                print(f"CSV recording saved as {csv_filename}")
+            print(f"Exiting.\nTotal missing samples: {missing_samples}")  # Print final missing samples count
+        
 # Main entry point of the script
 def main():
     global verbose
