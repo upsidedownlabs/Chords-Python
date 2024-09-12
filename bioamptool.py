@@ -38,6 +38,7 @@ import serial.tools.list_ports  # To list available serial ports
 import numpy as np  # For handling numeric arrays
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
+import msvcrt  #For keyboard interruptions
 
 # Initialize global variables for tracking and processing data
 total_packet_count = 0  # Total packets received in the last second
@@ -47,15 +48,25 @@ last_ten_minute_time = None  # Track the last 10-minute interval
 previous_sample_number = None  # Store the previous sample number for detecting missing samples
 missing_samples = 0  # Count of missing samples due to packet loss
 buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
-PACKET_LENGTH = 17  # Expected length of each data packet
-SYNC_BYTE1 = 0xA5  # First byte of sync marker
-SYNC_BYTE2 = 0x5A  # Second byte of sync marker
+NUM_CHANNELS = 6    #Number of Channels being received
+data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
+samples_per_second = 0  # Number of samples received per second
+
+# Initialize gloabal variables for Arduino Board
+board = ""          # Variable for Connected Arduino Board
+boards_sample_rate = {"UNO-R3":250, "UNO-R4":500}   #Standard Sample rate for Arduino Boards Different Firmware
+
+# Initialize gloabal variables for Incoming Data
+PACKET_LENGTH = 16  # Expected length of each data packet
+SYNC_BYTE1 = 0xc7  # First byte of sync marker
+SYNC_BYTE2 = 0x7c  # Second byte of sync marker
 END_BYTE = 0x01  # End byte marker
+HEADER_LENGTH = 3   #Length of the Packet Header
+
+## Initialize gloabal variables for Output
 lsl_outlet = None  # Placeholder for LSL stream outlet
 verbose = False  # Flag for verbose output mode
-data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
 csv_filename = None  # Store CSV filename
-samples_per_second = 0  # Number of samples received per second
 
 # Function to automatically detect the Arduino's serial port
 def auto_detect_arduino(baudrate, timeout=1):
@@ -63,11 +74,14 @@ def auto_detect_arduino(baudrate, timeout=1):
     for port in ports:  # Iterate through each port
         try:
             ser = serial.Serial(port.device, baudrate=baudrate, timeout=timeout)  # Try opening the port
+            ser.write(b'WHORU\n')
             time.sleep(1)  # Wait for the device to initialize
-            response = ser.readline().strip()  # Try reading from the port
+            response = ser.readline().strip().decode()  # Try reading from the port
             if response:  # If response is received, assume it's the Arduino
+                global board
                 ser.close()  # Close the serial connection
-                print(f"Arduino detected at {port.device}")  # Notify the user
+                print(f"{response} detected at {port.device}")  # Notify the user
+                board = response
                 return port.device  # Return the port name
             ser.close()  # Close the port if no response
         except (OSError, serial.SerialException):  # Handle exceptions if the port can't be opened
@@ -81,7 +95,6 @@ def read_arduino_data(ser, csv_writer=None):
 
     raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
     buffer.extend(raw_data)  # Add received data to the buffer
-
     while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
         sync_index = buffer.find(bytes([SYNC_BYTE1, SYNC_BYTE2]))  # Search for the sync marker
 
@@ -93,7 +106,7 @@ def read_arduino_data(ser, csv_writer=None):
             packet = buffer[sync_index:sync_index + PACKET_LENGTH]  # Extract the packet
             if len(packet) == PACKET_LENGTH and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
                 # Extract the packet if it is valid (correct length, sync bytes, and end byte)
-                counter = packet[3]  # Read the counter byte (for tracking sample order)
+                counter = packet[2]  # Read the counter byte (for tracking sample order)
 
                 # Check for missing samples by comparing the counter values
                 if previous_sample_number is not None and counter != (previous_sample_number + 1) % 256:
@@ -107,9 +120,9 @@ def read_arduino_data(ser, csv_writer=None):
 
                 # Extract channel data (6 channels, 2 bytes per channel)
                 channel_data = []
-                for i in range(4, 16, 2):  # Loop through channel data bytes
-                    high_byte = packet[i]
-                    low_byte = packet[i + 1]
+                for channel in range(NUM_CHANNELS):  # Loop through channel data bytes
+                    high_byte = packet[2*channel + HEADER_LENGTH]
+                    low_byte = packet[2*channel + HEADER_LENGTH + 1]
                     value = (high_byte << 8) | low_byte  # Combine high and low bytes
                     channel_data.append(float(value))  # Convert to float and add to channel data
 
@@ -208,7 +221,7 @@ def log_ten_minute_data(verbose=False):
         print(f"Total data count after 10 minutes: {cumulative_packet_count}")  # Print cumulative data count
         sampling_rate = cumulative_packet_count / (10 * 60)  # Calculate sampling rate
         print(f"Sampling rate: {sampling_rate:.2f} samples/second")  # Print sampling rate
-        expected_sampling_rate = 250  # Expected sampling rate
+        expected_sampling_rate = boards_sample_rate[board]  # Expected sampling rate
         drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift
         print(f"Drift: {drift:.2f} seconds/hour")  # Print drift
     cumulative_packet_count = 0  # Reset cumulative packet count
@@ -222,7 +235,7 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
 
     # Start LSL streaming if requested
     if lsl_flag:
-        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, 250, 'float32', 'UpsideDownLabs')  # Define LSL stream info
+        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, boards_sample_rate[board], 'float32', 'UpsideDownLabs')  # Define LSL stream info
         lsl_outlet = StreamOutlet(lsl_stream_info)  # Create LSL outlet
         print("LSL stream started")  # Notify user
         time.sleep(0.5)  # Wait for the LSL stream to start
@@ -249,6 +262,7 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
         start_timer()  # Start timers for logging
 
         try:
+            ser.write(b'START\n')
             while True:
                 read_arduino_data(ser, csv_writer)  # Read and process data from Arduino
                 current_time = time.time()  # Get the current time
@@ -262,13 +276,22 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
                     log_ten_minute_data(verbose)  # Log data for the last 10 minutes
                 if gui_flag:
                     QtWidgets.QApplication.processEvents()  # Process GUI events if GUI is enabled
-                
-        except KeyboardInterrupt:  # Handle interruption (Ctrl+C)
-            if csv_file:
-                csv_file.close()  # Close CSV file
-                print(f"CSV recording stopped. Data saved to {csv_filename}.")  # Notify user
-            print(f"Exiting.\nTotal missing samples: {missing_samples}")  # Print final missing samples count
+                    
+                if msvcrt.kbhit() and msvcrt.getch() == b'q':  # Exit the loop if 'q' is pressed
+                    ser.write(b'STOP\n')
+                    print("Process interrupted by user")
+                    break
 
+        except KeyboardInterrupt:
+            ser.write(b'STOP\n')
+            print("Process interrupted by user")
+
+        finally:
+            if csv_file:
+                csv_file.close()
+                print(f"CSV recording saved as {csv_filename}")
+            print(f"Exiting.\nTotal missing samples: {missing_samples}")  # Print final missing samples count
+        
 # Main entry point of the script
 def main():
     global verbose

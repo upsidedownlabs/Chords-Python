@@ -2,3 +2,4 @@ numpy==2.1.1
 pylsl==1.16.2
 pyqtgraph==0.13.7
 pyserial==3.5
+PySide2==5.15.2.1
