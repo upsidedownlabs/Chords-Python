@@ -1,6 +1,8 @@
-## BioAmp Tool - Python
+# BioAmp Tool - Python
 
 The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
+
+**_Note_**: Flash Arduino code to your hardware from [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware) to use this python tool.
 
 ## Features
 
@@ -13,7 +15,7 @@ The BioAmp Tool is a Python script designed to interface with an Arduino-based b
 
 ## Requirements
 
-- Python 3.x
+-  Python 3.x
 - `pyserial` library (for serial communication)
 - `pylsl` library (for LSL streaming)
 - `argparse`, `time`, `csv`, `datetime` (standard libraries)
@@ -102,7 +104,8 @@ Handles command-line argument parsing and initiates data processing.
 - **Stream Name**: `BioAmpDataStream`
 - **Stream Type**: `EXG`
 - **Channel Count**: `6`
-- **Sampling Rate**: `250 Hz`
+- **Sampling Rate**: `250 Hz` for `UNO-R3`
+                   : `500 Hz` for `UNO-R4`
 - **Data Format**: `float32`
 
 If GUI is not enabled, you can use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data in real-time.

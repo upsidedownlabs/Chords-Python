@@ -38,7 +38,7 @@ import serial.tools.list_ports  # To list available serial ports
 import numpy as np  # For handling numeric arrays
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
-import msvcrt  #for keyboard interruptions
+import msvcrt  #For keyboard interruptions
 
 # Initialize global variables for tracking and processing data
 total_packet_count = 0  # Total packets received in the last second
@@ -48,18 +48,25 @@ last_ten_minute_time = None  # Track the last 10-minute interval
 previous_sample_number = None  # Store the previous sample number for detecting missing samples
 missing_samples = 0  # Count of missing samples due to packet loss
 buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
+NUM_CHANNELS = 6    #Number of Channels being received
+data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
+samples_per_second = 0  # Number of samples received per second
+
+# Initialize gloabal variables for Arduino Board
+board = ""          # Variable for Connected Arduino Board
+boards_sample_rate = {"UNO-R3":250, "UNO-R4":500}   #Standard Sample rate for Arduino Boards Different Firmware
+
+# Initialize gloabal variables for Incoming Data
 PACKET_LENGTH = 16  # Expected length of each data packet
 SYNC_BYTE1 = 0xc7  # First byte of sync marker
 SYNC_BYTE2 = 0x7c  # Second byte of sync marker
 END_BYTE = 0x01  # End byte marker
-NUM_CHANNELS = 6
-HEADER_LENGTH = 3
+HEADER_LENGTH = 3   #Length of the Packet Header
+
+## Initialize gloabal variables for Output
 lsl_outlet = None  # Placeholder for LSL stream outlet
 verbose = False  # Flag for verbose output mode
-data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
 csv_filename = None  # Store CSV filename
-samples_per_second = 0  # Number of samples received per second
-
 
 # Function to automatically detect the Arduino's serial port
 def auto_detect_arduino(baudrate, timeout=1):
@@ -67,11 +74,14 @@ def auto_detect_arduino(baudrate, timeout=1):
     for port in ports:  # Iterate through each port
         try:
             ser = serial.Serial(port.device, baudrate=baudrate, timeout=timeout)  # Try opening the port
+            ser.write(b'WHORU\n')
             time.sleep(1)  # Wait for the device to initialize
-            response = ser.readline().strip()  # Try reading from the port
+            response = ser.readline().strip().decode()  # Try reading from the port
             if response:  # If response is received, assume it's the Arduino
+                global board
                 ser.close()  # Close the serial connection
-                print(f"Arduino detected at {port.device}")  # Notify the user
+                print(f"{response} detected at {port.device}")  # Notify the user
+                board = response
                 return port.device  # Return the port name
             ser.close()  # Close the port if no response
         except (OSError, serial.SerialException):  # Handle exceptions if the port can't be opened
@@ -211,7 +221,7 @@ def log_ten_minute_data(verbose=False):
         print(f"Total data count after 10 minutes: {cumulative_packet_count}")  # Print cumulative data count
         sampling_rate = cumulative_packet_count / (10 * 60)  # Calculate sampling rate
         print(f"Sampling rate: {sampling_rate:.2f} samples/second")  # Print sampling rate
-        expected_sampling_rate = 250  # Expected sampling rate
+        expected_sampling_rate = boards_sample_rate[board]  # Expected sampling rate
         drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift
         print(f"Drift: {drift:.2f} seconds/hour")  # Print drift
     cumulative_packet_count = 0  # Reset cumulative packet count
@@ -225,7 +235,7 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
 
     # Start LSL streaming if requested
     if lsl_flag:
-        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, 250, 'float32', 'UpsideDownLabs')  # Define LSL stream info
+        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, boards_sample_rate[board], 'float32', 'UpsideDownLabs')  # Define LSL stream info
         lsl_outlet = StreamOutlet(lsl_stream_info)  # Create LSL outlet
         print("LSL stream started")  # Notify user
         time.sleep(0.5)  # Wait for the LSL stream to start
