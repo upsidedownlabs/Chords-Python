@@ -3,7 +3,7 @@
 The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
 
 > [!NOTE]
-> Flash Arduino code to your hardware from [Chords Arduino Firmware (https://github.com/upsidedownlabs/Chords-Arduino-Firmware) to use this python tool.
+> Flash Arduino code to your hardware from [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware) to use this python tool.
 
 ## Features
 
