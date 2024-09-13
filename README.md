@@ -104,8 +104,7 @@ Handles command-line argument parsing and initiates data processing.
 - **Stream Name**: `BioAmpDataStream`
 - **Stream Type**: `EXG`
 - **Channel Count**: `6`
-- **Sampling Rate**: `250 Hz` for `UNO-R3`
-                   : `500 Hz` for `UNO-R4`
+- **Sampling Rate**: `UNO-R3 : 250 Hz` , `UNO-R4 : 500 Hz`
 - **Data Format**: `float32`
 
 If GUI is not enabled, you can use an LSL viewer (e.g., BrainVision LSL Viewer) to visualize the streamed data in real-time.
