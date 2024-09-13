@@ -48,7 +48,6 @@ last_ten_minute_time = None  # Track the last 10-minute interval
 previous_sample_number = None  # Store the previous sample number for detecting missing samples
 missing_samples = 0  # Count of missing samples due to packet loss
 buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
-NUM_CHANNELS = 6    #Number of Channels being received
 data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
 samples_per_second = 0  # Number of samples received per second
 
@@ -61,6 +60,7 @@ PACKET_LENGTH = 16  # Expected length of each data packet
 SYNC_BYTE1 = 0xc7  # First byte of sync marker
 SYNC_BYTE2 = 0x7c  # Second byte of sync marker
 END_BYTE = 0x01  # End byte marker
+NUM_CHANNELS = 6    #Number of Channels being received
 HEADER_LENGTH = 3   #Length of the Packet Header
 
 ## Initialize gloabal variables for Output
