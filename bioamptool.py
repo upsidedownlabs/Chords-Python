@@ -38,8 +38,8 @@ import serial.tools.list_ports  # To list available serial ports
 import numpy as np  # For handling numeric arrays
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
-import keyboard  #For keyboard interruptions
-import sys   #To interact with the Python runtime environment
+import sys
+import signal
 
 # Initialize global variables for tracking and processing data
 total_packet_count = 0  # Total packets received in the last second
@@ -51,10 +51,11 @@ missing_samples = 0  # Count of missing samples due to packet loss
 buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
 data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
 samples_per_second = 0  # Number of samples received per second
+retry_limit = 4
 
 # Initialize gloabal variables for Arduino Board
 board = ""          # Variable for Connected Arduino Board
-boards_sample_rate = {"UNO-R3":250, "UNO-R4":500}   #Standard Sample rate for Arduino Boards Different Firmware
+supported_boards = {"UNO-R3":250, "UNO-R4":500}   #Supported boards and their sampling rate
 
 # Initialize gloabal variables for Incoming Data
 PACKET_LENGTH = 16  # Expected length of each data packet
@@ -69,32 +70,53 @@ lsl_outlet = None  # Placeholder for LSL stream outlet
 verbose = False  # Flag for verbose output mode
 csv_filename = None  # Store CSV filename
 
-# Function to automatically detect the Arduino's serial port
-def auto_detect_arduino(baudrate, timeout=1):
-    ports = serial.tools.list_ports.comports()  # List available serial ports
-    for port in ports:  # Iterate through each port
-        try:
-            ser = serial.Serial(port.device, baudrate=baudrate, timeout=timeout)  # Try opening the port
-            time.sleep(2)  # Wait for the device to initialize
+def connect_hardware(port, baudrate, timeout=1):
+    try:
+        ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)  # Try opening the port
+        response = None
+        retry_counter = 0
+        while response is None or retry_counter < retry_limit:
             ser.write(b'WHORU\n') # Check board type
             response = ser.readline().strip().decode()  # Try reading from the port
-            if response:  # If response is received, assume it's the Arduino
+            retry_counter += 1
+            if response in supported_boards:  # If response is received, assume it's the Arduino
                 global board
-                ser.close()  # Close the serial connection
-                print(f"{response} detected at {port.device}")  # Notify the user
-                board = response
-                return port.device  # Return the port name
-            ser.close()  # Close the port if no response
-        except (OSError, serial.SerialException):  # Handle exceptions if the port can't be opened
-            pass
-    print("Arduino not detected")  # Notify if no Arduino is found
+                board = response # Set board type
+                print(f"{response} detected at {port}")  # Notify the user
+                if ser is not None:
+                    return ser  # Return the port name
+        ser.close()  # Close the port if no response
+    except (OSError, serial.SerialException):  # Handle exceptions if the port can't be opened
+        pass
+    print("Unable to connect to any hardware!")  # Notify if no Arduino is found
     return None  # Return None if not found
+
+# Function to automatically detect the Arduino's serial port
+def detect_hardware(baudrate, timeout=1):
+    ports = serial.tools.list_ports.comports()  # List available serial ports
+    ser = None
+    for port in ports:  # Iterate through each port
+        ser = connect_hardware(port.device, baudrate)
+        if ser is not None:
+            return ser
+    print("Unable to detect hardware!")  # Notify if no Arduino is found
+    return None  # Return None if not found
+
+def send_command(ser, command):
+    ser.flushInput()   # Clear the input buffer
+    ser.flushOutput()  # Clear the output buffer
+    ser.write((command + '\n').encode())  # Send command
+    time.sleep(0.1)  # Wait briefly to ensure Arduino processes the command
+    response = ser.readline().decode('utf-8', errors='ignore').strip()  # Read response
+    return response
 
 # Function to read data from Arduino
 def read_arduino_data(ser, csv_writer=None):
     global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer, data
-
     raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
+    if raw_data == b'':
+        print("Raw Data:", raw_data)
+        send_command(ser, 'START')
     buffer.extend(raw_data)  # Add received data to the buffer
     while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
         sync_index = buffer.find(bytes([SYNC_BYTE1, SYNC_BYTE2]))  # Search for the sync marker
@@ -106,6 +128,9 @@ def read_arduino_data(ser, csv_writer=None):
         if len(buffer) >= sync_index + PACKET_LENGTH:  # Check if a full packet is available
             packet = buffer[sync_index:sync_index + PACKET_LENGTH]  # Extract the packet
             if len(packet) == PACKET_LENGTH and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
+                if(start_time is None):
+                    start_timer()  # Start timers for logging
+
                 # Extract the packet if it is valid (correct length, sync bytes, and end byte)
                 counter = packet[2]  # Read the counter byte (for tracking sample order)
 
@@ -200,7 +225,6 @@ def init_gui():
 # Function to start timers for logging data
 def start_timer():
     global start_time, last_ten_minute_time, total_packet_count, cumulative_packet_count
-    time.sleep(0.5)  # Give some time to settle before starting
     current_time = time.time()  # Get the current time
     start_time = current_time  # Set the start time for packet counting
     last_ten_minute_time = current_time  # Set the start time for 10-minute interval logging
@@ -222,82 +246,77 @@ def log_ten_minute_data(verbose=False):
         print(f"Total data count after 10 minutes: {cumulative_packet_count}")  # Print cumulative data count
         sampling_rate = cumulative_packet_count / (10 * 60)  # Calculate sampling rate
         print(f"Sampling rate: {sampling_rate:.2f} samples/second")  # Print sampling rate
-        expected_sampling_rate = boards_sample_rate[board]  # Expected sampling rate
+        expected_sampling_rate = supported_boards[board]  # Expected sampling rate
         drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift
         print(f"Drift: {drift:.2f} seconds/hour")  # Print drift
     cumulative_packet_count = 0  # Reset cumulative packet count
     last_ten_minute_time = time.time()  # Update the last 10-minute interval start time
 
 # Main function to parse command-line arguments and handle data acquisition
-def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False, run_time=None):
+def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False, run_time=None):
     global total_packet_count, cumulative_packet_count, start_time, lsl_outlet, last_ten_minute_time, csv_filename
 
     csv_writer = None  # Placeholder for CSV writer
-    ser = None
     csv_file = None
 
     # Start LSL streaming if requested
     if lsl_flag:
-        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, boards_sample_rate[board], 'float32', 'UpsideDownLabs')  # Define LSL stream info
+        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, supported_boards[board], 'float32', 'UpsideDownLabs')  # Define LSL stream info
         lsl_outlet = StreamOutlet(lsl_stream_info)  # Create LSL outlet
         print("LSL stream started")  # Notify user
-        time.sleep(0.5)  # Wait for the LSL stream to start
     
     if csv_flag:
         csv_filename = f"data_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"  # Create timestamped filename
         print(f"CSV recording started. Data will be saved to {csv_filename}")  # Notify user
+
     # Initialize GUI if requested
     if gui_flag:
         init_gui()  # Initialize GUI
         if lsl_flag:
             lsl_label.setText("LSL Status: Started")  # Update LSL status in the GUI
         if csv_flag:
-            csv_label.setText(f"CSV Recording: {csv_filename}")  # Update CSV status in the GUI
+            csv_label.setText(f"CSV Recording: {csv_filename}")  # Update CSV status in the GUI     
 
     try:
-        ser = serial.Serial(port, baudrate, timeout=0.1)
         csv_file = open(csv_filename, mode='w', newline='') if csv_flag else None  # Open CSV file if logging is
         if csv_file:
             csv_writer = csv.writer(csv_file)  # Create CSV writer
             csv_writer.writerow(['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])  # Write header
 
-        start_timer()  # Start timers for logging
         end_time = time.time() + run_time if run_time else None
+        send_command(ser, 'START')
 
-        ser.write(b'START\n')
         while True:
             read_arduino_data(ser, csv_writer)  # Read and process data from Arduino
-            current_time = time.time()   # Get the current time
-            elapsed_time = current_time - start_time   # Time elapsed since the last second
-            elapsed_since_last_10_minutes = current_time - last_ten_minute_time  # Time elapsed since the last 10-minute interval
+            if(start_time is not None):
+                current_time = time.time()   # Get the current time
+                elapsed_time = current_time - start_time   # Time elapsed since the last second
+                elapsed_since_last_10_minutes = current_time - last_ten_minute_time  # Time elapsed since the last 10-minute interval
 
-            if elapsed_time >= 1:  
-                log_one_second_data(verbose)
-                start_time = current_time
-            if elapsed_since_last_10_minutes >= 600:
-                log_ten_minute_data(verbose)  
-            if gui_flag:
-                QtWidgets.QApplication.processEvents()
+                if elapsed_time >= 1:  
+                    log_one_second_data(verbose)
+                    start_time = current_time
 
-            if keyboard.is_pressed('q'):
-                print("Process interrupted by user")
-                break
+                if elapsed_since_last_10_minutes >= 600:
+                    log_ten_minute_data(verbose) 
 
-            if run_time and current_time >= end_time:
-                print("Runtime Over, sending STOP command...")
-                break
+                if gui_flag:
+                    QtWidgets.QApplication.processEvents()
+
+                if run_time and current_time >= end_time:
+                    print("Runtime Over, sending STOP command...")
+                    send_command(ser, 'STOP')
+                    break
 
     except KeyboardInterrupt:
         print("Process interrupted by user")
     
-    finally:      # Ensure the serial connection is closed and STOP command is sent
-        if ser:
-            if ser.is_open:
-                print("Sending STOP command...")
-                ser.write(b'STOP\n')
-                time.sleep(1)  # Ensure Arduino processes the STOP command
-                print("Closing serial connection...")
-                ser.close()
+    finally:
+        if ser.is_open:
+            send_command(ser, 'STOP')
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+            ser.close()
 
         if lsl_outlet:     # Assuming LSL outlet cleanup if required
             lsl_outlet = None
@@ -310,9 +329,34 @@ def parse_data(port, baudrate, lsl_flag=False, csv_flag=False, gui_flag=False, v
             if timer:
                 timer.stop()
             if app:
-                app.quit()
+                app.quit() 
 
     print(f"Exiting.\nTotal missing samples: {missing_samples}")
+    sys.exit(0)
+
+def signal_handler(sig, frame):
+    print("Process interrupted by user")
+    global ser, csv_file, lsl_outlet, app  # Declare global variables
+    
+    ser = None
+    csv_file = None
+    lsl_outlet = None
+    app = None
+    
+    # Perform any necessary cleanup here
+    if ser and ser.is_open:
+        send_command(ser, 'STOP')
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+        ser.close()
+    if lsl_outlet:
+        lsl_outlet = None  # Cleanup if needed
+    if csv_file:
+        csv_file.close()  # Close the CSV file
+        print(f"CSV recording saved as {csv_filename}")
+    if app:
+        app.quit()  # Close the GUI application
+    sys.exit(0)
 
 # Main entry point of the script
 def main():
@@ -334,13 +378,20 @@ def main():
         parser.print_help()  # Print help if no options are selected
         return
 
-    port = args.port or auto_detect_arduino(args.baudrate)  # Get the port from arguments or auto-detect
-    if port is None:
+    if args.port:
+        print("trying to connect to port:", args.port)
+        ser = connect_hardware(port=args.port, baudrate=args.baudrate)
+    else:
+        ser = detect_hardware(baudrate=args.baudrate)
+    # port = args.port or detect_hardware(args.baudrate)  # Get the port from arguments or auto-detect
+    if ser is None:
         print("Arduino port not specified or detected. Exiting.")  # Notify if no port is available
         return
+
     # Start data acquisition
-    parse_data(port, args.baudrate, lsl_flag=args.lsl, csv_flag=args.csv, gui_flag=args.gui, verbose=args.verbose, run_time=args.time)
+    parse_data(ser, lsl_flag=args.lsl, csv_flag=args.csv, gui_flag=args.gui, verbose=args.verbose, run_time=args.time)
 
 # Run the main function if this script is executed
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)  # Register the signal handler
     main()
