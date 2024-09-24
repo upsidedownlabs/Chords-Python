@@ -115,7 +115,6 @@ def read_arduino_data(ser, csv_writer=None):
     global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer, data
     raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
     if raw_data == b'':
-        print("Raw Data:", raw_data)
         send_command(ser, 'START')
     buffer.extend(raw_data)  # Add received data to the buffer
     while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
@@ -312,51 +311,84 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=Fals
         print("Process interrupted by user")
     
     finally:
+        cleanup(ser, csv_file, lsl_outlet, gui_flag)
+        # if ser.is_open:
+        #     send_command(ser, 'STOP')
+        #     ser.reset_input_buffer()
+        #     ser.reset_output_buffer()
+        #     ser.close()
+
+        # if lsl_outlet:     # Assuming LSL outlet cleanup if required
+        #     lsl_outlet = None
+        
+        # if csv_file:    # Ensure CSV file is closed
+        #     csv_file.close()
+        #     print(f"CSV recording saved as {csv_filename}")
+        
+        # if gui_flag:    # Ensure GUI is properly closed
+        #     if timer:
+        #         timer.stop()
+        #     if app:
+        #         app.quit() 
+
+    print(f"Exiting.\nTotal missing samples: {missing_samples}")
+    sys.exit(0)
+
+def cleanup(ser, csv_file, lsl_outlet, gui_flag):
+    if ser:
         if ser.is_open:
+            print("Sending STOP command and closing serial connection...")
             send_command(ser, 'STOP')
             ser.reset_input_buffer()
             ser.reset_output_buffer()
             ser.close()
+            print("Serial connection closed.")
 
-        if lsl_outlet:     # Assuming LSL outlet cleanup if required
-            lsl_outlet = None
-        
-        if csv_file:    # Ensure CSV file is closed
-            csv_file.close()
-            print(f"CSV recording saved as {csv_filename}")
-        
-        if gui_flag:    # Ensure GUI is properly closed
-            if timer:
-                timer.stop()
-            if app:
-                app.quit() 
+    if lsl_outlet:
+        print("Stopping LSL outlet...")
+        lsl_outlet = None  # Cleanup if needed
+
+    if csv_file:
+        csv_file.close()  # Close the CSV file
+        print(f"CSV recording saved as {csv_filename}")
+
+    if gui_flag:
+        print("Closing GUI...")
+        if timer:
+            timer.stop()
+        if app:
+            app.quit()
 
     print(f"Exiting.\nTotal missing samples: {missing_samples}")
     sys.exit(0)
 
 def signal_handler(sig, frame):
-    print("Process interrupted by user")
-    global ser, csv_file, lsl_outlet, app  # Declare global variables
+    global ser, csv_file, gui_flag
+    cleanup(ser, csv_file, lsl_outlet, gui_flag)
+
+# def signal_handler(sig, frame):
+#     print("Process interrupted by user")
+#     global ser, csv_file, lsl_outlet, app  # Declare global variables
     
-    ser = None
-    csv_file = None
-    lsl_outlet = None
-    app = None
+#     ser = None
+#     csv_file = None
+#     lsl_outlet = None
+#     app = None
     
-    # Perform any necessary cleanup here
-    if ser and ser.is_open:
-        send_command(ser, 'STOP')
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
-        ser.close()
-    if lsl_outlet:
-        lsl_outlet = None  # Cleanup if needed
-    if csv_file:
-        csv_file.close()  # Close the CSV file
-        print(f"CSV recording saved as {csv_filename}")
-    if app:
-        app.quit()  # Close the GUI application
-    sys.exit(0)
+#     # Perform any necessary cleanup here
+#     if ser and ser.is_open:
+#         send_command(ser, 'STOP')
+#         ser.reset_input_buffer()
+#         ser.reset_output_buffer()
+#         ser.close()
+#     if lsl_outlet:
+#         lsl_outlet = None  # Cleanup if needed
+#     if csv_file:
+#         csv_file.close()  # Close the CSV file
+#         print(f"CSV recording saved as {csv_filename}")
+#     if app:
+#         app.quit()  # Close the GUI application
+#     sys.exit(0)
 
 # Main entry point of the script
 def main():
@@ -374,7 +406,7 @@ def main():
     verbose = args.verbose  # Set verbose mode
 
     # Check if any logging or GUI options are selected, else show help
-    if not args.csv and not args.lsl and not args.gui and args.time is None:
+    if not args.csv and not args.lsl and not args.gui :
         parser.print_help()  # Print help if no options are selected
         return
 
@@ -383,7 +415,7 @@ def main():
         ser = connect_hardware(port=args.port, baudrate=args.baudrate)
     else:
         ser = detect_hardware(baudrate=args.baudrate)
-    # port = args.port or detect_hardware(args.baudrate)  # Get the port from arguments or auto-detect
+    
     if ser is None:
         print("Arduino port not specified or detected. Exiting.")  # Notify if no port is available
         return
