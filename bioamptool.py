@@ -115,7 +115,6 @@ def read_arduino_data(ser, csv_writer=None):
     global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer, data
     raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
     if raw_data == b'':
-        print("Raw Data:", raw_data)
         send_command(ser, 'START')
     buffer.extend(raw_data)  # Add received data to the buffer
     while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
