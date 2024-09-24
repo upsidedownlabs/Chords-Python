@@ -374,7 +374,7 @@ def main():
     verbose = args.verbose  # Set verbose mode
 
     # Check if any logging or GUI options are selected, else show help
-    if not args.csv and not args.lsl and not args.gui and args.time is None:
+    if not args.csv and not args.lsl and not args.gui:
         parser.print_help()  # Print help if no options are selected
         return
 
