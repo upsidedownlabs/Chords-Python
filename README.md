@@ -1,6 +1,6 @@
-# BioAmp Tool - Python
+# Chords - Python
 
-The BioAmp Tool is a Python script designed to interface with an Arduino-based bioamplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
+The Chords Python script is designed to interface with an Arduino-based bioamplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
 
 > [!NOTE]
 > Flash Arduino code to your hardware from [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware) to use this python tool.
@@ -13,6 +13,7 @@ The BioAmp Tool is a Python script designed to interface with an Arduino-based b
 - **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
 - **Verbose Output:** Provides detailed statistics and error reporting, including sampling rate and drift.
 - **GUI:** Live plotting of six channels using a PyQt-based GUI.
+- **Timer:** Record data for a set time period in seconds.
 
 ## Requirements
 
@@ -56,6 +57,7 @@ Then,
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
 - `--gui`: Enable the real-time data plotting GUI.
+- `-t` : Enable the timer to run program for a set time in seconds.
 
 ## Script Functions
 
@@ -86,6 +88,10 @@ Parses data from Arduino and manages logging, streaming, and GUI updates.
  `init_gui()`
 
 Initializes and displays the GUI with six real-time plots, one for each bio-signal channel.
+
+`cleanup()`
+
+Handles all the cleanup tasks.
 
  `main()`
 
