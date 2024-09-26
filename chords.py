@@ -313,26 +313,21 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=Fals
         print("Process interrupted by user")
     
     finally:
-        print("Finally is called!")
         cleanup()
 
-    print(f"Exiting.\nTotal missing samples: {missing_samples}")
+    print(f"Total missing samples: {missing_samples}")
     sys.exit(0)
 
 def cleanup():
     global qApp, ser, lsl_outlet, csv_file
-    print("Cleanup function is called!")
 
     # Close the serial connection first
     try:
         if ser is not None and ser.is_open:
-            print("Sending STOP to Arduino and closing serial port.")
             send_command(ser, 'STOP')  # Ensure the STOP command is sent
             time.sleep(1)
             ser.reset_input_buffer()  # Clear the input buffer
-            print("Input buffer cleared.")
             ser.reset_output_buffer()  # Clear the output buffer
-            print("Output buffer cleared.")
             ser.close()  # Close the serial port
             print("Serial connection closed.")
         else:
@@ -365,11 +360,10 @@ def cleanup():
         print(f"Error while closing the GUI: {e}")
 
     print("Cleanup completed, exiting program.")
-    print(f"Exiting.\nTotal missing samples: {missing_samples}")
+    print(f"Total missing samples: {missing_samples}")
     sys.exit(0)
 
 def signal_handler(sig, frame):
-    print("Entered into signal handler, Performing cleanup")
     cleanup()
     # sys.exit(0)
 
