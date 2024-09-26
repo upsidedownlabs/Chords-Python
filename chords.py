@@ -69,6 +69,8 @@ HEADER_LENGTH = 3   #Length of the Packet Header
 lsl_outlet = None  # Placeholder for LSL stream outlet
 verbose = False  # Flag for verbose output mode
 csv_filename = None  # Store CSV filename
+csv_file = None
+ser = None
 
 def connect_hardware(port, baudrate, timeout=1):
     try:
@@ -105,7 +107,7 @@ def detect_hardware(baudrate, timeout=1):
 def send_command(ser, command):
     ser.flushInput()   # Clear the input buffer
     ser.flushOutput()  # Clear the output buffer
-    ser.write((command + '\n').encode())  # Send command
+    ser.write(f"{command}\n".encode())  # Send command
     time.sleep(0.1)  # Wait briefly to ensure Arduino processes the command
     response = ser.readline().decode('utf-8', errors='ignore').strip()  # Read response
     return response
@@ -311,55 +313,66 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=Fals
         print("Process interrupted by user")
     
     finally:
-        if ser.is_open:
-            send_command(ser, 'STOP')
-            ser.reset_input_buffer()
-            ser.reset_output_buffer()
-            ser.close()
-
-        if lsl_outlet:     # Assuming LSL outlet cleanup if required
-            lsl_outlet = None
-        
-        if csv_file:    # Ensure CSV file is closed
-            csv_file.close()
-            print(f"CSV recording saved as {csv_filename}")
-        
-        if gui_flag:    # Ensure GUI is properly closed
-            if timer:
-                timer.stop()
-            if app:
-                app.quit() 
+        print("Finally is called!")
+        cleanup()
 
     print(f"Exiting.\nTotal missing samples: {missing_samples}")
     sys.exit(0)
 
-def signal_handler(sig, frame):
-    print("Process interrupted by user")
-    global ser, csv_file, lsl_outlet, app  # Declare global variables
-    
-    ser = None
-    csv_file = None
-    lsl_outlet = None
-    app = None
-    
-    # Perform any necessary cleanup here
-    if ser and ser.is_open:
-        send_command(ser, 'STOP')
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
-        ser.close()
-    if lsl_outlet:
-        lsl_outlet = None  # Cleanup if needed
-    if csv_file:
-        csv_file.close()  # Close the CSV file
-        print(f"CSV recording saved as {csv_filename}")
-    if app:
-        app.quit()  # Close the GUI application
+def cleanup():
+    global qApp, ser, lsl_outlet, csv_file
+    print("Cleanup function is called!")
+
+    # Close the serial connection first
+    try:
+        if ser is not None and ser.is_open:
+            print("Sending STOP to Arduino and closing serial port.")
+            send_command(ser, 'STOP')  # Ensure the STOP command is sent
+            ser.flushInput()  # Clear the input buffer
+            ser.flushOutput()  # Clear the output buffer
+            ser.close()  # Close the serial port
+            print("Serial connection closed.")
+        else:
+            print("Serial connection is not open.")
+    except Exception as e:
+        print(f"Error while closing serial connection: {e}")
+
+    # Close the LSL stream if it exists
+    try:
+        if lsl_outlet:
+            print("Closing LSL Stream.")
+            lsl_outlet = None  # Cleanup LSL outlet
+    except Exception as e:
+        print(f"Error while closing LSL stream: {e}")
+
+    # Close the CSV file if it exists
+    try:
+        if csv_file:
+            csv_file.close()  # Close the CSV file
+            print("CSV recording saved.")
+    except Exception as e:
+        print(f"Error while closing CSV file: {e}")
+
+    # Close the GUI if it exists
+    try:
+        if qApp:
+            print("Closing the GUI.")
+            qApp.quit()  # Close the PyQt application
+    except Exception as e:
+        print(f"Error while closing the GUI: {e}")
+
+    print("Cleanup completed, exiting program.")
+    print(f"Exiting.\nTotal missing samples: {missing_samples}")
     sys.exit(0)
+
+def signal_handler(sig, frame):
+    print("Entered into signal handler, Performing cleanup")
+    cleanup()
+    # sys.exit(0)
 
 # Main entry point of the script
 def main():
-    global verbose
+    global verbose,ser
     parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool")  # Create argument parser
     parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
     parser.add_argument('-b', '--baudrate', type=int, default=230400, help="Set baud rate for the serial communication")  # Baud rate 
@@ -371,6 +384,9 @@ def main():
 
     args = parser.parse_args()  # Parse command-line arguments
     verbose = args.verbose  # Set verbose mode
+
+    # Register the signal handler to handle Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Check if any logging or GUI options are selected, else show help
     if not args.csv and not args.lsl and not args.gui:
@@ -392,5 +408,4 @@ def main():
 
 # Run the main function if this script is executed
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)  # Register the signal handler
     main()
