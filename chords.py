@@ -328,8 +328,11 @@ def cleanup():
         if ser is not None and ser.is_open:
             print("Sending STOP to Arduino and closing serial port.")
             send_command(ser, 'STOP')  # Ensure the STOP command is sent
-            ser.flushInput()  # Clear the input buffer
-            ser.flushOutput()  # Clear the output buffer
+            time.sleep(1)
+            ser.reset_input_buffer()  # Clear the input buffer
+            print("Input buffer cleared.")
+            ser.reset_output_buffer()  # Clear the output buffer
+            print("Output buffer cleared.")
             ser.close()  # Close the serial port
             print("Serial connection closed.")
         else:
@@ -373,7 +376,7 @@ def signal_handler(sig, frame):
 # Main entry point of the script
 def main():
     global verbose,ser
-    parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool")  # Create argument parser
+    parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool",allow_abbrev = False)  # Create argument parser
     parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
     parser.add_argument('-b', '--baudrate', type=int, default=230400, help="Set baud rate for the serial communication")  # Baud rate 
     parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
