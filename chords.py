@@ -365,7 +365,6 @@ def cleanup():
 
 def signal_handler(sig, frame):
     cleanup()
-    # sys.exit(0)
 
 # Main entry point of the script
 def main():
