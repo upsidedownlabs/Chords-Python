@@ -24,7 +24,7 @@ font = pygame.font.SysFont('Arial', 36, bold=True)
 title_font = pygame.font.SysFont('Arial', 72, bold=True)
 
 # Load win sound effect
-win_sound = pygame.mixer.Sound("C:\\Users\\PAYAL\\Braingame\\brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
+win_sound = pygame.mixer.Sound("C:\\Users\\PAYAL\\BioAmp-Tool-Python\\applications\\brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
 
 # Ball properties
 ball_radius = 20
