@@ -137,5 +137,4 @@ We are thankful to our awesome contributors, the list below is alphabetically so
 
 - [Payal Lakra](https://github.com/payallakra)
 
-The audio file in game.py is taken from
-- [Pixabay] (https:pixabaycomsound-effectsbrass-fanfare-with-timpani-and-winchimes-reverberated-146260/)
+The audio file used in `game.py` is sourced from [Pixabay](https://pixabay.com/sound-effects/brass-fanfare-with-timpani-and-windchimes-reverberated-146260/)
