@@ -46,18 +46,20 @@ First Create Virtual Environment
 Then,
 
   ```bash
-  python bioamp_tool.py [options]
+  python chords.py [options]
   ```
 
 ### Options
 
 - `-p`, `--port` <port>: Specify the serial port to use (e.g., COM5, /dev/ttyUSB0).
-- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 115200).
+- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 230400).
 - `--csv`: Enable CSV logging. Data will be saved to a timestamped file.
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
-- `--gui`: Enable the real-time data plotting GUI.
 - `-t` : Enable the timer to run program for a set time in seconds.
+
+## GUI
+- `python chords.py --gui`: Enable the real-time data plotting GUI.
 
 ## Script Functions
 
@@ -127,3 +129,6 @@ If GUI is not enabled, you can use an LSL viewer (e.g., BrainVision LSL Viewer) 
 We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
 - [Payal Lakra](https://github.com/payallakra)
+
+  The audio file in game.py is taken from - [Pixabay]
+  (https://pixabay.com/sound-effects/brass-fanfare-with-timpani-and-winchimes-reverberated-146260/)
