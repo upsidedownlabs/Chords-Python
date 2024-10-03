@@ -58,8 +58,15 @@ Then,
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
 - `-t` : Enable the timer to run program for a set time in seconds.
 
-## GUI
-- `python chords.py --gui`: Enable the real-time data plotting GUI.
+## Applications
+
+### GUI
+
+- `python gui.py`: Enable the real-time data plotting GUI.
+
+### FORCE BALL GAME
+
+- `python game.py`: Enable a GUI to play game using EEG Signal.
 
 ## Script Functions
 
@@ -130,5 +137,5 @@ We are thankful to our awesome contributors, the list below is alphabetically so
 
 - [Payal Lakra](https://github.com/payallakra)
 
-  The audio file in game.py is taken from - [Pixabay]
-  (https://pixabay.com/sound-effects/brass-fanfare-with-timpani-and-winchimes-reverberated-146260/)
+The audio file in game.py is taken from
+- [Pixabay] (https:pixabaycomsound-effectsbrass-fanfare-with-timpani-and-winchimes-reverberated-146260/)
