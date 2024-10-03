@@ -30,8 +30,6 @@ YELLOW = (255, 255, 0)
 font = pygame.font.SysFont('Arial', 36, bold=True)
 title_font = pygame.font.SysFont('Arial', 72, bold=True)
 
-# Load win sound effect
-# win_sound = pygame.mixer.Sound("C:\Users\PAYAL\BioAmp-Tool-Python\applications\media\brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
 # Load win sound effect using a cross-platform path
 base_path = os.path.dirname(__file__)  # Get the directory of the current script
 sound_path = os.path.join(base_path, "media", "brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
