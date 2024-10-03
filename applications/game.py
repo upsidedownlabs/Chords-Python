@@ -7,6 +7,7 @@ import numpy as np
 from scipy.signal import welch
 from scipy.integrate import simpson
 import time
+import os
 
 # Pygame Initialization
 pygame.init()
@@ -30,7 +31,11 @@ font = pygame.font.SysFont('Arial', 36, bold=True)
 title_font = pygame.font.SysFont('Arial', 72, bold=True)
 
 # Load win sound effect
-win_sound = pygame.mixer.Sound("C:\\Users\\PAYAL\\BioAmp-Tool-Python\\applications\\brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
+# win_sound = pygame.mixer.Sound("C:\Users\PAYAL\BioAmp-Tool-Python\applications\media\brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
+# Load win sound effect using a cross-platform path
+base_path = os.path.dirname(__file__)  # Get the directory of the current script
+sound_path = os.path.join(base_path, "media", "brass-fanfare-with-timpani-and-winchimes-reverberated-146260.wav")
+win_sound = pygame.mixer.Sound(sound_path)
 
 # Ball properties
 ball_radius = 20
