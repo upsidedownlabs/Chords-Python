@@ -117,7 +117,7 @@ class ECGApp(QtWidgets.QMainWindow):
 
         # Detect heartbeats in real time
         heartbeats = detect_heartbeats(np.array(self.ecg_buffer), self.data_collector.sampling_rate)
-        print(f"Detected R-peaks at indices: {heartbeats}")
+        # print(f"Detected R-peaks at indices: {heartbeats}")
 
         # Append the actual time of detection for each detected peak
         for index in heartbeats:
@@ -152,7 +152,7 @@ class ECGApp(QtWidgets.QMainWindow):
         else:
             self.heart_rate_label.setText("Heart rate: 0 bpm")
 
-        # Clear the deque for the next 10-second window
+        # Clear the deque for the next 15-second window
         self.r_peak_times.clear()
         self.peak_indices.clear()
 
