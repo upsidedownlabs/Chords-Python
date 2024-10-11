@@ -36,8 +36,6 @@ import csv  # For handling CSV file operations
 from datetime import datetime  # For getting current timestamps
 import serial.tools.list_ports  # To list available serial ports
 import numpy as np  # For handling numeric arrays
-import pyqtgraph as pg  # For real-time plotting
-from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
 import sys
 import signal
 
@@ -166,63 +164,6 @@ def read_arduino_data(ser, csv_writer=None):
             else:
                 del buffer[:sync_index + 1]  # If the packet is invalid, remove only the sync marker
 
-# Function to initialize the real-time plotting GUI
-def init_gui():
-    global plots, curves, app, win, timer, status_bar, samples_label, lsl_label, csv_label
-
-    app = QtWidgets.QApplication([])  # Create the Qt application
-    win = QtWidgets.QWidget()  # Create the main window
-    layout = QtWidgets.QVBoxLayout()  # Create a vertical layout for the window
-    win.setLayout(layout)  # Set the layout to the window
-    win.setWindowTitle("Real-Time Arduino Data")  # Set the window title
-
-    pg.setConfigOption('background', 'w')  #background
-    pg.setConfigOption('foreground', 'k')  # Set the foreground (axes, text) color to black for contrast
-
-    # Create plots for each channel (6 in total)
-    plots = []
-    curves = []
-    colors = ['#FF3B3B','#00FF66', '#FF1493', '#007BFF', '#FFA500', '#FF00FF', '#FF1493']  # Different colors for each channel
-    for i in range(6):
-        plot = pg.PlotWidget(title=f"Channel {i + 1}")  # Create a plot widget for each channel
-        layout.addWidget(plot)  # Add the plot to the layout
-        curve = plot.plot(pen=colors[i])  # Create a curve (line) for plotting data, with a different color
-        curve.setDownsampling(auto=True)  # Automatically downsample if needed
-        curve.setClipToView(True)  # Clip the data to the view
-        plots.append(plot)  # Store the plot
-        curves.append(curve)  # Store the curve
-
-    # Create a status bar at the bottom for displaying information
-    status_bar = QtWidgets.QHBoxLayout()
-    
-    # CSV recording status label
-    csv_label = QtWidgets.QLabel("CSV Recording: Not started")
-    status_bar.addWidget(csv_label)
-
-    # LSL status label
-    lsl_label = QtWidgets.QLabel("LSL Status: Not started")
-    status_bar.addWidget(lsl_label)
-
-    # Samples per second and missing samples label
-    samples_label = QtWidgets.QLabel("Samples per second: 0 (0 missing)")
-    status_bar.addWidget(samples_label)
-
-    layout.addLayout(status_bar)  # Add the status bar to the layout
-
-    win.show()  # Show the window
-
-    # Function to update the plots
-    def update():
-        global data, samples_per_second, missing_samples
-        for i in range(6):
-            curves[i].setData(data[i])  # Update each curve with new data
-        samples_label.setText(f"Samples per second: {samples_per_second} ({missing_samples} missing)")  # Update the samples/missing count
-
-    # Create a timer to update the plots every 20ms
-    timer = QtCore.QTimer()
-    timer.timeout.connect(update)  # Connect the timer to the update function
-    timer.start(20)  # Start the timer with a 20ms interval
-
 # Function to start timers for logging data
 def start_timer():
     global start_time, last_ten_minute_time, total_packet_count, cumulative_packet_count
@@ -254,7 +195,7 @@ def log_ten_minute_data(verbose=False):
     last_ten_minute_time = time.time()  # Update the last 10-minute interval start time
 
 # Main function to parse command-line arguments and handle data acquisition
-def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=False, run_time=None):
+def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None):
     global total_packet_count, cumulative_packet_count, start_time, lsl_outlet, last_ten_minute_time, csv_filename
 
     csv_writer = None  # Placeholder for CSV writer
@@ -269,14 +210,6 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=Fals
     if csv_flag:
         csv_filename = f"data_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"  # Create timestamped filename
         print(f"CSV recording started. Data will be saved to {csv_filename}")  # Notify user
-
-    # Initialize GUI if requested
-    if gui_flag:
-        init_gui()  # Initialize GUI
-        if lsl_flag:
-            lsl_label.setText("LSL Status: Started")  # Update LSL status in the GUI
-        if csv_flag:
-            csv_label.setText(f"CSV Recording: {csv_filename}")  # Update CSV status in the GUI     
 
     try:
         csv_file = open(csv_filename, mode='w', newline='') if csv_flag else None  # Open CSV file if logging is
@@ -301,9 +234,6 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=Fals
                 if elapsed_since_last_10_minutes >= 600:
                     log_ten_minute_data(verbose) 
 
-                if gui_flag:
-                    QtWidgets.QApplication.processEvents()
-
                 if run_time and current_time >= end_time:
                     print("Runtime Over, sending STOP command...")
                     send_command(ser, 'STOP')
@@ -319,7 +249,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, gui_flag=False, verbose=Fals
     sys.exit(0)
 
 def cleanup():
-    global qApp, ser, lsl_outlet, csv_file
+    global ser, lsl_outlet, csv_file
 
     # Close the serial connection first
     try:
@@ -351,14 +281,6 @@ def cleanup():
     except Exception as e:
         print(f"Error while closing CSV file: {e}")
 
-    # Close the GUI if it exists
-    try:
-        if qApp:
-            print("Closing the GUI.")
-            qApp.quit()  # Close the PyQt application
-    except Exception as e:
-        print(f"Error while closing the GUI: {e}")
-
     print("Cleanup completed, exiting program.")
     print(f"Total missing samples: {missing_samples}")
     sys.exit(0)
@@ -374,7 +296,6 @@ def main():
     parser.add_argument('-b', '--baudrate', type=int, default=230400, help="Set baud rate for the serial communication")  # Baud rate 
     parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
     parser.add_argument('--lsl', action='store_true', help="Start LSL stream")  # LSL streaming flag
-    parser.add_argument('--gui', action='store_true', help="Start GUI for real-time plotting")  # GUI flag
     parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output with statistical data")  # Verbose flag
     parser.add_argument('-t', '--time', type=int, help="Run the program for a specified number of seconds and then exit")   #set time
 
@@ -385,7 +306,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     # Check if any logging or GUI options are selected, else show help
-    if not args.csv and not args.lsl and not args.gui:
+    if not args.csv and not args.lsl:
         parser.print_help()  # Print help if no options are selected
         return
 
@@ -400,7 +321,7 @@ def main():
         return
 
     # Start data acquisition
-    parse_data(ser, lsl_flag=args.lsl, csv_flag=args.csv, gui_flag=args.gui, verbose=args.verbose, run_time=args.time)
+    parse_data(ser, lsl_flag=args.lsl, csv_flag=args.csv, verbose=args.verbose, run_time=args.time)
 
 # Run the main function if this script is executed
 if __name__ == "__main__":
