@@ -29,10 +29,10 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
 
 1. Ensure you have Python 3.x installed.
 2. Create Virtual Environment
-  ```bash
+   ```bash
    python -m venv venv      #Create Virtual Environment
    .\venv\Scripts\activate  #to activate environment 
-  ```
+   ```
 3. Install the required Python libraries:
     ```bash
     pip install -r requirements.txt
@@ -91,7 +91,8 @@ To use the script, run it from the command line with various options:
 
 ## Applications
 
-[!IMPORTANT] : Before using the below Applications make sure you are in Application folder.
+> [!IMPORTANT]
+ Before using the below Applications make sure you are in Application folder.
 
 ### GUI
 
@@ -108,8 +109,6 @@ To use the script, run it from the command line with various options:
 - `python game.py`: Enable a GUI to play game using EEG Signal.
 
 #### Script Functions
-
-Here are the important functions from your Pygame script summarized in one line each:
 
 `bandpower(data, sf, band, window_sec=None, relative=False)`: Calculates the band power of EEG data in a specified frequency band using the Welch method.
 
