@@ -32,6 +32,7 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
   ```bash
    python -m venv venv      #Create Virtual Environment
    .\venv\Scripts\activate  #to activate environment 
+  ```
 3. Install the required Python libraries:
     ```bash
     pip install -r requirements.txt
