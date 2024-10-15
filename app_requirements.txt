@@ -2,3 +2,4 @@ pyqtgraph==0.13.7
 PySide2==5.15.2.1
 keyboard==0.13.5
 scipy==1.14.1
+pygame==2.6.1
