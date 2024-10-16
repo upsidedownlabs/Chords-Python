@@ -34,12 +34,6 @@ class ECGMonitor(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
-        # Data and buffers
-        self.ecg_data = deque(maxlen=2500)  # 10 seconds of data at 250 Hz
-        self.time_data = deque(maxlen=2500)
-        self.r_peaks = []
-        self.heart_rate = None
-
         # Set up LSL stream inlet
         print("Looking for an ECG stream...")
         streams = pylsl.resolve_stream('name', 'BioAmpDataStream')
@@ -55,6 +49,13 @@ class ECGMonitor(QMainWindow):
             sys.exit(0)
         print(f"Sampling rate: {self.sampling_rate} Hz")
 
+        self.sampling_rate = int(self.sampling_rate)     #Conversion into int
+        # Data and buffers
+        self.ecg_data = deque(maxlen=self.sampling_rate * 10)   # 10 seconds of data at 250/500 Hz
+        self.time_data = deque(maxlen=self.sampling_rate * 10)  #Sampling rate - 250/500
+        self.r_peaks = []
+        self.heart_rate = None
+
         # Timer for updating the GUI
         self.timer = pg.QtCore.QTimer()
         self.timer.timeout.connect(self.update_plot)
@@ -65,7 +66,7 @@ class ECGMonitor(QMainWindow):
 
         # Plot configuration
         self.plot_window = 10  # Plot window of 10 seconds
-        self.buffer_size = self.plot_window * self.sampling_rate  # 10 seconds at 250 Hz sampling rate
+        self.buffer_size = self.plot_window * self.sampling_rate  # 10 seconds at 250/500 Hz sampling rate
 
         # Set y-axis limits based on sampling rate
         if self.sampling_rate == 250:  
