@@ -1,181 +1,130 @@
-import sys
 import numpy as np
-import time
-from pylsl import StreamInlet, resolve_stream
-from scipy.signal import butter, lfilter, find_peaks
-import pyqtgraph as pg  # For real-time plotting
-from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
-import signal  # For handling Ctrl+C
-from collections import deque  # For creating a ring buffer
+from scipy.signal import butter, filtfilt
+from PyQt5.QtWidgets import QApplication, QVBoxLayout, QLabel, QMainWindow, QWidget
+from PyQt5.QtCore import Qt
+from pyqtgraph import PlotWidget
+import pyqtgraph as pg
+import pylsl
+import neurokit2 as nk
+from collections import deque
+import sys
 
-# Initialize global variables
-inlet = None
-data_buffer = np.zeros(2000)  # Buffer to hold the last 2000 samples for ECG data
-
-# Function to design a Butterworth filter
-def butter_filter(cutoff, fs, order=4, btype='low'):
-    nyquist = 0.5 * fs  # Nyquist frequency
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype=btype, analog=False)
-    return b, a
-
-# Apply the Butterworth filter to the data
-def apply_filter(data, b, a):
-    return lfilter(b, a, data)
-
-# Function to detect heartbeats using peak detection
-def detect_heartbeats(ecg_data, sampling_rate):
-    peaks, _ = find_peaks(ecg_data, distance=sampling_rate * 0.6, prominence=0.5)  # Adjust as necessary
-    return peaks
-
-class DataCollector(QtCore.QThread):
-    data_ready = QtCore.pyqtSignal(np.ndarray)
-
+class ECGMonitor(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.running = True
-        self.sampling_rate = None
 
-    def run(self):
-        global inlet
-        print("Looking for LSL stream...")
-        streams = resolve_stream('name', 'BioAmpDataStream')
+        # Set up GUI window
+        self.setWindowTitle("Real-Time ECG Monitor")
+        self.setGeometry(100, 100, 800, 600)
         
-        if not streams:
-            print("No LSL Stream found! Exiting...")
-            sys.exit(0)
-
-        inlet = StreamInlet(streams[0])
-        self.sampling_rate = inlet.info().nominal_srate()
-        print(f"Detected sampling rate: {self.sampling_rate} Hz")
-
-        # Create and design filters
-        low_cutoff = 20.0  # 20 Hz low-pass filter
-        self.low_b, self.low_a = butter_filter(low_cutoff, self.sampling_rate, order=4, btype='low')
-
-        while self.running:
-            # Pull multiple samples at once
-            samples, _ = inlet.pull_chunk(timeout=0.0, max_samples=10)  # Pull up to 10 samples
-            if samples:
-                global data_buffer
-                data_buffer = np.roll(data_buffer, -len(samples))  # Shift data left
-                data_buffer[-len(samples):] = [sample[0] for sample in samples]  # Add new samples to the end
-
-                filtered_data = apply_filter(data_buffer, self.low_b, self.low_a)   # Low-pass Filter
-                self.data_ready.emit(filtered_data)  # Emit the filtered data for plotting
-
-            time.sleep(0.01)
-
-    def stop(self):
-        self.running = False
-
-class ECGApp(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        # Create a plot widget
-        self.plot_widget = pg.PlotWidget(title="ECG Signal")
-        self.setCentralWidget(self.plot_widget)
+        self.plot_widget = PlotWidget(self)
         self.plot_widget.setBackground('w')
-
-        # Create a label to display heart rate
-        self.heart_rate_label = QtWidgets.QLabel("Heart rate: - bpm", self)
-        self.heart_rate_label.setStyleSheet("font-size: 20px; font-weight: bold;")
-        self.heart_rate_label.setAlignment(QtCore.Qt.AlignCenter)
-
-        layout = QtWidgets.QVBoxLayout()
+        self.plot_widget.showGrid(x=True, y=True)
+        
+        # Add a label to display the heart rate in bold at the bottom center
+        self.heart_rate_label = QLabel(self)
+        self.heart_rate_label.setStyleSheet("font-size: 20px; font-weight: bold; color: black;")
+        self.heart_rate_label.setAlignment(Qt.AlignCenter)
+        
+        layout = QVBoxLayout()
         layout.addWidget(self.plot_widget)
         layout.addWidget(self.heart_rate_label)
 
-        container = QtWidgets.QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
+        central_widget = QWidget()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
 
-        self.ecg_buffer = []
-        self.r_peak_times = deque(maxlen=10)  # Deque to store recent R-peak times
-        self.peak_intervals = deque(maxlen=9)  # Deque to store intervals between R-peaks
+        # Data and buffers
+        self.ecg_data = deque(maxlen=2500)  # 10 seconds of data at 250 Hz
+        self.time_data = deque(maxlen=2500)
+        self.r_peaks = []
+        self.heart_rate = None
 
-        self.data_collector = DataCollector() # Data collector thread
-        self.data_collector.data_ready.connect(self.update_plot)
-        self.data_collector.start()
+        # Set up LSL stream inlet
+        print("Looking for an ECG stream...")
+        streams = pylsl.resolve_stream('name', 'BioAmpDataStream')
+        if not streams:
+            print("No LSL stream found!")
+            sys.exit(0)
+        self.inlet = pylsl.StreamInlet(streams[0])
 
-        self.time_axis = np.linspace(0, 2000/200, 2000)       # Store the x-axis time window
-        self.plot_widget.setYRange(0,1000)                     # Set fixed y-axis limits 
+        # Sampling rate
+        self.sampling_rate = self.inlet.info().nominal_srate()
+        if self.sampling_rate == pylsl.IRREGULAR_RATE:
+            print("Irregular sampling rate detected!")
+            sys.exit(0)
+        print(f"Sampling rate: {self.sampling_rate} Hz")
 
-        # Time to start heart rate calculation after 10 seconds
-        self.start_time = time.time()
-        self.initial_period = 10  # First 10 seconds to gather enough R-peaks
+        # Timer for updating the GUI
+        self.timer = pg.QtCore.QTimer()
+        self.timer.timeout.connect(self.update_plot)
+        self.timer.start(10)  # Update every 10 ms
 
-        self.total_interval_sum = 0  # To track the sum of intervals for efficient heart rate calculation
+        # Low-pass filter coefficients
+        self.b, self.a = butter(4, 20.0 / (0.5 * self.sampling_rate), btype='low')
 
-    def update_plot(self, ecg_data):
-        self.ecg_buffer = ecg_data  # Update buffer
-        self.plot_widget.clear()
+        # Plot configuration
+        self.plot_window = 10  # Plot window of 10 seconds
+        self.buffer_size = self.plot_window * self.sampling_rate  # 10 seconds at 250 Hz sampling rate
 
-        # Set a fixed window (time axis) to ensure stable plotting
-        self.plot_widget.plot(self.time_axis, self.ecg_buffer, pen='#000000')  # Plot ECG data with black line
-        self.plot_widget.setXRange(self.time_axis[0], self.time_axis[-1], padding=0)
+        # Set y-axis limits based on sampling rate
+        if self.sampling_rate == 250:  
+            self.plot_widget.setYRange(0, 2**10)  #for R3
+        elif self.sampling_rate == 500:  
+            self.plot_widget.setYRange(0, 2**14)  #for R4
 
-        heartbeats = detect_heartbeats(np.array(self.ecg_buffer), self.data_collector.sampling_rate)
+    def update_plot(self):
+        samples, timestamps = self.inlet.pull_chunk(timeout=0.0, max_samples=32)
+        if samples:
+            for sample, timestamp in zip(samples, timestamps):
+                self.ecg_data.append(sample[0])
+                self.time_data.append(timestamp)
 
-        for index in heartbeats:
-            r_time = index / self.data_collector.sampling_rate
-            self.r_peak_times.append(r_time)
+            # Convert deque to numpy array for processing
+            ecg_array = np.array(self.ecg_data)
+            filtered_ecg = filtfilt(self.b, self.a, ecg_array)   # Apply low-pass filter
+            self.r_peaks = self.detect_r_peaks(filtered_ecg)     # Detect R-peaks using NeuroKit2
+            self.calculate_heart_rate()                          # Calculate heart rate
 
-            if len(self.r_peak_times) > 1:
-                # Calculate the interval between consecutive R-peaks
-                new_interval = self.r_peak_times[-1] - self.r_peak_times[-2]
+            # Update plot immediately with whatever data is available
+            self.plot_widget.clear()
+            current_time = np.linspace(0, len(ecg_array)/self.sampling_rate, len(ecg_array))
+            self.plot_widget.setXRange(0, self.plot_window)  # Fixed x-axis range
+            self.plot_widget.plot(current_time, filtered_ecg, pen=pg.mkPen('k', width=1))
 
-                if len(self.peak_intervals) == self.peak_intervals.maxlen:
-                    # Remove the oldest interval from the sum
-                    oldest_interval = self.peak_intervals.popleft()
-                    self.total_interval_sum -= oldest_interval    #Minus the oldest
+            # Mark R-peaks on the plot
+            if len(self.r_peaks) > 0:
+                self.plot_widget.plot(current_time[self.r_peaks], filtered_ecg[self.r_peaks], pen=None, symbol='o', symbolBrush='r')
 
-                # Add the new interval to the deque and update the sum
-                self.peak_intervals.append(new_interval)
-                self.total_interval_sum += new_interval     #   Plus the new
-
-        # Plot detected R-peaks
-        r_peak_times = self.time_axis[heartbeats]
-        r_peak_scatter = pg.ScatterPlotItem(x=r_peak_times, y=self.ecg_buffer[heartbeats],
-                                            symbol='o', size=10, pen='r', brush='r')
-        self.plot_widget.addItem(r_peak_scatter)
-
-        # Start heart rate calculation after 10 seconds
-        if time.time() - self.start_time >= self.initial_period:
-            self.update_heart_rate()
-
-    def update_heart_rate(self):
-        if len(self.peak_intervals) > 0:
-            # Efficiently calculate the heart rate using the sum of intervals
-            avg_interval = self.total_interval_sum / len(self.peak_intervals)
-            bpm = 60 / avg_interval  # Convert to beats per minute
-            self.heart_rate_label.setText(f"Heart rate: {bpm:.2f} bpm")
+            # Update heart rate display
+            if self.heart_rate:
+                self.heart_rate_label.setText(f"Heart Rate: {int(self.heart_rate)} BPM")
+            else:
+                self.heart_rate_label.setText("Heart Rate: Calculating...")
         else:
-            self.heart_rate_label.setText("Heart rate: 0 bpm")
+            self.heart_rate_label.setText("Heart Rate: Collecting data...")
 
-    def closeEvent(self, event):
-        self.data_collector.stop()   # Stop the data collector thread on close
-        self.data_collector.wait()  # Wait for the thread to finish
-        event.accept()  # Accept the close event
+    def detect_r_peaks(self, ecg_signal):
+        # Using NeuroKit2 to detect R-peaks
+        r_peaks = nk.ecg_findpeaks(ecg_signal, sampling_rate=self.sampling_rate)
 
-def signal_handler(sig, frame):
-    print("Exiting...")
-    QtWidgets.QApplication.quit()
+        if 'ECG_R_Peaks' in r_peaks:
+            return r_peaks['ECG_R_Peaks']
+        else:
+            print("No R-peaks detected. Please check the input ECG signal.")
+            return []
+
+    def calculate_heart_rate(self):
+        if len(self.r_peaks) > 1:
+            peak_times = np.array([self.time_data[i] for i in self.r_peaks])
+            rr_intervals = np.diff(peak_times)
+            avg_rr_interval = np.mean(rr_intervals)
+            self.heart_rate = 60.0 / avg_rr_interval
+        else:
+            self.heart_rate = None
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C
-
-    streams = resolve_stream('name', 'BioAmpDataStream')
-    if not streams:
-        print("No LSL Stream found! Exiting...")
-        sys.exit(0)
-
-    app = QtWidgets.QApplication(sys.argv)
-    
-    window = ECGApp()
-    window.setWindowTitle("Real-Time ECG Monitoring")
-    window.resize(800, 600)
+    app = QApplication(sys.argv)
+    window = ECGMonitor()
     window.show()
-
     sys.exit(app.exec_())
