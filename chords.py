@@ -291,7 +291,7 @@ def signal_handler(sig, frame):
 # Main entry point of the script
 def main():
     global verbose,ser
-    parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool",allow_abbrev = False)  # Create argument parser
+    parser = argparse.ArgumentParser(description="Upside Down Labs - Chords-Python Tool",allow_abbrev = False)  # Create argument parser
     parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
     parser.add_argument('-b', '--baudrate', type=int, default=230400, help="Set baud rate for the serial communication")  # Baud rate 
     parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
