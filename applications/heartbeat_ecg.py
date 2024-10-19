@@ -12,10 +12,9 @@ import argparse
 class ECGMonitor(QMainWindow):
     def __init__(self, invert=False):  # Add the invert parameter
         super().__init__()
-        self.invert = invert  # Store the invert flag
+        self.invert = invert  
 
-        # Set up GUI window
-        self.setWindowTitle("Real-Time ECG Monitor")
+        self.setWindowTitle("Real-Time ECG Monitor")  # Set up GUI window
         self.setGeometry(100, 100, 800, 600)
 
         self.plot_widget = PlotWidget(self)
@@ -54,11 +53,9 @@ class ECGMonitor(QMainWindow):
         self.heart_rate = None
         self.current_index = 0  # Index for overwriting data
 
-        # Low-pass filter coefficients
-        self.b, self.a = butter(4, 20.0 / (0.5 * self.sampling_rate), btype='low')
+        self.b, self.a = butter(4, 20.0 / (0.5 * self.sampling_rate), btype='low')   # Low-pass filter coefficients
 
-        # Timer for updating the plot
-        self.timer = pg.QtCore.QTimer()
+        self.timer = pg.QtCore.QTimer()   # Timer for updating the plot
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(10)
 
@@ -71,9 +68,11 @@ class ECGMonitor(QMainWindow):
         # Set fixed x-axis range
         self.plot_widget.setXRange(0, 10)  # 10 seconds
 
-        # Initialize the plot curves
         self.ecg_curve = self.plot_widget.plot(self.time_data, self.ecg_data, pen=pg.mkPen('k', width=1))
         self.r_peak_curve = self.plot_widget.plot([], [], pen=None, symbol='o', symbolBrush='r', symbolSize=10)  # R-peaks in red
+        
+        self.moving_average_window_size = 5   # Initialize moving average buffer
+        self.heart_rate_history = []          # Buffer to store heart rates for moving average
 
     def update_plot(self):
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
@@ -83,14 +82,12 @@ class ECGMonitor(QMainWindow):
                 self.ecg_data[self.current_index] = sample[0]
                 self.current_index = (self.current_index + 1) % self.buffer_size  # Circular increment
 
-            # Filter the signal
-            filtered_ecg = filtfilt(self.b, self.a, self.ecg_data)
+            filtered_ecg = filtfilt(self.b, self.a, self.ecg_data) # Filter the signal
 
             # Invert the signal if the invert flag is set
             if self.invert:
                 filtered_ecg = -filtered_ecg
 
-            # Update the plot data
             self.ecg_curve.setData(self.time_data, filtered_ecg)  # Use current buffer for plotting
 
             # Detect R-peaks and update heart rate
@@ -109,24 +106,30 @@ class ECGMonitor(QMainWindow):
             if len(rr_intervals) > 0:
                 avg_rr = np.mean(rr_intervals)  # Average RR interval
                 self.heart_rate = 60.0 / avg_rr  # Convert to heart rate (BPM)
-                self.heart_rate_label.setText(f"Heart Rate: {int(self.heart_rate)} BPM")
+                self.heart_rate_history.append(self.heart_rate)   # Update moving average
+                if len(self.heart_rate_history) > self.moving_average_window_size:
+                    self.heart_rate_history.pop(0)  # Remove the oldest heart rate 
+                
+                # Calculate the moving average heart rate
+                moving_average_hr = np.mean(self.heart_rate_history)
+                
+                # Update heart rate label with moving average & convert into int
+                self.heart_rate_label.setText(f"Heart Rate: {int(moving_average_hr)} BPM")
         else:
-            self.heart_rate_label.setText("Heart Rate: Calculating...")  # If fewer than 10 R-peaks are detected, show "Calculating"
+            self.heart_rate_label.setText("Heart Rate: Calculating...") 
 
     def plot_r_peaks(self, filtered_ecg):
-        # Extract the time of detected R-peaks
-        r_peak_times = self.time_data[self.r_peaks]
+        r_peak_times = self.time_data[self.r_peaks]   # Extract the time of detected R-peaks
         r_peak_values = filtered_ecg[self.r_peaks]
         self.r_peak_curve.setData(r_peak_times, r_peak_values)  # Plot R-peaks as red dots
 
 if __name__ == "__main__":
-    # Set up argument parser
     parser = argparse.ArgumentParser(description="Real-Time ECG Monitor")
     parser.add_argument("--invert", action="store_true", help="Invert the ECG signal plot")
     
     args = parser.parse_args()
     
     app = QApplication(sys.argv)
-    window = ECGMonitor(invert=args.invert)  # Pass the invert flag to ECGMonitor
+    window = ECGMonitor(invert=args.invert)  # Pass the invert flag 
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec_())    
