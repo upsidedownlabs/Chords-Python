@@ -1,181 +1,124 @@
-import sys
 import numpy as np
-import time
-from pylsl import StreamInlet, resolve_stream
-from scipy.signal import butter, lfilter, find_peaks
-import pyqtgraph as pg  # For real-time plotting
-from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
-import signal  # For handling Ctrl+C
-from collections import deque  # For creating a ring buffer
+from scipy.signal import butter, filtfilt
+from PyQt5.QtWidgets import QApplication, QVBoxLayout, QLabel, QMainWindow, QWidget
+from PyQt5.QtCore import Qt
+from pyqtgraph import PlotWidget
+import pyqtgraph as pg
+import pylsl
+import neurokit2 as nk
+import sys
 
-# Initialize global variables
-inlet = None
-data_buffer = np.zeros(2000)  # Buffer to hold the last 2000 samples for ECG data
-
-# Function to design a Butterworth filter
-def butter_filter(cutoff, fs, order=4, btype='low'):
-    nyquist = 0.5 * fs  # Nyquist frequency
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype=btype, analog=False)
-    return b, a
-
-# Apply the Butterworth filter to the data
-def apply_filter(data, b, a):
-    return lfilter(b, a, data)
-
-# Function to detect heartbeats using peak detection
-def detect_heartbeats(ecg_data, sampling_rate):
-    peaks, _ = find_peaks(ecg_data, distance=sampling_rate * 0.6, prominence=0.5)  # Adjust as necessary
-    return peaks
-
-class DataCollector(QtCore.QThread):
-    data_ready = QtCore.pyqtSignal(np.ndarray)
-
-    def __init__(self):
-        super().__init__()
-        self.running = True
-        self.sampling_rate = None
-
-    def run(self):
-        global inlet
-        print("Looking for LSL stream...")
-        streams = resolve_stream('name', 'BioAmpDataStream')
-        
-        if not streams:
-            print("No LSL Stream found! Exiting...")
-            sys.exit(0)
-
-        inlet = StreamInlet(streams[0])
-        self.sampling_rate = inlet.info().nominal_srate()
-        print(f"Detected sampling rate: {self.sampling_rate} Hz")
-
-        # Create and design filters
-        low_cutoff = 20.0  # 20 Hz low-pass filter
-        self.low_b, self.low_a = butter_filter(low_cutoff, self.sampling_rate, order=4, btype='low')
-
-        while self.running:
-            # Pull multiple samples at once
-            samples, _ = inlet.pull_chunk(timeout=0.0, max_samples=10)  # Pull up to 10 samples
-            if samples:
-                global data_buffer
-                data_buffer = np.roll(data_buffer, -len(samples))  # Shift data left
-                data_buffer[-len(samples):] = [sample[0] for sample in samples]  # Add new samples to the end
-
-                filtered_data = apply_filter(data_buffer, self.low_b, self.low_a)   # Low-pass Filter
-                self.data_ready.emit(filtered_data)  # Emit the filtered data for plotting
-
-            time.sleep(0.01)
-
-    def stop(self):
-        self.running = False
-
-class ECGApp(QtWidgets.QMainWindow):
-    def __init__(self):
+class ECGMonitor(QMainWindow):
+    def __init__(self): 
         super().__init__()
 
-        # Create a plot widget
-        self.plot_widget = pg.PlotWidget(title="ECG Signal")
-        self.setCentralWidget(self.plot_widget)
+        self.setWindowTitle("Real-Time ECG Monitor")  # Set up GUI window
+        self.setGeometry(100, 100, 800, 600)
+
+        self.plot_widget = PlotWidget(self)
         self.plot_widget.setBackground('w')
+        self.plot_widget.showGrid(x=True, y=True)
 
-        # Create a label to display heart rate
-        self.heart_rate_label = QtWidgets.QLabel("Heart rate: - bpm", self)
-        self.heart_rate_label.setStyleSheet("font-size: 20px; font-weight: bold;")
-        self.heart_rate_label.setAlignment(QtCore.Qt.AlignCenter)
+        # Heart rate label at the bottom
+        self.heart_rate_label = QLabel(self)
+        self.heart_rate_label.setStyleSheet("font-size: 20px; font-weight: bold; color: black;")
+        self.heart_rate_label.setAlignment(Qt.AlignCenter)
 
-        layout = QtWidgets.QVBoxLayout()
+        layout = QVBoxLayout()
         layout.addWidget(self.plot_widget)
         layout.addWidget(self.heart_rate_label)
 
-        container = QtWidgets.QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
+        central_widget = QWidget()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
 
-        self.ecg_buffer = []
-        self.r_peak_times = deque(maxlen=10)  # Deque to store recent R-peak times
-        self.peak_intervals = deque(maxlen=9)  # Deque to store intervals between R-peaks
+        # Set up LSL stream inlet
+        streams = pylsl.resolve_stream('name', 'BioAmpDataStream')
+        if not streams:
+            print("No LSL stream found!")
+            sys.exit(0)
+        self.inlet = pylsl.StreamInlet(streams[0])
 
-        self.data_collector = DataCollector() # Data collector thread
-        self.data_collector.data_ready.connect(self.update_plot)
-        self.data_collector.start()
+        # Sampling rate
+        self.sampling_rate = int(self.inlet.info().nominal_srate())
+        print(f"Sampling rate: {self.sampling_rate} Hz")
+        
+        # Data and buffers
+        self.buffer_size = self.sampling_rate * 10  # Fixed-size buffer for 10 seconds
+        self.ecg_data = np.zeros(self.buffer_size)  # Fixed-size array for circular buffer
+        self.time_data = np.linspace(0, 10, self.buffer_size)  # Fixed time array for plotting
+        self.r_peaks = []  # Store the indices of R-peaks
+        self.heart_rate = None
+        self.current_index = 0  # Index for overwriting data
 
-        self.time_axis = np.linspace(0, 2000/200, 2000)       # Store the x-axis time window
-        self.plot_widget.setYRange(0,1000)                     # Set fixed y-axis limits 
+        self.b, self.a = butter(4, 20.0 / (0.5 * self.sampling_rate), btype='low')   # Low-pass filter coefficients
 
-        # Time to start heart rate calculation after 10 seconds
-        self.start_time = time.time()
-        self.initial_period = 10  # First 10 seconds to gather enough R-peaks
+        self.timer = pg.QtCore.QTimer()   # Timer for updating the plot
+        self.timer.timeout.connect(self.update_plot)
+        self.timer.start(10)
 
-        self.total_interval_sum = 0  # To track the sum of intervals for efficient heart rate calculation
+        # Set y-axis limits based on sampling rate
+        if self.sampling_rate == 250:  
+            self.plot_widget.setYRange(0, 2**10)  # for R3
+        elif self.sampling_rate == 500:  
+            self.plot_widget.setYRange(0, 2**14)  # for R4 
 
-    def update_plot(self, ecg_data):
-        self.ecg_buffer = ecg_data  # Update buffer
-        self.plot_widget.clear()
+        # Set fixed x-axis range
+        self.plot_widget.setXRange(0, 10)  # 10 seconds
 
-        # Set a fixed window (time axis) to ensure stable plotting
-        self.plot_widget.plot(self.time_axis, self.ecg_buffer, pen='#000000')  # Plot ECG data with black line
-        self.plot_widget.setXRange(self.time_axis[0], self.time_axis[-1], padding=0)
+        self.ecg_curve = self.plot_widget.plot(self.time_data, self.ecg_data, pen=pg.mkPen('k', width=1))
+        self.r_peak_curve = self.plot_widget.plot([], [], pen=None, symbol='o', symbolBrush='r', symbolSize=10)  # R-peaks in red
+        
+        self.moving_average_window_size = 5   # Initialize moving average buffer
+        self.heart_rate_history = []          # Buffer to store heart rates for moving average
 
-        heartbeats = detect_heartbeats(np.array(self.ecg_buffer), self.data_collector.sampling_rate)
+    def update_plot(self):
+        samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
+        if samples:
+            for sample in samples:
+                # Overwrite the oldest data point in the buffer
+                self.ecg_data[self.current_index] = sample[0]
+                self.current_index = (self.current_index + 1) % self.buffer_size  # Circular increment
 
-        for index in heartbeats:
-            r_time = index / self.data_collector.sampling_rate
-            self.r_peak_times.append(r_time)
+            filtered_ecg = filtfilt(self.b, self.a, self.ecg_data) # Filter the signal
 
-            if len(self.r_peak_times) > 1:
-                # Calculate the interval between consecutive R-peaks
-                new_interval = self.r_peak_times[-1] - self.r_peak_times[-2]
+            self.ecg_curve.setData(self.time_data, filtered_ecg)  # Use current buffer for plotting
 
-                if len(self.peak_intervals) == self.peak_intervals.maxlen:
-                    # Remove the oldest interval from the sum
-                    oldest_interval = self.peak_intervals.popleft()
-                    self.total_interval_sum -= oldest_interval    #Minus the oldest
+            # Detect R-peaks and update heart rate
+            self.r_peaks = self.detect_r_peaks(filtered_ecg)
+            self.calculate_heart_rate()
+            self.plot_r_peaks(filtered_ecg)
 
-                # Add the new interval to the deque and update the sum
-                self.peak_intervals.append(new_interval)
-                self.total_interval_sum += new_interval     #   Plus the new
+    def detect_r_peaks(self, ecg_signal):
+        r_peaks = nk.ecg_findpeaks(ecg_signal, sampling_rate=self.sampling_rate)
+        return r_peaks['ECG_R_Peaks'] if 'ECG_R_Peaks' in r_peaks else []
 
-        # Plot detected R-peaks
-        r_peak_times = self.time_axis[heartbeats]
-        r_peak_scatter = pg.ScatterPlotItem(x=r_peak_times, y=self.ecg_buffer[heartbeats],
-                                            symbol='o', size=10, pen='r', brush='r')
-        self.plot_widget.addItem(r_peak_scatter)
-
-        # Start heart rate calculation after 10 seconds
-        if time.time() - self.start_time >= self.initial_period:
-            self.update_heart_rate()
-
-    def update_heart_rate(self):
-        if len(self.peak_intervals) > 0:
-            # Efficiently calculate the heart rate using the sum of intervals
-            avg_interval = self.total_interval_sum / len(self.peak_intervals)
-            bpm = 60 / avg_interval  # Convert to beats per minute
-            self.heart_rate_label.setText(f"Heart rate: {bpm:.2f} bpm")
+    def calculate_heart_rate(self):
+        if len(self.r_peaks) >= 10:  # Check if we have 10 or more R-peaks
+            recent_r_peaks = self.r_peaks[-10:]  # Use the last 10 R-peaks for heart rate calculation
+            rr_intervals = np.diff([self.time_data[i] for i in recent_r_peaks])  # Calculate RR intervals (time differences between consecutive R-peaks)
+            if len(rr_intervals) > 0:
+                avg_rr = np.mean(rr_intervals)  # Average RR interval
+                self.heart_rate = 60.0 / avg_rr  # Convert to heart rate (BPM)
+                self.heart_rate_history.append(self.heart_rate)   # Update moving average
+                if len(self.heart_rate_history) > self.moving_average_window_size:
+                    self.heart_rate_history.pop(0)  # Remove the oldest heart rate 
+                
+                # Calculate the moving average heart rate
+                moving_average_hr = np.mean(self.heart_rate_history)
+                
+                # Update heart rate label with moving average & convert into int
+                self.heart_rate_label.setText(f"Heart Rate: {int(moving_average_hr)} BPM")
         else:
-            self.heart_rate_label.setText("Heart rate: 0 bpm")
+            self.heart_rate_label.setText("Heart Rate: Calculating...") 
 
-    def closeEvent(self, event):
-        self.data_collector.stop()   # Stop the data collector thread on close
-        self.data_collector.wait()  # Wait for the thread to finish
-        event.accept()  # Accept the close event
-
-def signal_handler(sig, frame):
-    print("Exiting...")
-    QtWidgets.QApplication.quit()
+    def plot_r_peaks(self, filtered_ecg):
+        r_peak_times = self.time_data[self.r_peaks]   # Extract the time of detected R-peaks
+        r_peak_values = filtered_ecg[self.r_peaks]
+        self.r_peak_curve.setData(r_peak_times, r_peak_values)  # Plot R-peaks as red dots
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C
-
-    streams = resolve_stream('name', 'BioAmpDataStream')
-    if not streams:
-        print("No LSL Stream found! Exiting...")
-        sys.exit(0)
-
-    app = QtWidgets.QApplication(sys.argv)
-    
-    window = ECGApp()
-    window.setWindowTitle("Real-Time ECG Monitoring")
-    window.resize(800, 600)
+    app = QApplication(sys.argv)
+    window = ECGMonitor()  
     window.show()
-
-    sys.exit(app.exec_())
+    sys.exit(app.exec_())    

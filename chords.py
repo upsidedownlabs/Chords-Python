@@ -111,8 +111,13 @@ def send_command(ser, command):
     return response
 
 # Function to read data from Arduino
-def read_arduino_data(ser, csv_writer=None):
+def read_arduino_data(ser, csv_writer=None, inverted=False):
     global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer, data
+
+    max_value = 2**14 if board == "UNO-R4" else 2**10
+    min_value = 0
+    mid_value = (max_value - 1) / 2
+    
     raw_data = ser.read(ser.in_waiting or 1)  # Read available data from the serial port
     if raw_data == b'':
         send_command(ser, 'START')
@@ -149,7 +154,16 @@ def read_arduino_data(ser, csv_writer=None):
                     high_byte = packet[2*channel + HEADER_LENGTH]
                     low_byte = packet[2*channel + HEADER_LENGTH + 1]
                     value = (high_byte << 8) | low_byte  # Combine high and low bytes
-                    channel_data.append(float(value))  # Convert to float and add to channel data
+                    if inverted:  # Apply inversion if the flag is set
+                        if value > mid_value:
+                            inverted_data = (mid_value) - abs(mid_value - value)
+                        elif value < mid_value:
+                            inverted_data = (mid_value) + abs(mid_value - value)
+                        else:
+                            inverted_data = value
+                        channel_data.append(float(inverted_data))  # Append the inverted value
+                    else:
+                        channel_data.append(float(value))  # Convert to float and add to channel data
 
                 if csv_writer:  # If CSV logging is enabled, write the data to the CSV file
                     csv_writer.writerow([counter] + channel_data)
@@ -195,7 +209,7 @@ def log_ten_minute_data(verbose=False):
     last_ten_minute_time = time.time()  # Update the last 10-minute interval start time
 
 # Main function to parse command-line arguments and handle data acquisition
-def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None):
+def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None, inverted= False):
     global total_packet_count, cumulative_packet_count, start_time, lsl_outlet, last_ten_minute_time, csv_filename
 
     csv_writer = None  # Placeholder for CSV writer
@@ -221,7 +235,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
         send_command(ser, 'START')
 
         while True:
-            read_arduino_data(ser, csv_writer)  # Read and process data from Arduino
+            read_arduino_data(ser, csv_writer, inverted=inverted)  # Read and process data from Arduino
             if(start_time is not None):
                 current_time = time.time()   # Get the current time
                 elapsed_time = current_time - start_time   # Time elapsed since the last second
@@ -291,13 +305,14 @@ def signal_handler(sig, frame):
 # Main entry point of the script
 def main():
     global verbose,ser
-    parser = argparse.ArgumentParser(description="Upside Down Labs - BioAmp Tool",allow_abbrev = False)  # Create argument parser
+    parser = argparse.ArgumentParser(description="Upside Down Labs - Chords-Python Tool",allow_abbrev = False)  # Create argument parser
     parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
     parser.add_argument('-b', '--baudrate', type=int, default=230400, help="Set baud rate for the serial communication")  # Baud rate 
     parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
     parser.add_argument('--lsl', action='store_true', help="Start LSL stream")  # LSL streaming flag
     parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output with statistical data")  # Verbose flag
     parser.add_argument('-t', '--time', type=int, help="Run the program for a specified number of seconds and then exit")   #set time
+    parser.add_argument('--inverted', action='store_true', help="Invert the signal before streaming LSL and logging")  # Inverted flag
 
     args = parser.parse_args()  # Parse command-line arguments
     verbose = args.verbose  # Set verbose mode
@@ -321,7 +336,7 @@ def main():
         return
 
     # Start data acquisition
-    parse_data(ser, lsl_flag=args.lsl, csv_flag=args.csv, verbose=args.verbose, run_time=args.time)
+    parse_data(ser, lsl_flag=args.lsl, csv_flag=args.csv, verbose=args.verbose, run_time=args.time, inverted=args.inverted)
 
 # Run the main function if this script is executed
 if __name__ == "__main__":
