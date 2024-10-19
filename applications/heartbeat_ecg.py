@@ -7,12 +7,10 @@ import pyqtgraph as pg
 import pylsl
 import neurokit2 as nk
 import sys
-import argparse 
 
 class ECGMonitor(QMainWindow):
-    def __init__(self, invert=False):  # Add the invert parameter
+    def __init__(self): 
         super().__init__()
-        self.invert = invert  
 
         self.setWindowTitle("Real-Time ECG Monitor")  # Set up GUI window
         self.setGeometry(100, 100, 800, 600)
@@ -84,10 +82,6 @@ class ECGMonitor(QMainWindow):
 
             filtered_ecg = filtfilt(self.b, self.a, self.ecg_data) # Filter the signal
 
-            # Invert the signal if the invert flag is set
-            if self.invert:
-                filtered_ecg = -filtered_ecg
-
             self.ecg_curve.setData(self.time_data, filtered_ecg)  # Use current buffer for plotting
 
             # Detect R-peaks and update heart rate
@@ -124,12 +118,7 @@ class ECGMonitor(QMainWindow):
         self.r_peak_curve.setData(r_peak_times, r_peak_values)  # Plot R-peaks as red dots
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Real-Time ECG Monitor")
-    parser.add_argument("--invert", action="store_true", help="Invert the ECG signal plot")
-    
-    args = parser.parse_args()
-    
     app = QApplication(sys.argv)
-    window = ECGMonitor(invert=args.invert)  # Pass the invert flag 
+    window = ECGMonitor()  
     window.show()
     sys.exit(app.exec_())    
