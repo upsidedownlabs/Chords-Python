@@ -59,9 +59,9 @@ class ECGMonitor(QMainWindow):
 
         # Set y-axis limits based on sampling rate
         if self.sampling_rate == 250:  
-            self.plot_widget.setYRange(-2**10, 2**10)  # for R3
+            self.plot_widget.setYRange(0, 2**10)  # for R3
         elif self.sampling_rate == 500:  
-            self.plot_widget.setYRange(-2**14, 2**14)  # for R4 
+            self.plot_widget.setYRange(0, 2**14)  # for R4 
 
         # Set fixed x-axis range
         self.plot_widget.setXRange(0, 10)  # 10 seconds
