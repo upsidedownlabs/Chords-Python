@@ -59,18 +59,33 @@ class ECGMonitor(QMainWindow):
 
         # Set y-axis limits based on sampling rate
         if self.sampling_rate == 250:  
-            self.plot_widget.setYRange(0, 2**10)  # for R3
+            self.plot_widget.setYRange(0, 2**10,padding=0)  # for R3 & ensuring no extra spaces at end
         elif self.sampling_rate == 500:  
-            self.plot_widget.setYRange(0, 2**14)  # for R4 
+            self.plot_widget.setYRange(0, 2**14,padding=0)  # for R4 & ensuring no extra spaces at end
 
         # Set fixed x-axis range
-        self.plot_widget.setXRange(0, 10)  # 10 seconds
+        self.plot_widget.setXRange(0, 10,padding=0)  # ensure no extra spaces
 
         self.ecg_curve = self.plot_widget.plot(self.time_data, self.ecg_data, pen=pg.mkPen('k', width=1))
         self.r_peak_curve = self.plot_widget.plot([], [], pen=None, symbol='o', symbolBrush='r', symbolSize=10)  # R-peaks in red
         
         self.moving_average_window_size = 5   # Initialize moving average buffer
         self.heart_rate_history = []          # Buffer to store heart rates for moving average
+
+        # Connect double-click event
+        self.plot_widget.scene().sigMouseClicked.connect(self.on_double_click)
+
+    def on_double_click(self, event):
+        if event.double():
+            self.reset_zoom()
+
+    def reset_zoom(self):
+        # Reset to default y-axis limits based on the sampling rate
+        if self.sampling_rate == 250:  
+            self.plot_widget.setYRange(0, 2**10, padding=0)
+        elif self.sampling_rate == 500:  
+            self.plot_widget.setYRange(0, 2**14, padding=0)
+        self.plot_widget.setXRange(0, 10, padding=0)
 
     def update_plot(self):
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
