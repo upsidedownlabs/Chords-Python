@@ -13,13 +13,25 @@ class EMGMonitor(QMainWindow):
         self.setWindowTitle("Real-Time EMG Monitor with EMG Envelope")
         self.setGeometry(100, 100, 800, 600)
 
-        self.plot_widget = PlotWidget(self)
-        self.plot_widget.setBackground('w')
-        self.plot_widget.showGrid(x=True, y=True)
-
+        # Create layout
         layout = QVBoxLayout()
-        layout.addWidget(self.plot_widget)
 
+        # Create plot widgets for raw EMG and EMG envelope
+        self.raw_emg_plot = PlotWidget(self)
+        self.raw_emg_plot.setBackground('w')
+        self.raw_emg_plot.showGrid(x=True, y=True)
+        self.raw_emg_plot.setTitle("Raw EMG Signal")
+
+        self.envelope_plot = PlotWidget(self)
+        self.envelope_plot.setBackground('w')
+        self.envelope_plot.showGrid(x=True, y=True)
+        self.envelope_plot.setTitle("EMG Envelope")
+
+        # Add plots to layout
+        layout.addWidget(self.raw_emg_plot)
+        layout.addWidget(self.envelope_plot)
+
+        # Central widget
         central_widget = QWidget()
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
@@ -47,17 +59,20 @@ class EMGMonitor(QMainWindow):
         self.rms_window_size = int(0.1 * self.sampling_rate)
 
         # Set fixed axis ranges
-        self.plot_widget.setXRange(0, 10, padding=0)
+        self.raw_emg_plot.setXRange(0, 10, padding=0)
+        self.envelope_plot.setXRange(0, 10, padding=0)
 
-        # Set y-axis limits based on sampling rate
+        # Set y-axis limits based on sampling rate for raw EMG
         if self.sampling_rate == 250:  
-            self.plot_widget.setYRange(400,600 ,padding=0)  # for R3 & ensuring no extra spaces at end
+            self.raw_emg_plot.setYRange(-((2**10)/2), ((2**10)/2), padding=0)  # for R3
+            self.envelope_plot.setYRange(0, ((2**10)/2), padding=0)  # for R3
         elif self.sampling_rate == 500:  
-            self.plot_widget.setYRange(400, 10000,padding=0)  # for R4 & ensuring no extra spaces at end
+            self.raw_emg_plot.setYRange(-((2**14)/2), ((2**14)/2), padding=0)  # for R4
+            self.envelope_plot.setYRange(0, ((2**14)/2), padding=0)  # for R4
 
         # Plot curves for EMG data and envelope
-        self.emg_curve = self.plot_widget.plot(self.time_data, self.emg_data, pen=pg.mkPen('b', width=1))
-        self.envelope_curve = self.plot_widget.plot(self.time_data, self.emg_data, pen=pg.mkPen('r', width=2))
+        self.emg_curve = self.raw_emg_plot.plot(self.time_data, self.emg_data, pen=pg.mkPen('b', width=1))
+        self.envelope_curve = self.envelope_plot.plot(self.time_data, self.emg_data, pen=pg.mkPen('r', width=2))
 
         # Timer for plot update
         self.timer = pg.QtCore.QTimer()
@@ -79,11 +94,9 @@ class EMGMonitor(QMainWindow):
 
             # Filter the EMG data
             filtered_emg = filtfilt(self.b, self.a, self.emg_data)
-            # print(filtered_emg)
 
             # Take absolute value before calculating RMS envelope
             abs_filtered_emg = np.abs(filtered_emg)
-            # print(abs_filtered_emg)
 
             # Calculate the RMS envelope
             rms_envelope = self.calculate_moving_rms(abs_filtered_emg, self.rms_window_size)
