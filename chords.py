@@ -166,7 +166,7 @@ def read_arduino_data(ser, csv_writer=None, inverted=False):
                         channel_data.append(float(value))  # Convert to float and add to channel data
 
                 if csv_writer:  # If CSV logging is enabled, write the data to the CSV file
-                    current_timestamp = datetime.now().strftime('%H:%M:%S')  # Get the current timestamp
+                    current_timestamp = datetime.now().strftime('%H:%M:%S:%f')  # Get the current timestamp
                     csv_writer.writerow([current_timestamp, counter] + channel_data)
                 if lsl_outlet:  # If LSL streaming is enabled, send the data to the LSL stream
                     lsl_outlet.push_sample(channel_data)
