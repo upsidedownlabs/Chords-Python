@@ -17,7 +17,7 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
 
 ## Requirements
 
--  Python 3.x
+-  Python 3.10
 - `pyserial` library (for serial communication)
 - `pylsl` library (for LSL streaming)
 - `argparse`, `time`, `csv`, `datetime` (standard libraries)
@@ -27,12 +27,12 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
 
 ## Installation
 
-1. Ensure you have Python 3.x installed.
+1. Ensure you have Python 3.10 installed.
 2. Create Virtual Environment
    ```bash
    python -m venv venv    
    ```
-   
+
    ```bash
    .\venv\Scripts\activate  
    ```
