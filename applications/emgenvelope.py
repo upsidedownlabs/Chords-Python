@@ -21,13 +21,13 @@ class EMGMonitor(QMainWindow):
         self.emg_plot.setBackground('w')
         self.emg_plot.showGrid(x=True, y=True)
         self.emg_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
-        self.emg_plot.setTitle("Filtered EMG Signal(High Pass 70 Hz)")
+        self.emg_plot.setTitle("Filtered EMG Signal (High Pass:70 Hz)")
 
         self.envelope_plot = PlotWidget(self)
         self.envelope_plot.setBackground('w')
         self.envelope_plot.showGrid(x=True, y=True)
         self.envelope_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
-        self.envelope_plot.setTitle("EMG Envelope(10% Average Samples)")
+        self.envelope_plot.setTitle("EMG Envelope (Samples Average:10%)")
 
         # Add plots to layout
         layout.addWidget(self.emg_plot)
