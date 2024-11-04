@@ -16,19 +16,21 @@ class EMGMonitor(QMainWindow):
         # Create layout
         layout = QVBoxLayout()
 
-        # Create plot widgets for raw EMG and EMG envelope
-        self.raw_emg_plot = PlotWidget(self)
-        self.raw_emg_plot.setBackground('w')
-        self.raw_emg_plot.showGrid(x=True, y=True)
-        self.raw_emg_plot.setTitle("Raw EMG Signal")
+        # Create plot widgets for Filtered EMG and EMG envelope
+        self.emg_plot = PlotWidget(self)
+        self.emg_plot.setBackground('w')
+        self.emg_plot.showGrid(x=True, y=True)
+        self.emg_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
+        self.emg_plot.setTitle("Filtered EMG Signal(High Pass 70 Hz)")
 
         self.envelope_plot = PlotWidget(self)
         self.envelope_plot.setBackground('w')
         self.envelope_plot.showGrid(x=True, y=True)
-        self.envelope_plot.setTitle("EMG Envelope")
+        self.envelope_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
+        self.envelope_plot.setTitle("EMG Envelope(10% Average Samples)")
 
         # Add plots to layout
-        layout.addWidget(self.raw_emg_plot)
+        layout.addWidget(self.emg_plot)
         layout.addWidget(self.envelope_plot)
 
         # Central widget
@@ -55,23 +57,23 @@ class EMGMonitor(QMainWindow):
 
         self.b, self.a = butter(4, 70.0 / (0.5 * self.sampling_rate), btype='high')
 
-        # Moving RMS window size (50 for 250 sampling rate and 100 for 500 sampling rate)
+        # Moving RMS window size (25 for 250 sampling rate and 50 for 500 sampling rate)
         self.rms_window_size = int(0.1 * self.sampling_rate)
 
         # Set fixed axis ranges
-        self.raw_emg_plot.setXRange(0, 10, padding=0)
+        self.emg_plot.setXRange(0, 10, padding=0)
         self.envelope_plot.setXRange(0, 10, padding=0)
 
-        # Set y-axis limits based on sampling rate for raw EMG
+        # Set y-axis limits based on sampling rate for Filtered EMG
         if self.sampling_rate == 250:  
-            self.raw_emg_plot.setYRange(-((2**10)/2), ((2**10)/2), padding=0)  # for R3
+            self.emg_plot.setYRange(-((2**10)/2), ((2**10)/2), padding=0)  # for R3
             self.envelope_plot.setYRange(0, ((2**10)/2), padding=0)  # for R3
         elif self.sampling_rate == 500:  
-            self.raw_emg_plot.setYRange(-((2**14)/2), ((2**14)/2), padding=0)  # for R4
+            self.emg_plot.setYRange(-((2**14)/2), ((2**14)/2), padding=0)  # for R4
             self.envelope_plot.setYRange(0, ((2**14)/2), padding=0)  # for R4
 
         # Plot curves for EMG data and envelope
-        self.emg_curve = self.raw_emg_plot.plot(self.time_data, self.emg_data, pen=pg.mkPen('b', width=1))
+        self.emg_curve = self.emg_plot.plot(self.time_data, self.emg_data, pen=pg.mkPen('b', width=1))
         self.envelope_curve = self.envelope_plot.plot(self.time_data, self.emg_data, pen=pg.mkPen('r', width=2))
 
         # Timer for plot update
