@@ -95,7 +95,7 @@ To use the script, run it from the command line with various options:
 ## Applications
 
 > [!IMPORTANT]
- Before using the below Applications make sure you are in Application folder.
+ Before using the below Applications make sure you are in application folder.
 
 ### GUI
 
