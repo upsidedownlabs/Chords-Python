@@ -30,7 +30,7 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
 1. Ensure you have Python 3.10 installed.
 2. Create Virtual Environment
    ```bash
-   python -m venv venv    
+   python3.10 -m venv venv    
    ```
 
    ```bash
