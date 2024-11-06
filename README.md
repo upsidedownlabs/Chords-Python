@@ -27,7 +27,7 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
 
 ## Installation
 
-1. Ensure you have Python 3.10 installed.
+1. Ensure you have latest version of Python installed.
 2. Create Virtual Environment
    ```bash
    python -m venv venv    
@@ -95,7 +95,7 @@ To use the script, run it from the command line with various options:
 ## Applications
 
 > [!IMPORTANT]
- Before using the below Applications make sure you are in Application folder.
+ Before using the below Applications make sure you are in application folder.
 
 ### GUI
 
@@ -123,9 +123,9 @@ To use the script, run it from the command line with various options:
 
 `check_win_condition()`: Determines if either player has won based on the ball's position.
 
-### Heart Rate
+### HEART RATE
 
-- `python heartbeat.ecg.py`:Enable a GUI with real-time ECG and heart rate
+- `python heartbeat.ecg.py`:Enable a GUI with real-time ECG and heart rate.
 
 #### Script Functions
 
@@ -140,6 +140,22 @@ To use the script, run it from the command line with various options:
 `update_plot(self, ecg_data)`: Updates the plot with the latest ECG data and detects heartbeats to display on the GUI.
 
 `update_heart_rate(self)`: Calculates and updates the heart rate based on detected R-peaks in the ECG signal.
+
+### EMG ENVELOPE
+
+- `python emgenvelope.py` :Enable a GUI with real-time EMG & its Envelope.
+
+#### Script Functions
+
+ `update_plot` : Updates the plot with latest Filtered EMG Data and its Envelope.
+
+### EOG
+
+- `python eog.py` :Enable a GUI with real-time EOG.
+
+#### Script Functions
+
+ `update_plot` : Updates the plot with latest Filtered EOG Data.
 
 ## Troubleshooting
 
