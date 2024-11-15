@@ -166,7 +166,7 @@ def read_arduino_data(ser, csv_writer=None, inverted=False):
                         channel_data.append(float(value))  # Convert to float and add to channel data
 
                 if csv_writer:  # If CSV logging is enabled, write the data to the CSV file
-                    current_timestamp = datetime.now().strftime('%H:%M:%S:%f')  # Get the current timestamp
+                    current_timestamp = datetime.now().strftime('%f')  # Get the timestamp only in microseconds
                     csv_writer.writerow([current_timestamp, counter] + channel_data)
                 if lsl_outlet:  # If LSL streaming is enabled, send the data to the LSL stream
                     lsl_outlet.push_sample(channel_data)
@@ -230,6 +230,9 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
         csv_file = open(csv_filename, mode='w', newline='') if csv_flag else None  # Open CSV file if logging is
         if csv_file:
             csv_writer = csv.writer(csv_file)  # Create CSV writer
+            csv_writer.writerow([f"Arduino Board: {board}"])
+            csv_writer.writerow([f"Sampling Rate (samples per second): {supported_boards[board]}"])
+            csv_writer.writerow([])  # Blank row for separation
             csv_writer.writerow(['Timestamp', 'Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])  # Write header
 
         end_time = time.time() + run_time if run_time else None
