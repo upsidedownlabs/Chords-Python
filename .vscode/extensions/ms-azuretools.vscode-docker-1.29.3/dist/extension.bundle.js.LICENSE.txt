@@ -1,0 +1,30 @@
+/*!
+ * NevWare21 Solutions LLC - ts-async, 0.5.2
+ * https://github.com/nevware21/ts-async
+ * Copyright (c) NevWare21 Solutions LLC and contributors. All rights reserved.
+ * Licensed under the MIT license.
+ */
+
+/*!
+ * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+/*! @azure/msal-common v14.13.1 2024-07-16 */
+
+/*! @azure/msal-node v2.11.1 2024-07-16 */
+
+/*! http://mths.be/fromcodepoint v0.1.0 by @mathias */
+
+/*! https://github.com/nevware21/ts-utils v0.11.3 */
+
+/*! https://mths.be/he v1.2.0 by @mathias | MIT license */
+
+/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+/*!--------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/

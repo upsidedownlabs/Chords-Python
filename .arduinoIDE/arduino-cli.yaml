@@ -1,0 +1,30 @@
+board_manager:
+    additional_urls:
+        - https://dl.espressif.com/dl/package_esp32_index.json
+build_cache:
+    compilations_before_purge: 10
+    ttl: 720h0m0s
+daemon:
+    port: "50051"
+directories:
+    builtin:
+        libraries: C:\Users\PAYAL\AppData\Local\Arduino15\libraries
+    data: c:\Users\PAYAL\AppData\Local\Arduino15
+    downloads: C:\Users\PAYAL\AppData\Local\Arduino15\staging
+    user: c:\Users\PAYAL\Documents\Arduino
+library:
+    enable_unsafe_install: false
+locale: en
+logging:
+    file: ""
+    format: text
+    level: info
+metrics:
+    addr: :9090
+    enabled: true
+output:
+    no_color: false
+sketch:
+    always_export_binaries: false
+updater:
+    enable_notification: true

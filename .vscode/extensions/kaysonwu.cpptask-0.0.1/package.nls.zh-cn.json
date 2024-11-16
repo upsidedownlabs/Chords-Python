@@ -1,0 +1,14 @@
+{
+	"c_cpp.taskDefinitions.sources.description": "待编译的源文件，支持 glob 语法",
+	"c_cpp.taskDefinitions.output.description": "输出文件",
+	"c_cpp.taskDefinitions.compilerPath.description": "C/C++ 编译器文件路径, 默认: g++.",
+	"c_cpp.taskDefinitions.compilerArgs.description": "需要传递给编译的参数, 默认: -g",
+	"c_cpp.taskDefinitions.includePath.description": "附加包含目录，将在其中查找头文件，支持 glob 语法",
+  "c_cpp.taskDefinitions.libraryPath.description": "附加库目录，将在其中查找库文件，支持 glob 语法",
+	"c_cpp.taskDefinitions.options.description": "其他命令选项",
+  "c_cpp.taskDefinitions.options.cwd.description": "编译器的当前工作目录。如果省略，则使用代码的当前工作区根",
+  "c_cpp.taskDefinitions.options.env.description": "编译器的 shell 环境。如果省略，则使用父进程的环境",
+	"c_cpp.taskDefinitions.windows.description": "Windows 特定的命令配置",
+	"c_cpp.taskDefinitions.linux.description": "Linux 特定的命令配置",
+	"c_cpp.taskDefinitions.osx.description": "MacOS 特定的命令配置"
+}

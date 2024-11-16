@@ -1,0 +1,273 @@
+{
+	"name": "cpptask",
+	"displayName": "C/C++ Build Task",
+	"description": "Visual Studio Code task provider for compiling C/C++ project",
+	"version": "0.0.1",
+	"icon": "icon.png",
+	"publisher": "kaysonwu",
+	"license": "MIT",
+	"author": {
+		"name": "kaysonwu",
+		"url": "https://github.com/kaysonwu"
+	},
+	"keywords": [
+		"c",
+		"cpp",
+		"c++"
+	],
+	"main": "./dist/extension.js",
+	"homepage": "https://github.com/kaysonwu/cpptask",
+	"qna": "https://github.com/kaysonwu/cpptask/issues",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kaysonwu/cpptask.git"
+	},
+	"bugs": {
+		"url": "https://github.com/kaysonwu/cpptask/issues"
+	},
+	"engines": {
+		"vscode": "^1.48.1"
+	},
+	"categories": [
+		"Debuggers"
+	],
+	"scripts": {
+		"vscode:prepublish": "yarn run compile",
+		"compile": "tsc -p .",
+		"watch": "tsc -watch -p .",
+		"lint": "eslint src --ext ts"
+	},
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"contributes": {
+		"taskDefinitions": [
+			{
+				"type": "cpp",
+				"required": [
+					"sources",
+					"output"
+				],
+				"properties": {
+					"sources": {
+						"type": "array",
+						"description": "%c_cpp.taskDefinitions.sources.description%"
+					},
+					"output": {
+						"type": "string",
+						"description": "%c_cpp.taskDefinitions.output.description%"
+					},
+					"compilerPath": {
+						"type": "string",
+						"default": "g++",
+						"description": "%c_cpp.taskDefinitions.compilerPath.description%"
+					},
+					"compilerArgs": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [
+							"-g"
+						],
+						"description": "%c_cpp.taskDefinitions.compilerArgs.description%"
+					},
+					"includePath": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "%c_cpp.taskDefinitions.includePath.description%"
+					},
+					"libraryPath": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "%c_cpp.taskDefinitions.libraryPath.description%"
+					},
+					"options": {
+						"type": "object",
+						"description": "%c_cpp.taskDefinitions.options.description%",
+						"properties": {
+							"cwd": {
+								"type": "string",
+								"default": "${workspaceFolder}",
+								"description": "%c_cpp.taskDefinitions.options.cwd.description%"
+							},
+							"env": {
+								"type": "object",
+								"description": "%c_cpp.taskDefinitions.options.env.description%"
+							}
+						}
+					},
+					"windows": {
+						"type": "object",
+						"description": "%c_cpp.taskDefinitions.windows.description%",
+						"properties": {
+							"compilerPath": {
+								"type": "string",
+								"description": "%c_cpp.taskDefinitions.compilerPath.description%"
+							},
+							"compilerArgs": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.compilerArgs.description%"
+							},
+							"includePath": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.includePath.description%"
+							},
+							"libraryPath": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.libraryPath.description%"
+							},
+							"options": {
+								"type": "object",
+								"description": "%c_cpp.taskDefinitions.options.description%",
+								"properties": {
+									"cwd": {
+										"type": "string",
+										"description": "%c_cpp.taskDefinitions.options.cwd.description%"
+									},
+									"env": {
+										"type": "object",
+										"description": "%c_cpp.taskDefinitions.options.env.description%"
+									}
+								}
+							}
+						}
+					},
+					"linux": {
+						"type": "object",
+						"description": "%c_cpp.taskDefinitions.linux.description%",
+						"properties": {
+							"compilerPath": {
+								"type": "string",
+								"description": "%c_cpp.taskDefinitions.compilerPath.description%"
+							},
+							"compilerArgs": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.compilerArgs.description%"
+							},
+							"includePath": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.includePath.description%"
+							},
+							"libraryPath": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.libraryPath.description%"
+							},
+							"options": {
+								"type": "object",
+								"description": "%c_cpp.taskDefinitions.options.description%",
+								"properties": {
+									"cwd": {
+										"type": "string",
+										"description": "%c_cpp.taskDefinitions.options.cwd.description%"
+									},
+									"env": {
+										"type": "object",
+										"description": "%c_cpp.taskDefinitions.options.env.description%"
+									}
+								}
+							}
+						}
+					},
+					"osx": {
+						"type": "object",
+						"description": "%c_cpp.taskDefinitions.osx.description%",
+						"properties": {
+							"compilerPath": {
+								"type": "string",
+								"description": "%c_cpp.taskDefinitions.compilerPath.description%"
+							},
+							"compilerArgs": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.compilerArgs.description%"
+							},
+							"includePath": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.includePath.description%"
+							},
+							"libraryPath": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "%c_cpp.taskDefinitions.libraryPath.description%"
+							},
+							"options": {
+								"type": "object",
+								"description": "%c_cpp.taskDefinitions.options.description%",
+								"properties": {
+									"cwd": {
+										"type": "string",
+										"description": "%c_cpp.taskDefinitions.options.cwd.description%"
+									},
+									"env": {
+										"type": "object",
+										"description": "%c_cpp.taskDefinitions.options.env.description%"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		]
+	},
+	"dependencies": {
+		"globby": "^11.0.0",
+		"lodash.merge": "^4.6.0",
+		"slash": "^3.0.0"
+	},
+	"devDependencies": {
+		"@types/lodash.merge": "^4.6.0",
+		"@types/mocha": "^8.0.0",
+		"@types/node": "^10.0.0",
+		"@types/vscode": "^1.48.0",
+		"@typescript-eslint/eslint-plugin": "^3.8.0",
+		"@typescript-eslint/parser": "^3.8.0",
+		"eslint": "^7.6.0",
+		"mocha": "^8.0.1",
+		"ts-node": "^8.10.2",
+		"typescript": "^3.8.2",
+		"vscode-test": "^1.4.0"
+	},
+	"__metadata": {
+		"id": "0e5eafda-7241-43ce-ba86-fb015deab4a3",
+		"publisherId": "8ae19ebf-fefa-401c-9d39-748e99969909",
+		"publisherDisplayName": "kaysonwu",
+		"targetPlatform": "undefined",
+		"updated": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1714575054413,
+		"pinned": false,
+		"source": "gallery"
+	}
+}

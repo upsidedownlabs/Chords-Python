@@ -1,0 +1,10 @@
+auto_register: true
+default_site: null
+sites:
+  anaconda:
+    url: https://api.anaconda.org
+  binstar:
+    url: https://api.anaconda.org
+ssl_verify: null
+url: https://api.anaconda.org
+verify_ssl: null

@@ -1,0 +1,16 @@
+microvenv-2023.5.post1.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+microvenv-2023.5.post1.dist-info/METADATA,sha256=7FhwAlOHEXPu-SCkZqePOi3CKBynWZ1pap1Dl_QtxJM,4203
+microvenv-2023.5.post1.dist-info/RECORD,,
+microvenv-2023.5.post1.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+microvenv-2023.5.post1.dist-info/WHEEL,sha256=mRYSEL3Ih6g5a_CVMIcwiF__0Ae4_gLYh01YFNwiq1k,87
+microvenv-2023.5.post1.dist-info/licenses/LICENSE,sha256=gzndYzxiNubxtc46JxBUhPyIyAufg8I5dags-bG7lGk,1069
+microvenv/__init__.py,sha256=4uLdFUhehOGIrgBvOBl5cJe1Wdn6Rneaz-FvUADUx44,3467
+microvenv/__init__.pyi,sha256=hAk0zJ4DYrGFQz--2gnQrk0M-OCHFYM0pfVw9JzzpJc,342
+microvenv/__main__.py,sha256=EZKQY3kR0lX042AP3lCPt9yMDdP_hKade0lzkgfg62c,208
+microvenv/__main__.pyi,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+microvenv/__pycache__/__init__.cpython-38.pyc,,
+microvenv/__pycache__/__main__.cpython-38.pyc,,
+microvenv/__pycache__/_create.cpython-38.pyc,,
+microvenv/_create.py,sha256=e4M7C1qT6QHwjcWD5I_EGmkF4VFEb3OwpTcqdJcY4yc,4030
+microvenv/_create.pyi,sha256=ySw9eiqs6BECTN_W9L3vjWX5eOO-sL8jEqOz_DoOX8E,200
+microvenv/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0

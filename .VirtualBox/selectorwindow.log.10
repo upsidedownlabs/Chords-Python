@@ -1,0 +1,20 @@
+00:00:00.714135 VirtualBox GUI VM Selector Window 7.0.6 r155176 win.amd64 (Jan 11 2023 16:38:38) release log
+00:00:00.714138 Log opened 2023-01-24T07:54:16.167034800Z
+00:00:00.714138 Build Type: release
+00:00:00.714143 OS Product: Windows 11
+00:00:00.714145 OS Release: 10.0.22623
+00:00:00.714146 OS Service Pack: 
+00:00:00.733399 DMI Product Name: HP Laptop 14s-fq1xxx
+00:00:00.743844 DMI Product Version:  
+00:00:00.743879 Firmware type: UEFI
+00:00:00.744586 Secure Boot: VERR_PRIVILEGE_NOT_HELD
+00:00:00.745316 Host RAM: 7503MB (7.3GB) total, 4651MB (4.5GB) available
+00:00:00.745323 Executable: C:\Program Files\Oracle\VirtualBox\VirtualBox.exe
+00:00:00.745324 Process ID: 10992
+00:00:00.745324 Package type: WINDOWS_64BITS_GENERIC
+00:00:00.745538 Qt version: 5.15.2
+00:00:00.746707 GUI: UIMediumEnumerator: Initial medium-enumeration finished!
+00:00:00.795541 GUI: UIMediumEnumerator: Medium-enumeration started...
+00:00:03.305280 GUI: UIMediumEnumerator: Medium-enumeration finished!
+01:07:20.904103 GUI: UICommon: Commit data request...
+01:07:20.904245 Log rotated - Log started 2023-01-24T07:54:16.167034800Z

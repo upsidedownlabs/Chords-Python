@@ -1,0 +1,448 @@
+{
+	"name": "rainbow-csv",
+	"displayName": "Rainbow CSV",
+	"description": "Highlight CSV and TSV files, Run SQL-like queries",
+	"version": "3.12.0",
+	"publisher": "mechatroner",
+	"license": "MIT",
+	"icon": "rainbow_csv_logo.png",
+	"engines": {
+		"vscode": "^1.71.0"
+	},
+	"keywords": [
+		"csv",
+		"tsv",
+		"highlight"
+	],
+	"categories": [
+		"Data Science",
+		"Other",
+		"Programming Languages"
+	],
+	"activationEvents": [
+		"onLanguage:csv",
+		"onLanguage:tsv",
+		"onLanguage:csv (semicolon)",
+		"onLanguage:csv (pipe)",
+		"onLanguage:csv (whitespace)",
+		"onLanguage:dynamic csv",
+		"onLanguage:plaintext",
+		"onCommand:rainbow-csv.RBQL",
+		"onCommand:rainbow-csv.RainbowSeparator",
+		"onCommand:rainbow-csv.SampleHead",
+		"onCommand:rainbow-csv.SampleTail"
+	],
+	"main": "./extension",
+	"browser": "./dist/web/extension.js",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Rainbow CSV",
+			"properties": {
+				"rainbow_csv.enable_sticky_header": {
+					"type": "boolean",
+					"default": true,
+					"order": 1,
+					"description": "Enable sticky header line at the top."
+				},
+				"rainbow_csv.enable_separator_autodetection": {
+					"type": "boolean",
+					"default": true,
+					"order": 2,
+					"description": "Enable automatic content based separator autodetection."
+				},
+				"rainbow_csv.autodetect_separators": {
+					"type": "array",
+					"default": [
+						"TAB",
+						",",
+						";",
+						"|"
+					],
+					"description": "Enable automatic content-based separator autodetection for the specified list of separators (multicharacter separators are supported).",
+					"order": 3,
+					"items": {
+						"type": "string",
+						"description": "Separator"
+					}
+				},
+				"rainbow_csv.autodetection_min_line_count": {
+					"type": "number",
+					"default": 10,
+					"order": 4,
+					"description": "Minimum number of non-comment lines in file for content-based autodetection."
+				},
+				"rainbow_csv.enable_tooltip": {
+					"type": "boolean",
+					"default": true,
+					"order": 5,
+					"description": "Enable column-info tooltip on hover."
+				},
+				"rainbow_csv.enable_tooltip_column_names": {
+					"type": "boolean",
+					"default": true,
+					"order": 6,
+					"description": "Show column names in tooltip."
+				},
+				"rainbow_csv.enable_cursor_position_info": {
+					"type": "boolean",
+					"default": true,
+					"order": 7,
+					"description": "Keyboard input text cursor: show info about the cursor CSV column in the status bar."
+				},
+				"rainbow_csv.double_width_alignment": {
+					"type": "boolean",
+					"default": true,
+					"order": 8,
+					"description": "If enabled treat double width unicode chars e.g. Chinese or Japanese chars as double wide when aligning."
+				},
+				"rainbow_csv.enable_auto_csv_lint": {
+					"type": "boolean",
+					"default": true,
+					"order": 9,
+					"description": "Automatically run linter for every CSV file."
+				},
+				"rainbow_csv.csv_lint_detect_trailing_spaces": {
+					"type": "boolean",
+					"default": false,
+					"order": 10,
+					"description": "CSV Lint: detect leading and trailing whitespaces in fields and show warning."
+				},
+				"rainbow_csv.comment_prefix": {
+					"type": "string",
+					"default": "",
+					"order": 11,
+					"description": "Comment lines prefix, e.g. \"#\". Set to empty string to disable."
+				},
+				"rainbow_csv.rbql_output_dir": {
+					"type": "string",
+					"default": "TMP",
+					"order": 12,
+					"description": "Output directory for RBQL result sets, can be `TMP`, `INPUT` or a custom absolute path. `TMP` - output in system tmp dir(default), `INPUT` - output in the same dir as input file, otherwise use provided path as the output directory e.g. `/path/to/custom/dir`."
+				},
+				"rainbow_csv.rbql_with_headers_by_default": {
+					"type": "boolean",
+					"default": false,
+					"order": 13,
+					"description": "RBQL treats the first line as header by default."
+				},
+				"rainbow_csv.enable_context_menu_head": {
+					"type": "boolean",
+					"default": false,
+					"order": 14,
+					"description": "Enable \"Preview CSV head\" option in File Explorer context menu for all files."
+				},
+				"rainbow_csv.enable_context_menu_tail": {
+					"type": "boolean",
+					"default": false,
+					"order": 15,
+					"description": "Enable \"Preview CSV tail\" option in File Explorer context menu for all files."
+				},
+				"rainbow_csv.align_in_scratch_file": {
+					"type": "boolean",
+					"default": false,
+					"order": 16,
+					"description": "If enabled, aligned content is copied to a new scratch file to keep the original file without modifications (unless the original is itself an untitled scratch document)."
+				},
+				"rainbow_csv.enable_debug_logging": {
+					"type": "boolean",
+					"default": false,
+					"order": 17,
+					"description": "Dev Mode: Enable Debug Logging. Run command [Developer: Show Logs...] -> [rainbow_csv_debug_channel] to see the output."
+				}
+			}
+		},
+		"menus": {
+			"editor/context": [
+				{
+					"when": "editorHasSelection && editorLangId =~ /dynamic csv|plaintext|^[ct]sv/",
+					"command": "rainbow-csv.RainbowSeparator",
+					"group": "rainbow_csv"
+				},
+				{
+					"when": "editorTextFocus && editorLangId =~ /dynamic csv|^[ct]sv/",
+					"command": "rainbow-csv.SetHeaderLine",
+					"group": "rainbow_csv"
+				},
+				{
+					"when": "editorTextFocus && editorLangId =~ /dynamic csv|^[ct]sv/",
+					"command": "rainbow-csv.SetCommentPrefix",
+					"group": "rainbow_csv"
+				}
+			],
+			"explorer/context": [
+				{
+					"command": "rainbow-csv.SampleHead",
+					"when": "config.rainbow_csv.enable_context_menu_head || resourceLangId =~ /plaintext|^[ct]sv/",
+					"group": "rainbow_csv"
+				},
+				{
+					"command": "rainbow-csv.SampleTail",
+					"when": "config.rainbow_csv.enable_context_menu_tail",
+					"group": "rainbow_csv"
+				}
+			]
+		},
+		"languages": [
+			{
+				"id": "csv",
+				"aliases": [
+					"CSV",
+					"csv"
+				],
+				"extensions": [
+					".csv"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "tsv",
+				"aliases": [
+					"TSV",
+					"tsv"
+				],
+				"extensions": [
+					".tsv",
+					".tab"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "csv (pipe)",
+				"aliases": [
+					"CSV (pipe)",
+					"csv (pipe)"
+				],
+				"extensions": [],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "csv (whitespace)",
+				"aliases": [
+					"CSV (whitespace)",
+					"csv (whitespace)"
+				],
+				"extensions": [],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "csv (semicolon)",
+				"aliases": [
+					"CSV (semicolon)",
+					"csv (semicolon)"
+				],
+				"extensions": [],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "dynamic csv",
+				"aliases": [
+					"Dynamic CSV",
+					"dynamic csv"
+				],
+				"extensions": [],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"commands": [
+			{
+				"command": "rainbow-csv.CSVLint",
+				"title": "CSV Lint"
+			},
+			{
+				"command": "rainbow-csv.SetVirtualHeader",
+				"category": "Rainbow CSV",
+				"title": "Set virtual header"
+			},
+			{
+				"command": "rainbow-csv.SetHeaderLine",
+				"category": "Rainbow CSV",
+				"title": "Set header line"
+			},
+			{
+				"command": "rainbow-csv.SetCommentPrefix",
+				"category": "Rainbow CSV",
+				"title": "Set selection as comment prefix"
+			},
+			{
+				"command": "rainbow-csv.RBQL",
+				"category": "Rainbow CSV",
+				"title": "RBQL"
+			},
+			{
+				"command": "rainbow-csv.SetJoinTableName",
+				"category": "Rainbow CSV",
+				"title": "Set join table name for RBQL"
+			},
+			{
+				"command": "rainbow-csv.ColumnEditBefore",
+				"category": "Rainbow CSV",
+				"title": "Column edit before"
+			},
+			{
+				"command": "rainbow-csv.ColumnEditAfter",
+				"category": "Rainbow CSV",
+				"title": "Column edit after"
+			},
+			{
+				"command": "rainbow-csv.ColumnEditSelect",
+				"category": "Rainbow CSV",
+				"title": "Column edit select"
+			},
+			{
+				"command": "rainbow-csv.RainbowSeparator",
+				"category": "Rainbow CSV",
+				"title": "Set rainbow separator"
+			},
+			{
+				"command": "rainbow-csv.RainbowSeparatorOff",
+				"title": "RainbowSeparatorOff"
+			},
+			{
+				"command": "rainbow-csv.RainbowSeparatorOn",
+				"title": "RainbowSeparatorOn"
+			},
+			{
+				"command": "rainbow-csv.Align",
+				"category": "Rainbow CSV",
+				"title": "Align CSV Columns"
+			},
+			{
+				"command": "rainbow-csv.Shrink",
+				"category": "Rainbow CSV",
+				"title": "Shrink CSV table: Remove leading and trailing whitespaces from all fields"
+			},
+			{
+				"command": "rainbow-csv.CopyBack",
+				"title": "CopyBack"
+			},
+			{
+				"command": "rainbow-csv.SampleHead",
+				"title": "Preview big CSV: head"
+			},
+			{
+				"command": "rainbow-csv.SampleTail",
+				"title": "Preview big CSV: tail"
+			}
+		],
+		"semanticTokenScopes": [
+			{
+				"language": "dynamic csv",
+				"scopes": {
+					"rainbow1": [
+						"rainbow1"
+					],
+					"rainbow2": [
+						"keyword.rainbow2"
+					],
+					"rainbow3": [
+						"entity.name.function.rainbow3"
+					],
+					"rainbow4": [
+						"comment.rainbow4"
+					],
+					"rainbow5": [
+						"string.rainbow5"
+					],
+					"rainbow6": [
+						"variable.parameter.rainbow6"
+					],
+					"rainbow7": [
+						"constant.numeric.rainbow7"
+					],
+					"rainbow8": [
+						"entity.name.type.rainbow8"
+					],
+					"rainbow9": [
+						"markup.bold.rainbow9"
+					],
+					"rainbow10": [
+						"invalid.rainbow10"
+					],
+					"comment": [
+						"comment"
+					]
+				}
+			}
+		],
+		"configurationDefaults": {
+			"[dynamic csv][csv][tsv][csv (semicolon)][csv (pipe)][csv (whitespace)]": {
+				"editor.semanticHighlighting.enabled": true,
+				"editor.stickyScroll.enabled": true
+			}
+		},
+		"grammars": [
+			{
+				"language": "csv",
+				"scopeName": "text.csv",
+				"path": "./syntaxes/csv.tmLanguage.json"
+			},
+			{
+				"language": "tsv",
+				"scopeName": "text.tsv",
+				"path": "./syntaxes/tsv.tmLanguage.json"
+			},
+			{
+				"language": "csv (pipe)",
+				"scopeName": "text.psv",
+				"path": "./syntaxes/pipe_simple.tmLanguage.json"
+			},
+			{
+				"language": "csv (whitespace)",
+				"scopeName": "text.wspcsv",
+				"path": "./syntaxes/wspcsv.tmLanguage.json"
+			},
+			{
+				"language": "csv (semicolon)",
+				"scopeName": "text.scsv",
+				"path": "./syntaxes/scsv.tmLanguage.json"
+			},
+			{
+				"language": "dynamic csv",
+				"scopeName": "text.dynamiccsv",
+				"path": "./syntaxes/dynamic_csv.tmLanguage.json"
+			}
+		]
+	},
+	"capabilities": {
+		"hoverProvider": "true"
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package-web",
+		"compile-web": "webpack",
+		"lint": "eslint rainbow_utils.js fast_load_utils.js extension.js test/runTest.js && eslint -c .eslintrc_browser.json rainbow_utils.js rbql_client.js dialect_select.js",
+		"watch-web": "webpack --watch",
+		"package-web": "webpack --mode production --devtool hidden-source-map",
+		"start-web-server": "vscode-test-web --version stable --browser=none --extensionDevelopmentPath=. test",
+		"test-in-browser": "vscode-test-web --version stable --browser=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/index.js test",
+		"test": "node ./test/runTest.js",
+		"unit-test-only": "node ./test/suite/run_unit_tests.js"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.62.0",
+		"@vscode/test-web": "^0.0.22",
+		"@vscode/test-electron": "^2.3.7",
+		"webpack": "^5.64.0",
+		"webpack-cli": "^4.9.1",
+		"assert": "^2.0.0",
+		"process": "^0.11.10",
+		"eslint": "^7.21.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mechatroner/vscode_rainbow_csv"
+	},
+	"__metadata": {
+		"id": "3792588c-3d35-442d-91ea-fe6a755e8155",
+		"publisherId": "0d5438b6-325a-4f88-aa28-6192aa2cf2a6",
+		"publisherDisplayName": "mechatroner",
+		"targetPlatform": "undefined",
+		"isApplicationScoped": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1726465426777,
+		"pinned": false,
+		"preRelease": false,
+		"source": "gallery"
+	}
+}

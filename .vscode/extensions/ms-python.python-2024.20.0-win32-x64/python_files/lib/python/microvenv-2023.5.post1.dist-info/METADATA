@@ -1,0 +1,85 @@
+Metadata-Version: 2.1
+Name: microvenv
+Version: 2023.5.post1
+Summary: A minimal re-implementation of Python's venv module plus utilities
+Project-URL: Documentation, https://microvenv.readthedocs.io/
+Project-URL: Changelog, https://github.com/brettcannon/microvenv/releases
+Project-URL: Source, https://github.com/brettcannon/microvenv
+Author-email: Brett Cannon <brett@python.org>
+Maintainer-email: Brett Cannon <brett@python.org>
+License: MIT License
+        
+        Copyright (c) 2023 Brett Cannon
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+License-File: LICENSE
+Keywords: venv,virtual environments
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Topic :: Software Development
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8
+Provides-Extra: doc
+Requires-Dist: sphinx; extra == 'doc'
+Requires-Dist: sphinx-rtd-theme; extra == 'doc'
+Provides-Extra: lint
+Requires-Dist: black; extra == 'lint'
+Requires-Dist: mypy; extra == 'lint'
+Requires-Dist: ruff; extra == 'lint'
+Provides-Extra: test
+Requires-Dist: pytest; extra == 'test'
+Description-Content-Type: text/markdown
+
+# microvenv
+
+Create a minimal virtual environment (and utility code around environments).
+
+The key purpose of this module is for when the [`venv` module](https://docs.python.org/3/library/venv.html#module-venv) has been removed from the standard library by your Python distribution. Because `venv` is not available on PyPI and is developed in the stdlib, it is not possible to install it using `pip` or simply copy the code and expect it to work with older versions of Python. This module then attempts to be that portable alternative for creating virtual environments.
+
+In general, though, using the [`venv` module](https://docs.python.org/3/library/venv.html#module-venv) should be preferred and this module used as a fallback.
+
+There is also utility code around virtual environments. See the [docs](https://microvenv.rtfd.io/) for details.
+
+## CLI Usage
+
+**NOTE**: The CLI is not available on Windows.
+
+```console
+python -m microvenv [--without-scm-ignore-files] [env_dir=".venv"]
+```
+
+If an argument is provided to the script, it is used as the path to create the virtual environment in. Otherwise, the virtual environment is created in `.venv`.
+
+For programmatic usage, there is the `create()` function, which is analogous to the [`venv.create()` function](https://docs.python.org/3/library/venv.html#venv.create).
+
+```python
+def create(env_dir: os.PathLike[str] | str = ".venv", *, scm_ignore_files={"git"}) -> None
+```
+
+The `microvenv/_create.py` file is also small enough to have its contents passed in via the `-c` flag to `python`.
+
+### Differences compared to the [`venv` module](https://docs.python.org/3/library/venv.html#module-venv)
+
+The code operates similarly to `py -m venv --symlinks --without-pip .venv`,
+except that:
+
+- There are no activation scripts (you can execute `python` in the virtual environment directly)
+- Windows is not supported

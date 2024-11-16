@@ -1,0 +1,3 @@
+from typing import Any
+
+def feed(request: Any, url: Any, feed_dict: Any | None = ...) -> Any: ...

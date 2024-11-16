@@ -1,0 +1,10 @@
+{
+    // Terminal
+    // @jupyterlab/terminal-extension:plugin
+    // Terminal settings.
+    // *************************************
+
+    // Font size
+    // The font size used to render text.
+    "fontSize": 15
+}

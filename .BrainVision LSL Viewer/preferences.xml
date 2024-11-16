@@ -1,0 +1,7 @@
+<BVViewer xmlns:py="http://codespeak.net/lxml/objectify/pytype" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="1.0.1">
+  <preferences>
+    <configDir py:pytype="str"></configDir>
+    <configFile py:pytype="str"></configFile>
+    <logDir py:pytype="str"></logDir>
+  </preferences>
+</BVViewer>

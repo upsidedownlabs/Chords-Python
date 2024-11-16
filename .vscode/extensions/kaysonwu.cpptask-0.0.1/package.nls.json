@@ -1,0 +1,14 @@
+{
+  "c_cpp.taskDefinitions.sources.description": "The source files to be compiled, supports glob syntax.",
+  "c_cpp.taskDefinitions.output.description": "Place the output into file.",
+  "c_cpp.taskDefinitions.compilerPath.description": "C/C++ compiler file path, default: g++.",
+  "c_cpp.taskDefinitions.compilerArgs.description": "The parameters to be passed to the compiler, default: -g",
+  "c_cpp.taskDefinitions.includePath.description": "Additional include directories, will find header files in it, support glob syntax.",
+  "c_cpp.taskDefinitions.libraryPath.description": "Additional library directories, will find library files in it, support glob syntax.",
+  "c_cpp.taskDefinitions.options.description": "Other command options.",
+  "c_cpp.taskDefinitions.options.cwd.description": "The current working directory of the compiler. If omitted, the current workspace root of the code is used.",
+  "c_cpp.taskDefinitions.options.env.description": "The shell environment of the compiler. If omitted, the environment of the parent process is used.",
+  "c_cpp.taskDefinitions.windows.description": "Windows specific command configuration.",
+	"c_cpp.taskDefinitions.linux.description": "Linux specific command configuration.",
+	"c_cpp.taskDefinitions.osx.description": "MacOS specific command configuration."
+}

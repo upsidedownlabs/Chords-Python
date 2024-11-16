@@ -1,0 +1,18 @@
+{
+  "window.titleBarStyle": "native",
+  "editor.fontSize": 14,
+  "workbench.colorTheme": "arduino-theme-dark",
+  "files.autoSave": "afterDelay",
+  "editor.quickSuggestions": {
+    "other": false,
+    "comments": false,
+    "strings": false
+  },
+  "arduino.window.autoScale": true,
+  "window.zoomLevel": 0,
+  "arduino.compile.verbose": false,
+  "arduino.compile.warnings": "None",
+  "arduino.upload.verbose": false,
+  "arduino.upload.verify": false,
+  "arduino.sketchbook.showAllFiles": false
+}

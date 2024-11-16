@@ -1,0 +1,76 @@
+00:00:00.003385 main     VirtualBox COM Server 7.0.6 r155176 win.amd64 (Jan 11 2023 16:38:38) release log
+00:00:00.003386 main     Log opened 2024-08-06T05:56:20.445768000Z
+00:00:00.003387 main     Build Type: release
+00:00:00.003392 main     OS Product: Windows 11
+00:00:00.003393 main     OS Release: 10.0.22635
+00:00:00.003393 main     OS Service Pack: 
+00:00:00.021230 main     DMI Product Name: HP Laptop 14s-fq1xxx
+00:00:00.033565 main     DMI Product Version:  
+00:00:00.033577 main     Firmware type: UEFI
+00:00:00.033976 main     Secure Boot: VERR_PRIVILEGE_NOT_HELD
+00:00:00.033993 main     Host RAM: 7502MB (7.3GB) total, 3310MB (3.2GB) available
+00:00:00.033997 main     Executable: C:\Program Files\Oracle\VirtualBox\VBoxSVC.exe
+00:00:00.033997 main     Process ID: 19632
+00:00:00.033998 main     Package type: WINDOWS_64BITS_GENERIC
+00:00:00.104851          VirtualBox: object creation starts
+00:00:00.105051          Home directory: 'C:\Users\PAYAL\.VirtualBox'
+00:00:00.105161          Installed Drivers:
+00:00:00.142316            C:\WINDOWS\system32\DRIVERS\VBoxNetLwf.sys (Version: 7.0.6.5176)
+00:00:00.173603            C:\WINDOWS\system32\DRIVERS\VBoxUSBMon.sys (Version: 7.0.6.5176)
+00:00:00.248273            C:\WINDOWS\system32\DRIVERS\VBoxSup.sys (Version: 7.0.6.5176)
+00:00:00.281787            C:\WINDOWS\system32\DRIVERS\VBoxNetAdp6.sys (Version: 7.0.6.5176)
+00:00:00.294198          Loading settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml" with version "1.12-windows"
+00:00:00.296539          usbLibGetDevices: Starting USB device enumeration
+00:00:00.303837          Getting USB descriptor (id 0) failed (dwErr=31) on hub USB#ROOT_HUB30#5&130ffcdd&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8} port 3
+00:00:00.303890          Getting USB descriptor (id 0) failed (dwErr=31) on hub USB#ROOT_HUB30#5&130ffcdd&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8} port 4
+00:00:00.305832          usbLibGetDevices: Found 3 USB devices, 0 captured
+00:00:00.305899          USB: Unknown USB device detected (idVendor: 0x0bda, idProduct: 0xb00e)
+00:00:00.305912          USB: Unknown USB device detected (idVendor: 0x30c9, idProduct: 0x0013)
+00:00:00.381664          netIfIsWireless: CreateFile on '\\.\{55A2D959-A552-4265-A352-64BAF2ED78D2}' failed with rcWin=2 (0x2) - ignoring
+00:00:00.389606          HostDnsMonitor: initializing
+00:00:00.398010          HostDnsMonitor: updating information
+00:00:00.398037          HostDnsMonitor: old information
+00:00:00.398038            no server entries
+00:00:00.398039            no domain set
+00:00:00.398040            no search string entries
+00:00:00.398040          HostDnsMonitor: new information
+00:00:00.398041            server 1: 103.212.157.11
+00:00:00.398042            server 2: 103.212.157.244
+00:00:00.398043            domain: hgu_lan
+00:00:00.398044            no search string entries
+00:00:00.444174          VD: VDInit finished with VINF_SUCCESS
+00:00:00.446319          Loading settings file "C:\Users\PAYAL\VirtualBox VMs\Ubuntu\Ubuntu.vbox" with version "1.19-windows"
+00:00:00.447425          VirtualBox: object created
+00:00:01.114250          ERROR [COM]: aRC=VBOX_E_OBJECT_NOT_FOUND (0x80bb0001) aIID={70401eef-c8e9-466b-9660-45cb3e9979e4} aComponent={ExtPackManagerWrap} aText={No extension pack by the name 'Oracle VM VirtualBox Extension Pack' was found}, preserve=false aResultDetail=0
+00:00:02.170811          ERROR [COM]: aRC=VBOX_E_IPRT_ERROR (0x80bb0005) aIID={300763af-5d6b-46e6-aa96-273eac15538a} aComponent={SessionMachine} aText={Saved screenshot data is not available (VERR_NOT_SUPPORTED)}, preserve=false aResultDetail=-37
+00:00:02.328417          netIfIsWireless: CreateFile on '\\.\{55A2D959-A552-4265-A352-64BAF2ED78D2}' failed with rcWin=2 (0x2) - ignoring
+00:00:03.215870          ERROR [COM]: aRC=VBOX_E_INVALID_VM_STATE (0x80bb0002) aIID={300763af-5d6b-46e6-aa96-273eac15538a} aComponent={SessionMachine} aText={The machine is not mutable or saved (state is Starting)}, preserve=false aResultDetail=0
+00:00:04.462650          ERROR [COM]: aRC=VBOX_E_OBJECT_NOT_FOUND (0x80bb0001) aIID={ad47ad09-787b-44ab-b343-a082a3f2dfb1} aComponent={MediumWrap} aText={Property 'CRYPT/KeyId' does not exist}, preserve=false aResultDetail=0
+00:00:35.427403 USBPROXY usbLibGetDevices: Starting USB device enumeration
+00:00:35.433921 USBPROXY Getting USB descriptor (id 0) failed (dwErr=31) on hub USB#ROOT_HUB30#5&130ffcdd&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8} port 3
+00:00:35.434066 USBPROXY Getting USB descriptor (id 0) failed (dwErr=31) on hub USB#ROOT_HUB30#5&130ffcdd&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8} port 4
+00:00:35.434513 USBPROXY usbLibGetDevices: Found 3 USB devices, 0 captured
+00:01:59.864960 USBPROXY usbLibGetDevices: Starting USB device enumeration
+00:01:59.876505 USBPROXY Getting USB descriptor (id 0) failed (dwErr=31) on hub USB#ROOT_HUB30#5&130ffcdd&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8} port 3
+00:01:59.876712 USBPROXY Getting USB descriptor (id 0) failed (dwErr=31) on hub USB#ROOT_HUB30#5&130ffcdd&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8} port 4
+00:01:59.877373 USBPROXY usbLibGetDevices: Found 3 USB devices, 0 captured
+00:02:17.605148 dns-monitor HostDnsMonitor: updating information
+00:02:17.605253 dns-monitor HostDnsMonitor: unchanged
+00:06:55.145543          Saving settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml" with version "1.12-windows"
+00:06:55.155154          Finished saving settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml"
+00:06:55.155616          Saving settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml" with version "1.12-windows"
+00:06:55.161224          Finished saving settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml"
+00:06:55.162401          Saving settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml" with version "1.12-windows"
+00:06:55.167709          Finished saving settings file "C:\Users\PAYAL\.VirtualBox\VirtualBox.xml"
+00:06:57.448540          ERROR [COM]: aRC=VBOX_E_INVALID_VM_STATE (0x80bb0002) aIID={300763af-5d6b-46e6-aa96-273eac15538a} aComponent={MachineWrap} aText={The machine is not mutable (state is Running)}, preserve=false aResultDetail=0
+00:07:02.269223          ERROR [COM]: aRC=VBOX_E_INVALID_VM_STATE (0x80bb0002) aIID={300763af-5d6b-46e6-aa96-273eac15538a} aComponent={SessionMachine} aText={The machine is not mutable (state is Running)}, preserve=false aResultDetail=0
+00:07:02.441349          netIfIsWireless: CreateFile on '\\.\{55A2D959-A552-4265-A352-64BAF2ED78D2}' failed with rcWin=2 (0x2) - ignoring
+00:07:02.491817          netIfIsWireless: CreateFile on '\\.\{55A2D959-A552-4265-A352-64BAF2ED78D2}' failed with rcWin=2 (0x2) - ignoring
+00:47:30.265917          Saving settings file "C:\Users\PAYAL\VirtualBox VMs\Ubuntu\Ubuntu.vbox" with version "1.19-windows"
+00:47:30.305115          Finished saving settings file "C:\Users\PAYAL\VirtualBox VMs\Ubuntu\Ubuntu.vbox"
+00:47:37.810439 main     VirtualBox: object deletion starts
+00:47:37.813270 main     ERROR [COM]: aRC=VBOX_E_OBJECT_IN_USE (0x80bb000c) aIID={ad47ad09-787b-44ab-b343-a082a3f2dfb1} aComponent={MediumWrap} aText={Medium 'C:\Users\PAYAL\VirtualBox VMs\Ubuntu\Ubuntu.vdi' cannot be closed because it is still attached to 1 virtual machines}, preserve=false aResultDetail=0
+00:47:37.830792 main     HostDnsMonitor: shutting down ...
+00:47:37.831745 main     HostDnsMonitor: shut down
+00:47:37.841988 Watcher  ERROR [COM]: aRC=E_ACCESSDENIED (0x80070005) aIID={7682d5eb-f00e-44f1-8ca2-99d08b1cd607} aComponent={VirtualBoxWrap} aText={The object is not ready}, preserve=false aResultDetail=0
+00:47:37.845368 main     VirtualBox: object deleted
