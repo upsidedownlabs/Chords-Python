@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, lfilter_zi
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QMainWindow, QWidget, QHBoxLayout
 import pyqtgraph as pg
 import pylsl
@@ -24,6 +24,8 @@ class EOGMonitor(QMainWindow):
         self.eog_plot = pg.PlotWidget(self)
         self.eog_plot.setBackground('w')
         self.eog_plot.showGrid(x=True, y=True)
+        # self.eog_plot.setAutoVisible(y=True)    # On Autoscale for y-axis only
+        self.eog_plot.setMouseEnabled(x=False, y=False)  # To Disable zoom functionality
         self.eog_plot.setTitle("Filtered EOG Signal (Low Pass: 10 Hz)")
 
         # Bottom layout for Blink Detection
@@ -59,12 +61,13 @@ class EOGMonitor(QMainWindow):
 
         # Low-pass filter for EOG (10 Hz)
         self.b, self.a = butter(4, 10.0 / (0.5 * self.sampling_rate), btype='low')
+        self.zi = lfilter_zi(self.b, self.a)  # Initialize filter state
 
         self.eog_plot.setXRange(0, 5, padding=0)
-        if self.sampling_rate == 250:
-            self.eog_plot.setYRange(-((2**10)/2), ((2**10)/2), padding=0)
-        elif self.sampling_rate == 500:
-            self.eog_plot.setYRange(-((2**14)/2), ((2**14)/2), padding=0)
+        if self.sampling_rate == 250:  
+            self.eog_plot.setYRange(0, 2**10,padding=0)  # for R3 & ensuring no extra spaces at end
+        elif self.sampling_rate == 500:  
+            self.eog_plot.setYRange(0, 2**14,padding=0)  # for R4 & ensuring no extra spaces at end
 
         # Plot curves
         self.eog_curve = self.eog_plot.plot(self.time_data, self.eog_data, pen=pg.mkPen('b', width=1))
@@ -78,7 +81,17 @@ class EOGMonitor(QMainWindow):
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(15)
 
+        # self.calibration_time = 5
+        self.start_time = time.time()
+        # self.is_calibrating = True
+
     def update_plot(self):
+        # if self.is_calibrating:
+        #     # Skip processing during calibration
+        #     if time.time() - self.start_time >= self.calibration_time:
+        #         self.is_calibrating = False
+        #         print("Calibration complete. Starting peak detection.")
+        #     return
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
         if samples:
             for sample in samples:
@@ -86,14 +99,15 @@ class EOGMonitor(QMainWindow):
                 self.eog_data[self.current_index] = sample[0]
                 self.current_index = (self.current_index + 1) % self.buffer_size
 
-            filtered_eog = lfilter(self.b, self.a, self.eog_data)
+            # Filter only the new data (not the entire buffer)
+            filtered_eog, self.zi = lfilter(self.b, self.a, self.eog_data, zi=self.zi)
 
             # Update curve with the filtered EOG signal (5-second window)
             self.eog_plot.clear()    # Clear the previous peaks from the plot
             self.eog_curve = self.eog_plot.plot(self.time_data, filtered_eog, pen=pg.mkPen('b', width=1))
 
-            # Peak detection (1-second moving window)
-            self.detect_blinks(filtered_eog)
+            if time.time() - self.start_time >= 2:
+                self.detect_blinks(filtered_eog)
 
             # Clear out old peaks from the circular buffer after 4 seconds(As we want to clear the peaks just after the data overwrite.)
             current_time = time.time()
@@ -117,7 +131,7 @@ class EOGMonitor(QMainWindow):
     def detect_blinks(self, filtered_eog):
         mean_signal = np.mean(filtered_eog)
         stdev_signal = np.std(filtered_eog)
-        threshold = mean_signal + (1.8 * stdev_signal)
+        threshold = mean_signal + (2 * stdev_signal)
 
         # Calculate the start and end indices for the 1-second window
         window_size = 1 * self.sampling_rate
@@ -138,7 +152,7 @@ class EOGMonitor(QMainWindow):
     def detect_peaks(self, signal, threshold):
         peaks = []
         prev_peak_time = None  # Variable to store the timestamp of the previous peak
-        min_peak_gap = 0.1 # Minimum time gap between two peaks in seconds
+        min_peak_gap = 0.1     # Minimum time gap between two peaks in seconds
 
         for i in range(1, len(signal) - 1):
             if signal[i] > signal[i - 1] and signal[i] > signal[i + 1] and signal[i] > threshold:
@@ -157,5 +171,14 @@ class EOGMonitor(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = EOGMonitor()
+    
+    # start_time = time.time()
+    # calibration_time = 5
+
+    # while time.time() - start_time < calibration_time:
+    #     print("Calibrating...")
+    #     time.sleep(1)
+
+    print("Note: There will be a 2s calibration delay before peak detection starts.")
     window.show()
     sys.exit(app.exec_())
