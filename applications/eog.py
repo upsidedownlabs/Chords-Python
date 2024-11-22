@@ -80,18 +80,9 @@ class EOGMonitor(QMainWindow):
         self.timer = pg.QtCore.QTimer()
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(15)
-
-        # self.calibration_time = 5
         self.start_time = time.time()
-        # self.is_calibrating = True
 
     def update_plot(self):
-        # if self.is_calibrating:
-        #     # Skip processing during calibration
-        #     if time.time() - self.start_time >= self.calibration_time:
-        #         self.is_calibrating = False
-        #         print("Calibration complete. Starting peak detection.")
-        #     return
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
         if samples:
             for sample in samples:
@@ -171,14 +162,6 @@ class EOGMonitor(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = EOGMonitor()
-    
-    # start_time = time.time()
-    # calibration_time = 5
-
-    # while time.time() - start_time < calibration_time:
-    #     print("Calibrating...")
-    #     time.sleep(1)
-
     print("Note: There will be a 2s calibration delay before peak detection starts.")
     window.show()
     sys.exit(app.exec_())
