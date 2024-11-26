@@ -57,6 +57,11 @@ class EOGPeakDetector:
                 # Detect blinks in the filtered signal
                 self.detect_blinks(filtered_eog)
 
+    def quit_detection(self):
+        # Quit the detection loop
+        print("Quitting peak detection...")
+        self.running = False
+
     def stop_detection(self):
         # Stop the detection loop
         print("Stopping peak detection...")
@@ -102,10 +107,10 @@ class EOGPeakDetector:
         time.sleep(0.1)
         self.blink_button.config(bg="SystemButtonFace")
 
-def stop_action(detector):
+def quit_action(detector):
     # Action for the Quit button
     print("Quit button pressed. Exiting program.")
-    detector.stop_detection()
+    detector.quit_detection()
     exit()
 
 def keystroke_action():
@@ -118,6 +123,25 @@ def start_action(detector):
     print("Start button pressed. Starting the program.")
     detection_thread = threading.Thread(target=detector.start_detection, daemon=True)
     detection_thread.start()
+
+def stop_action(detector):
+    # Action for the Start button
+    print("Stop button pressed. Stopping the program.")
+    detection_thread = threading.Thread(target=detector.stop_detection, daemon=True)
+    detection_thread.stop()
+
+def toggle_action(detector, start_button):
+    # Toggle between Start and Stop
+    if start_button.cget("text") == "Start":
+        print("Start button pressed. Starting the program.")
+        start_button.config(text="Stop")
+        detector.running = True
+        detection_thread = threading.Thread(target=detector.start_detection, daemon=True)
+        detection_thread.start()
+    else:
+        print("Stop button pressed. Stopping the program.")
+        start_button.config(text="Start")
+        detector.stop_detection()
 
 def create_popup():
     # Create the main GUI window
@@ -134,20 +158,20 @@ def create_popup():
     blink_button = tk.Button(horizontal_frame, text="Blink Detected", width=12)
     blink_button.pack(side=tk.LEFT, padx=10)
 
-    # Add Start button
+    # Add Start/Stop button
     start_button = tk.Button(horizontal_frame, text="Start", width=8)
     start_button.pack(side=tk.LEFT, padx=10)
 
     # Add Quit button
-    stop_button = tk.Button(horizontal_frame, text="Quit", width=8)
-    stop_button.pack(side=tk.LEFT, padx=10)
+    quit_button = tk.Button(horizontal_frame, text="Quit", width=8)
+    quit_button.pack(side=tk.LEFT, padx=10)
 
     # Initialize the EOG peak detector
     detector = EOGPeakDetector(blink_button, keystroke_action)
 
-    # Link Start and Stop buttons to their respective actions
-    start_button.config(command=lambda: start_action(detector))
-    stop_button.config(command=lambda: stop_action(detector))
+    # Link Start/Stop button and Quit button to their respective actions
+    start_button.config(command=lambda: toggle_action(detector, start_button))
+    quit_button.config(command=lambda: quit_action(detector))
 
     popup.mainloop()
 
