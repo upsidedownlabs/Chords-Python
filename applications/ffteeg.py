@@ -6,7 +6,7 @@ from pyqtgraph import PlotWidget
 import pyqtgraph as pg
 import pylsl
 import sys
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, iirnotch
 from scipy.fft import fft
 
 class EEGMonitor(QMainWindow):
@@ -27,7 +27,7 @@ class EEGMonitor(QMainWindow):
         self.eeg_plot_widget.setLabel('bottom', 'EEG Plot')
         self.eeg_plot_widget.setYRange(0, 15000, padding=0)
         self.eeg_plot_widget.setXRange(0, 10, padding=0)
-        self.eeg_plot_widget.setMouseEnabled(x=False, y=False)  # Disable zoom
+        self.eeg_plot_widget.setMouseEnabled(x=False, y=True)  # Disable zoom
         self.main_layout.addWidget(self.eeg_plot_widget)
 
         # Second half for FFT and Brainwave Power, aligned horizontally
@@ -77,6 +77,10 @@ class EEGMonitor(QMainWindow):
         self.time_data = np.linspace(0, 10, self.buffer_size)  # Fixed time array for plotting
         self.current_index = 0  # Index for overwriting data
 
+        # Notch filter at 50 Hz
+        self.b_notch, self.a_notch = iirnotch(50, 30, self.sampling_rate)
+        # High-pass filter (cutoff at 0.5 Hz)
+        self.b_highpass, self.a_highpass = butter(4, 0.5 / (0.5 * self.sampling_rate), btype='high')
         # Low-pass filter (4th order, cutoff at 45 Hz)
         self.b_lowpass, self.a_lowpass = butter(4, 45 / (0.5 * self.sampling_rate), btype='low')
 
@@ -96,15 +100,27 @@ class EEGMonitor(QMainWindow):
                 self.eeg_data[self.current_index] = sample[0]
                 self.current_index = (self.current_index + 1) % self.buffer_size  # Circular increment
 
-            # Apply low-pass filter
-            filtered_eeg = filtfilt(self.b_lowpass, self.a_lowpass, self.eeg_data)
+            if self.current_index >= self.buffer_size:
+                plot_data = self.eeg_data
+            else:
+                plot_data = np.concatenate((self.eeg_data[self.current_index:], self.eeg_data[:self.current_index]))
+
+            # Apply filters to the full data for EEG plot
+            filtered_eeg = filtfilt(self.b_notch, self.a_notch, plot_data)
+            filtered_eeg = filtfilt(self.b_highpass, self.a_highpass, filtered_eeg)
+            filtered_eeg = filtfilt(self.b_lowpass, self.a_lowpass, filtered_eeg)
 
             # Update the EEG plot with the filtered data
             self.eeg_curve.setData(self.time_data, filtered_eeg)
 
-            # Perform FFT with windowing (Hamming window)
-            window = hamming(len(filtered_eeg))  # Apply Hamming window to reduce spectral leakage
-            filtered_eeg_windowed = filtered_eeg * window  # Element-wise multiply
+            # Perform FFT on the latest 1-second slice
+            latest_data = plot_data[-self.sampling_rate:]  # Most recent 1-second data
+            window = hamming(len(latest_data))
+            filtered_eeg_windowed = latest_data * window
+
+            # Apply zero-padding
+            zero_padded_length = 2048
+            filtered_eeg_windowed_padded = np.pad(filtered_eeg_windowed, (0, zero_padded_length - len(filtered_eeg_windowed)), 'constant')
 
             eeg_fft = np.abs(fft(filtered_eeg_windowed))[:len(filtered_eeg_windowed) // 2]  # Positive frequencies only
             freqs = np.fft.fftfreq(len(filtered_eeg_windowed), 1 / self.sampling_rate)[:len(filtered_eeg_windowed) // 2]

@@ -1,8 +1,7 @@
-import tkinter as tk
+import tkinter as tk 
 from tkinter import filedialog, messagebox, ttk
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 class CSVPlotterApp:
     def __init__(self, root):
@@ -46,18 +45,50 @@ class CSVPlotterApp:
         self.filename = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if self.filename:
             try:
-                self.data = pd.read_csv(self.filename)   # Load the CSV file
-                self.setup_dropdown_menu()
-                self.file_label.config(text=f"File: {self.filename.split('/')[-1]}")
+                # Read file with pandas, skipping metadata if any
+                self.data = self.load_csv_data(self.filename)
+
+                if self.data is not None:
+                    self.setup_dropdown_menu()
+                    self.file_label.config(text=f"File: {self.filename.split('/')[-1]}")
+                else:
+                    messagebox.showerror("Error", "CSV does not contain the expected columns.")
+
             except Exception as e:
                 messagebox.showerror("Error", f"Could not load CSV file: {e}")
 
+    def load_csv_data(self, file_path):
+        # Open the CSV file and find the line with headers
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+
+        # Look for the line containing the headers
+        headers = ['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6']
+        header_line_index = None
+        for i, line in enumerate(lines):
+            if all(header in line for header in headers):
+                header_line_index = i
+                break
+
+        if header_line_index is None:
+            return None  # No header found, return None to indicate error
+
+        # Load the CSV data starting from the header line
+        data = pd.read_csv(file_path, skiprows=header_line_index)
+        
+        # Ensure the required columns exist
+        if all(col in data.columns for col in headers):
+            return data
+        else:
+            return None  # Return None if required columns are missing
+
     def setup_dropdown_menu(self):
-        # Populate dropdown menu with the CSV column names (channels)
+        # Populate dropdown menu with the CSV channel columns (ignore Timestamp and Counter)
         columns = list(self.data.columns)
-        self.dropdown_menu['values'] = columns
-        if columns:
-            self.channel_selection.set(columns[0])  # Default selection
+        channel_columns = [col for col in columns if 'Channel' in col]
+        self.dropdown_menu['values'] = channel_columns
+        if channel_columns:
+            self.channel_selection.set(channel_columns[0])  # Default selection
 
     def plot_data(self):
         selected_channel = self.channel_selection.get()   # Get the selected channel
@@ -65,7 +96,7 @@ class CSVPlotterApp:
             messagebox.showerror("Error", "No channel selected for plotting")
             return
 
-        fig = go.Figure()          # Plot the selected channel using Plotly
+        fig = go.Figure()  # Plot the selected channel using Plotly
         fig.add_trace(go.Scatter(x=self.data.index, y=self.data[selected_channel], mode='lines', name=selected_channel))
         
         fig.update_layout(
