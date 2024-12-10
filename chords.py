@@ -47,20 +47,22 @@ last_ten_minute_time = None  # Track the last 10-minute interval
 previous_sample_number = None  # Store the previous sample number for detecting missing samples
 missing_samples = 0  # Count of missing samples due to packet loss
 buffer = bytearray()  # Buffer for storing incoming raw data from Arduino
-data = np.zeros((6, 2000))  # 2D array to store data for real-time plotting (6 channels, 2000 data points)
 samples_per_second = 0  # Number of samples received per second
 retry_limit = 4
 
 # Initialize gloabal variables for Arduino Board
 board = ""          # Variable for Connected Arduino Board
-supported_boards = {"UNO-R3":250, "UNO-R4":500}   #Supported boards and their sampling rate
+supported_boards = {
+    "UNO-R3": {"sampling_rate": 250, "Num_channels": 6},
+    "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},
+    "UNO-R4": {"sampling_rate": 500, "Num_channels": 6},
+    "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3},
+}
 
 # Initialize gloabal variables for Incoming Data
-PACKET_LENGTH = 16  # Expected length of each data packet
 SYNC_BYTE1 = 0xc7  # First byte of sync marker
 SYNC_BYTE2 = 0x7c  # Second byte of sync marker
 END_BYTE = 0x01  # End byte marker
-NUM_CHANNELS = 6    #Number of Channels being received
 HEADER_LENGTH = 3   #Length of the Packet Header
 
 ## Initialize gloabal variables for Output
@@ -69,6 +71,8 @@ verbose = False  # Flag for verbose output mode
 csv_filename = None  # Store CSV filename
 csv_file = None
 ser = None
+packet_length = None
+num_channels = None
 
 def connect_hardware(port, baudrate, timeout=1):
     try:
@@ -80,9 +84,13 @@ def connect_hardware(port, baudrate, timeout=1):
             response = ser.readline().strip().decode()  # Try reading from the port
             retry_counter += 1
             if response in supported_boards:  # If response is received, assume it's the Arduino
-                global board
+                global board, sampling_rate, data, num_channels, packet_length
                 board = response # Set board type
                 print(f"{response} detected at {port}")  # Notify the user
+                sampling_rate = supported_boards[board]["sampling_rate"]
+                num_channels = supported_boards[board]["Num_channels"]
+                packet_length = (2 * num_channels) + HEADER_LENGTH + 1
+                data = np.zeros((num_channels, 2000))  # 2D array to store data for real-time plotting (num_channels, 2000 data points)
                 if ser is not None:
                     return ser  # Return the port name
         ser.close()  # Close the port if no response
@@ -114,7 +122,7 @@ def send_command(ser, command):
 def read_arduino_data(ser, csv_writer=None, inverted=False):
     global total_packet_count, cumulative_packet_count, previous_sample_number, missing_samples, buffer, data
 
-    max_value = 2**14 if board == "UNO-R4" else 2**10
+    max_value = 2*10 if board == "UNO-R3" else 2*14
     min_value = 0
     mid_value = (max_value - 1) / 2
     
@@ -122,16 +130,16 @@ def read_arduino_data(ser, csv_writer=None, inverted=False):
     if raw_data == b'':
         send_command(ser, 'START')
     buffer.extend(raw_data)  # Add received data to the buffer
-    while len(buffer) >= PACKET_LENGTH:  # Continue processing if the buffer contains at least one full packet
+    while len(buffer) >= packet_length:  # Continue processing if the buffer contains at least one full packet
         sync_index = buffer.find(bytes([SYNC_BYTE1, SYNC_BYTE2]))  # Search for the sync marker
 
         if sync_index == -1:  # If sync marker not found, clear the buffer
             buffer.clear()
             continue
         
-        if len(buffer) >= sync_index + PACKET_LENGTH:  # Check if a full packet is available
-            packet = buffer[sync_index:sync_index + PACKET_LENGTH]  # Extract the packet
-            if len(packet) == PACKET_LENGTH and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
+        if len(buffer) >= sync_index + packet_length:  # Check if a full packet is available
+            packet = buffer[sync_index:sync_index + packet_length]  # Extract the packet
+            if len(packet) == packet_length and packet[0] == SYNC_BYTE1 and packet[1] == SYNC_BYTE2 and packet[-1] == END_BYTE:
                 if(start_time is None):
                     start_timer()  # Start timers for logging
 
@@ -150,7 +158,7 @@ def read_arduino_data(ser, csv_writer=None, inverted=False):
 
                 # Extract channel data (6 channels, 2 bytes per channel)
                 channel_data = []
-                for channel in range(NUM_CHANNELS):  # Loop through channel data bytes
+                for channel in range(num_channels):  # Loop through channel data bytes
                     high_byte = packet[2*channel + HEADER_LENGTH]
                     low_byte = packet[2*channel + HEADER_LENGTH + 1]
                     value = (high_byte << 8) | low_byte  # Combine high and low bytes
@@ -174,7 +182,7 @@ def read_arduino_data(ser, csv_writer=None, inverted=False):
                 data = np.roll(data, -1, axis=1)  # Shift data to the left
                 data[:, -1] = channel_data  # Add new channel data to the right end of the array
 
-                del buffer[:sync_index + PACKET_LENGTH]  # Remove the processed packet from the buffer
+                del buffer[:sync_index + packet_length]  # Remove the processed packet from the buffer
             else:
                 del buffer[:sync_index + 1]  # If the packet is invalid, remove only the sync marker
 
@@ -202,7 +210,7 @@ def log_ten_minute_data(verbose=False):
         print(f"Total data count after 10 minutes: {cumulative_packet_count}")  # Print cumulative data count
         sampling_rate = cumulative_packet_count / (10 * 60)  # Calculate sampling rate
         print(f"Sampling rate: {sampling_rate:.2f} samples/second")  # Print sampling rate
-        expected_sampling_rate = supported_boards[board]  # Expected sampling rate
+        expected_sampling_rate = supported_boards[board]["sampling_rate"]  # Expected sampling rate
         drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600  # Calculate drift
         print(f"Drift: {drift:.2f} seconds/hour")  # Print drift
     cumulative_packet_count = 0  # Reset cumulative packet count
@@ -217,7 +225,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
 
     # Start LSL streaming if requested
     if lsl_flag:
-        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', 6, supported_boards[board], 'float32', 'UpsideDownLabs')  # Define LSL stream info
+        lsl_stream_info = StreamInfo('BioAmpDataStream', 'EXG', num_channels, supported_boards[board]["sampling_rate"], 'float32', 'UpsideDownLabs')  # Define LSL stream info
         lsl_outlet = StreamOutlet(lsl_stream_info)  # Create LSL outlet
         print("LSL stream started")  # Notify user
     
@@ -230,7 +238,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
         if csv_file:
             csv_writer = csv.writer(csv_file)  # Create CSV writer
             csv_writer.writerow([f"Arduino Board: {board}"])
-            csv_writer.writerow([f"Sampling Rate (samples per second): {supported_boards[board]}"])
+            csv_writer.writerow([f"Sampling Rate (samples per second): {supported_boards[board]["sampling_rate"]}"])
             csv_writer.writerow([])  # Blank row for separation
             csv_writer.writerow(['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])  # Write header
 
