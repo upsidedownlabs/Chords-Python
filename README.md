@@ -1,6 +1,6 @@
 # Chords - Python
 
-Chords Python script is designed to interface with an Arduino-based bioamplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
+Chords Python script is designed to interface with an Arduino-based bio-potential amplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
 
 > [!NOTE]
 > Flash Arduino code to your hardware from [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware) to use this python tool.
@@ -8,11 +8,12 @@ Chords Python script is designed to interface with an Arduino-based bioamplifier
 ## Features
 
 - **Automatic Arduino Detection:** Automatically detects connected Arduino devices via serial ports.
-- **Data Reading:** Read  ModularEEG P2 format data packets from the Arduino's serial port.
+- **Data Reading:** Read data packets from the Arduino's serial port.
 - **CSV Logging:** Optionally logs data to a CSV file.
 - **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
 - **Verbose Output:** Provides detailed statistics and error reporting, including sampling rate and drift.
 - **GUI:** Live plotting of six channels using a PyQt-based GUI.
+- **Invert:** Optionally Invert the signal before streaming LSL and logging
 - **Timer:** Record data for a set time period in seconds.
 
 ## Requirements
@@ -101,61 +102,26 @@ To use the script, run it from the command line with various options:
 
 - `python gui.py`: Enable the real-time data plotting GUI.
 
-#### Script Functions
-
-`init_gui()`: Initializes and displays the GUI with six real-time plots, one for each bio-signal channel.
-
-`update_plots()`: Updates the plot data by pulling new samples from the LSL stream and shifting the existing buffer.
-
 ### FORCE BALL GAME
 
 - `python game.py`: Enable a GUI to play game using EEG Signal.
-
-#### Script Functions
-
-`bandpower(data, sf, band, window_sec=None, relative=False)`: Calculates the band power of EEG data in a specified frequency band using the Welch method.
-
-`eeg_data_thread(eeg_queue)`: Continuously retrieves EEG data from an LSL stream and computes power ratios for Player A and Player B.
-
-`reset_game()`: Resets the game state and initializes the ball and player forces.
-
-`update_ball_position(force_player1, force_player2)`: Updates the ball's position based on the net force exerted by both players.
-
-`check_win_condition()`: Determines if either player has won based on the ball's position.
 
 ### HEART RATE
 
 - `python heartbeat.ecg.py`:Enable a GUI with real-time ECG and heart rate.
 
-#### Script Functions
-
-`butter_filter(cutoff, fs, order=4, btype='low')`: Designs a Butterworth filter to remove unwanted frequencies from the ECG signal.
-
-`apply_filter(data, b, a)`: Applies the designed Butterworth filter to the ECG data for noise reduction.
-
-`detect_heartbeats(ecg_data, sampling_rate)`: Detects heartbeats in the ECG signal using peak detection.
-
-`run(self)`: Collects ECG data from the LSL stream, applies filtering, and emits the filtered data for real-time plotting.
-
-`update_plot(self, ecg_data)`: Updates the plot with the latest ECG data and detects heartbeats to display on the GUI.
-
-`update_heart_rate(self)`: Calculates and updates the heart rate based on detected R-peaks in the ECG signal.
-
 ### EMG ENVELOPE
 
-- `python emgenvelope.py` :Enable a GUI with real-time EMG & its Envelope.
-
-#### Script Functions
-
- `update_plot` : Updates the plot with latest Filtered EMG Data and its Envelope.
+- `python emgenvelope.py`: Enable a GUI with real-time EMG & its Envelope.
 
 ### EOG
 
-- `python eog.py` :Enable a GUI with real-time EOG.
+- `python eog.py`: Enable a GUI with real-time EOG that detects the blinks and mark them with red dot.
 
-#### Script Functions
+### EEG
 
- `update_plot` : Updates the plot with latest Filtered EOG Data.
+- `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT.
+
 
 ## Troubleshooting
 
