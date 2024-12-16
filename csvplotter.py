@@ -45,50 +45,29 @@ class CSVPlotterApp:
         self.filename = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if self.filename:
             try:
-                # Read file with pandas, skipping metadata if any
-                self.data = self.load_csv_data(self.filename)
+                # Read file with pandas
+                self.data = pd.read_csv(self.filename)
 
-                if self.data is not None:
-                    self.setup_dropdown_menu()
-                    self.file_label.config(text=f"File: {self.filename.split('/')[-1]}")
-                else:
-                    messagebox.showerror("Error", "CSV does not contain the expected columns.")
+                # Ensure 'Counter' column is present
+                if 'Counter' not in self.data.columns:
+                    messagebox.showerror("Error", "CSV file must contain a 'Counter' column.")
+                    return
+
+                # Setup dropdown based on available channels
+                self.setup_dropdown_menu()
+                self.file_label.config(text=f"File: {self.filename.split('/')[-1]}")
 
             except Exception as e:
                 messagebox.showerror("Error", f"Could not load CSV file: {e}")
 
-    def load_csv_data(self, file_path):
-        # Open the CSV file and find the line with headers
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-
-        # Look for the line containing the headers
-        headers = ['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6']
-        header_line_index = None
-        for i, line in enumerate(lines):
-            if all(header in line for header in headers):
-                header_line_index = i
-                break
-
-        if header_line_index is None:
-            return None  # No header found, return None to indicate error
-
-        # Load the CSV data starting from the header line
-        data = pd.read_csv(file_path, skiprows=header_line_index)
-        
-        # Ensure the required columns exist
-        if all(col in data.columns for col in headers):
-            return data
-        else:
-            return None  # Return None if required columns are missing
-
     def setup_dropdown_menu(self):
-        # Populate dropdown menu with the CSV channel columns (ignore Timestamp and Counter)
-        columns = list(self.data.columns)
-        channel_columns = [col for col in columns if 'Channel' in col]
+        # Get available channel columns (Channel1 to Channel6)
+        channel_columns = [col for col in self.data.columns if 'Channel' in col]
+
+        # Populate dropdown menu with available channels
         self.dropdown_menu['values'] = channel_columns
         if channel_columns:
-            self.channel_selection.set(channel_columns[0])  # Default selection
+            self.channel_selection.set(channel_columns[0])  # Default selection to the first channel
 
     def plot_data(self):
         selected_channel = self.channel_selection.get()   # Get the selected channel
