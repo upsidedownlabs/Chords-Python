@@ -82,15 +82,9 @@ def eeg_data_thread(eeg_queue):
 
     inlet = StreamInlet(streams[0])
     channel_assignments = {0: 'Player A', 1: 'Player B'}
-    sampling_frequency = 250
-    bands = {
-        'Delta': [0.5, 4],
-        'Theta': [4, 8],
-        'Alpha': [8, 13],
-        'Beta': [13, 30],
-        'Gamma': [30, 40]
-    }
-    buffer_length = sampling_frequency * 4
+    sampling_frequency = 500
+    bands = {'Alpha': [8, 13],'Beta': [13, 30]}
+    buffer_length = sampling_frequency * 1
     data_buffer = {'Channel1': [], 'Channel2': []}
     powerData1 = []
     powerData2 = []
@@ -118,12 +112,8 @@ def eeg_data_thread(eeg_queue):
                 if len(data_buffer['Channel1']) >= buffer_length:
                     power_data = {'Channel1': {}, 'Channel2': {}}
                     for band_name, band_freqs in bands.items():
-                        power_data['Channel1'][band_name] = bandpower(
-                            np.array(data_buffer['Channel1']), sampling_frequency, band_freqs
-                        )
-                        power_data['Channel2'][band_name] = bandpower(
-                            np.array(data_buffer['Channel2']), sampling_frequency, band_freqs
-                        )
+                        power_data['Channel1'][band_name] = bandpower(np.array(data_buffer['Channel1']), sampling_frequency, band_freqs)
+                        power_data['Channel2'][band_name] = bandpower(np.array(data_buffer['Channel2']), sampling_frequency, band_freqs)
 
                     powerData1.append(power_data['Channel1']['Beta'] / power_data['Channel1']['Alpha'])
                     powerData2.append(power_data['Channel2']['Beta'] / power_data['Channel2']['Alpha'])
@@ -156,20 +146,23 @@ eeg_thread.daemon = True
 eeg_thread.start()
 
 def reset_game():
-    global ball_pos, force_player1, force_player2, paused, game_started
+    global ball_pos, force_player1, force_player2, paused, game_started, win_text, win_handled, restart_clicked
     ball_pos = [WIDTH // 2, HEIGHT // 2]
     force_player1 = force_player2 = 0
     paused = False  # Ensure the game is not paused after reset
     game_started = True  # Ensure the game is marked as started
+    win_text = None  # Reset win text
+    win_handled = False  # Reset win handling
+    restart_clicked = True  # Mark the restart button as clicked
 
     # Clear any buffered EEG data
     while not eeg_queue.empty():
         eeg_queue.get()
-        print("Empty")
+    print("Game Reset Successfully.")
 
 def update_ball_position(force_player1, force_player2):
     global ball_pos
-    net_force = force_player2 - force_player1  # force direction
+    net_force = force_player1 - force_player2  # force direction
     ball_pos[0] += net_force * ball_speed * 0.01
     if ball_pos[0] < ball_radius:
         ball_pos[0] = ball_radius
@@ -177,15 +170,6 @@ def update_ball_position(force_player1, force_player2):
         ball_pos[0] = WIDTH - ball_radius
 
     print(f"Force Player 1: {force_player1:.2f}, Force Player 2: {force_player2:.2f}, Net Force: {net_force:.2f}")  # Print the forces to the console
-
-def handle_input():
-    global force_player1, force_player2
-    keys = pygame.key.get_pressed()
-
-    if keys[pygame.K_LEFT]:
-        force_player1 += 0.25
-    if keys[pygame.K_RIGHT]:
-        force_player2 += 0.25
 
 def draw_buttons(paused, first_attempt):  # Button dimensions and positions
     button_width = 120
@@ -235,9 +219,9 @@ def draw_players():
 
 def check_win_condition():
     if ball_pos[0] <= ball_radius:
-        return "PLAYER A WINS!"
-    elif ball_pos[0] >= WIDTH - ball_radius:
         return "PLAYER B WINS!"
+    elif ball_pos[0] >= WIDTH - ball_radius:
+        return "PLAYER A WINS!"
     return None
 
 def main():
@@ -245,21 +229,17 @@ def main():
     force_player1 = force_player2 = 0
     win_text = None  # Initialize win text
     latest_data = (0, 0)  # To store the latest EEG data for both players
+    win_handled = False  # Track if win actions are handled
 
     while True:
         screen.fill(BLACK)
 
-        pygame.draw.circle(screen, ball_color, (int(ball_pos[0]), int(ball_pos[1])), ball_radius)       # Draw the ball
+        pygame.draw.circle(screen, ball_color, (int(ball_pos[0]), int(ball_pos[1])), ball_radius)  # Draw the ball
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
@@ -270,17 +250,20 @@ def main():
                         reset_game()
                         game_started = True
                         first_attempt = False
-                        win_text = None  # Reset win text on new game
+                        win_text = None
+                        win_handled = False  # Reset win handling
+                        paused = False  # Ensure the game is unpaused
+                        print("Gam e Restarted.")
                     elif pygame.Rect(WIDTH // 2 - 60, HEIGHT - 80, 120, 40).collidepoint(mouse_pos):
                         # Pause/Resume the game
                         paused = not paused
+                        print("Game Paused!" if paused else "Game Resumed!")
                     elif pygame.Rect(3 * WIDTH // 4 - 60, HEIGHT - 80, 120, 40).collidepoint(mouse_pos):
                         pygame.quit()
                         sys.exit()
 
         if game_started:
             if not paused:
-                handle_input()
                 if not eeg_queue.empty():
                     force_player1, force_player2 = eeg_queue.get()
                     latest_data = (force_player1, force_player2)  # Store latest data
@@ -295,11 +278,10 @@ def main():
         if game_started:
             win_text = check_win_condition()
             if win_text:
-                win_sound.play()  # Play sound on win
-                paused = True  # Automatically pause the game on win
-                while not eeg_queue.empty():
-                    eeg_queue.get()
-                force_player1, force_player2 = latest_data    # Store the latest data when the game is won
+                if not win_handled:  # Ensure win actions execute only once
+                    win_sound.play()  # Play sound on win
+                    paused = True  # Automatically pause the game on win
+                    win_handled = True  # Mark win actions as handled
 
         # Draw win text if there is a winner
         if win_text:
