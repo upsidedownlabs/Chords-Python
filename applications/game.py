@@ -47,6 +47,14 @@ player_height = 100
 player1_pos = [50, HEIGHT // 2 - player_height // 2]
 player2_pos = [WIDTH - 50 - player_width, HEIGHT // 2 - player_height // 2]
 
+# Font settings
+font_size = 50
+font = pygame.font.Font(None, font_size)
+title_text = "Force Ball Game"
+
+title_surface = font.render(title_text, True, WHITE)
+title_rect = title_surface.get_rect(center=(800 // 2, font_size))  # Center at the top middle
+
 clock = pygame.time.Clock()
 
 eeg_queue = queue.Queue()     # Initialize EEG queue
@@ -85,6 +93,7 @@ def eeg_data_thread(eeg_queue):
         return
 
     inlet = StreamInlet(streams[0])
+    channel_assignments = {0:'Player A', 1:'Player B'}
     sampling_frequency = 500
     bands = {'Alpha': [8, 13],'Beta': [13, 30]}
     buffer_length = sampling_frequency * 1
@@ -188,8 +197,8 @@ def update_ball_position(force_player1, force_player2, threshold=0.7):
     print(f"Force Player 1: {average_force1:.2f}, Force Player 2: {average_force2:.2f}, Net Force: {net_force:.2f}")
 
 def draw_buttons(paused, first_attempt):  # Button dimensions and positions
-    button_width = 120
-    button_height = 40
+    button_width = 140
+    button_height = 50
     button_radius = 15  # Radius for rounded corners
 
     # Button positions (y-position is moved up slightly for a better fit)
@@ -249,6 +258,7 @@ def main():
 
     while True:
         screen.fill(BLACK)
+        screen.blit(title_surface, title_rect)      # For Title of the game
 
         pygame.draw.circle(screen, ball_color, (int(ball_pos[0]), int(ball_pos[1])), ball_radius)  # Draw the ball
 
@@ -314,3 +324,5 @@ if __name__ == "__main__":
 # Threshold = 0.7
 # Moving Average of last 10 values of powerData.
 # Ball Speed = 30
+# Adding the font title "Force Ball Game"
+# Sleep of 1 sec so that game reset properly
