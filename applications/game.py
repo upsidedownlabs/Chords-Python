@@ -39,13 +39,21 @@ win_sound = pygame.mixer.Sound(sound_path)
 ball_radius = 20
 ball_color = WHITE
 ball_pos = [WIDTH // 2, HEIGHT // 2]
-ball_speed = 40
+ball_speed = 30
 
 # Player properties
 player_width = 10
 player_height = 100
 player1_pos = [50, HEIGHT // 2 - player_height // 2]
 player2_pos = [WIDTH - 50 - player_width, HEIGHT // 2 - player_height // 2]
+
+# Font settings
+font_size = 50
+font = pygame.font.Font(None, font_size)
+title_text = "Force Ball Game"
+
+title_surface = font.render(title_text, True, WHITE)
+title_rect = title_surface.get_rect(center=(800 // 2, font_size))  # Center at the top middle
 
 clock = pygame.time.Clock()
 
@@ -55,6 +63,9 @@ running = True    # Game state
 paused = False
 game_started = False
 first_attempt = True  # Keeps track if it's the first game or a restart
+
+powerData1 = []
+powerData2 = []
 
 def bandpower(data, sf, band, window_sec=None, relative=False):
     band = np.asarray(band)
@@ -75,22 +86,17 @@ def bandpower(data, sf, band, window_sec=None, relative=False):
     return bp
 
 def eeg_data_thread(eeg_queue):
+    global powerData1, powerData2
     streams = resolve_stream('name', 'BioAmpDataStream')
     if not streams:
         print("No LSL stream found!")
         return
 
     inlet = StreamInlet(streams[0])
-    channel_assignments = {0: 'Player A', 1: 'Player B'}
-    sampling_frequency = 250
-    bands = {
-        'Delta': [0.5, 4],
-        'Theta': [4, 8],
-        'Alpha': [8, 13],
-        'Beta': [13, 30],
-        'Gamma': [30, 40]
-    }
-    buffer_length = sampling_frequency * 4
+    channel_assignments = {0:'Player A', 1:'Player B'}
+    sampling_frequency = 500
+    bands = {'Alpha': [8, 13],'Beta': [13, 30]}
+    buffer_length = sampling_frequency * 1
     data_buffer = {'Channel1': [], 'Channel2': []}
     powerData1 = []
     powerData2 = []
@@ -100,6 +106,9 @@ def eeg_data_thread(eeg_queue):
     baseline1 = baseline2 = 1  # Initialize baselines
 
     while running:
+        if paused:
+            time.sleep(0.1)  # Pause the thread when the game is paused
+            continue
         try:
             sample, timestamp = inlet.pull_sample()
             if len(sample) >= 6:
@@ -118,12 +127,8 @@ def eeg_data_thread(eeg_queue):
                 if len(data_buffer['Channel1']) >= buffer_length:
                     power_data = {'Channel1': {}, 'Channel2': {}}
                     for band_name, band_freqs in bands.items():
-                        power_data['Channel1'][band_name] = bandpower(
-                            np.array(data_buffer['Channel1']), sampling_frequency, band_freqs
-                        )
-                        power_data['Channel2'][band_name] = bandpower(
-                            np.array(data_buffer['Channel2']), sampling_frequency, band_freqs
-                        )
+                        power_data['Channel1'][band_name] = bandpower(np.array(data_buffer['Channel1']), sampling_frequency, band_freqs)
+                        power_data['Channel2'][band_name] = bandpower(np.array(data_buffer['Channel2']), sampling_frequency, band_freqs)
 
                     powerData1.append(power_data['Channel1']['Beta'] / power_data['Channel1']['Alpha'])
                     powerData2.append(power_data['Channel2']['Beta'] / power_data['Channel2']['Alpha'])
@@ -156,40 +161,44 @@ eeg_thread.daemon = True
 eeg_thread.start()
 
 def reset_game():
-    global ball_pos, force_player1, force_player2, paused, game_started
+    global ball_pos, force_player1, force_player2, paused, game_started, win_text, win_handled, restart_clicked, powerData1, powerData2
     ball_pos = [WIDTH // 2, HEIGHT // 2]
     force_player1 = force_player2 = 0
+    powerData1.clear()  # Clear force data for player 1
+    powerData2.clear()  # Clear force data for player 2
     paused = False  # Ensure the game is not paused after reset
     game_started = True  # Ensure the game is marked as started
+    win_text = None  # Reset win text
+    win_handled = False  # Reset win handling
+    restart_clicked = True  # Mark the restart button as clicked
 
     # Clear any buffered EEG data
     while not eeg_queue.empty():
         eeg_queue.get()
-        print("Empty")
+    print("Game Reset Successfully.")
 
-def update_ball_position(force_player1, force_player2):
-    global ball_pos
-    net_force = force_player2 - force_player1  # force direction
-    ball_pos[0] += net_force * ball_speed * 0.01
+def update_ball_position(force_player1, force_player2, threshold=0.7):
+    global ball_pos, powerData1, powerData2
+
+    # Apply moving average
+    average_force1 = np.mean(powerData1[-10:]) if len(powerData1) >= 10 else 0
+    average_force2 = np.mean(powerData2[-10:]) if len(powerData2) >= 10 else 0
+
+    net_force = average_force1 - average_force2
+
+    # Apply the threshold
+    if abs(net_force) > threshold:
+        ball_pos[0] += net_force * ball_speed * 0.01
     if ball_pos[0] < ball_radius:
         ball_pos[0] = ball_radius
     elif ball_pos[0] > WIDTH - ball_radius:
         ball_pos[0] = WIDTH - ball_radius
 
-    print(f"Force Player 1: {force_player1:.2f}, Force Player 2: {force_player2:.2f}, Net Force: {net_force:.2f}")  # Print the forces to the console
-
-def handle_input():
-    global force_player1, force_player2
-    keys = pygame.key.get_pressed()
-
-    if keys[pygame.K_LEFT]:
-        force_player1 += 0.25
-    if keys[pygame.K_RIGHT]:
-        force_player2 += 0.25
+    print(f"Force Player 1: {average_force1:.2f}, Force Player 2: {average_force2:.2f}, Net Force: {net_force:.2f}")
 
 def draw_buttons(paused, first_attempt):  # Button dimensions and positions
-    button_width = 120
-    button_height = 40
+    button_width = 140
+    button_height = 50
     button_radius = 15  # Radius for rounded corners
 
     # Button positions (y-position is moved up slightly for a better fit)
@@ -235,9 +244,9 @@ def draw_players():
 
 def check_win_condition():
     if ball_pos[0] <= ball_radius:
-        return "PLAYER A WINS!"
-    elif ball_pos[0] >= WIDTH - ball_radius:
         return "PLAYER B WINS!"
+    elif ball_pos[0] >= WIDTH - ball_radius:
+        return "PLAYER A WINS!"
     return None
 
 def main():
@@ -245,21 +254,18 @@ def main():
     force_player1 = force_player2 = 0
     win_text = None  # Initialize win text
     latest_data = (0, 0)  # To store the latest EEG data for both players
+    win_handled = False  # Track if win actions are handled
 
     while True:
         screen.fill(BLACK)
+        screen.blit(title_surface, title_rect)      # For Title of the game
 
-        pygame.draw.circle(screen, ball_color, (int(ball_pos[0]), int(ball_pos[1])), ball_radius)       # Draw the ball
+        pygame.draw.circle(screen, ball_color, (int(ball_pos[0]), int(ball_pos[1])), ball_radius)  # Draw the ball
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
@@ -268,19 +274,23 @@ def main():
                     if pygame.Rect(WIDTH // 4 - 60, HEIGHT - 80, 120, 40).collidepoint(mouse_pos):
                         # Start or restart the game
                         reset_game()
+                        time.sleep(1)
                         game_started = True
                         first_attempt = False
-                        win_text = None  # Reset win text on new game
+                        win_text = None
+                        win_handled = False  # Reset win handling
+                        paused = False  # Ensure the game is unpaused
+                        print("Game Restarted.")
                     elif pygame.Rect(WIDTH // 2 - 60, HEIGHT - 80, 120, 40).collidepoint(mouse_pos):
                         # Pause/Resume the game
                         paused = not paused
+                        print("Game Paused!" if paused else "Game Resumed!")
                     elif pygame.Rect(3 * WIDTH // 4 - 60, HEIGHT - 80, 120, 40).collidepoint(mouse_pos):
                         pygame.quit()
                         sys.exit()
 
         if game_started:
             if not paused:
-                handle_input()
                 if not eeg_queue.empty():
                     force_player1, force_player2 = eeg_queue.get()
                     latest_data = (force_player1, force_player2)  # Store latest data
@@ -295,11 +305,10 @@ def main():
         if game_started:
             win_text = check_win_condition()
             if win_text:
-                win_sound.play()  # Play sound on win
-                paused = True  # Automatically pause the game on win
-                while not eeg_queue.empty():
-                    eeg_queue.get()
-                force_player1, force_player2 = latest_data    # Store the latest data when the game is won
+                if not win_handled:  # Ensure win actions execute only once
+                    win_sound.play()  # Play sound on win
+                    paused = True  # Automatically pause the game on win
+                    win_handled = True  # Mark win actions as handled
 
         # Draw win text if there is a winner
         if win_text:
@@ -311,3 +320,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Threshold = 0.7
+# Moving Average of last 10 values of powerData.
+# Ball Speed = 30
+# Adding the font title "Force Ball Game"
+# Sleep of 1 sec so that game reset properly
