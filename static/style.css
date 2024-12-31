@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    text-align: center;
+    padding: 20px;
+}
+
+.header h1 {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.controls button, .app-button {
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+}
+
+.controls button:hover, .app-button:hover {
+    background-color: #45a049;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* LSL buttons styles */
+#start_lsl_button, #stop_lsl_button {
+    width: auto;
+    margin: 10px;
+}
+
+/* App button layout */
+.app-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+/* Row layout for app buttons */
+.row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.app-button {
+    width: 200px;  /* Set fixed width for all app buttons */
+    margin: 10px;
+}
+
+/* Status section */
+.status {
+    margin-top: 20px;
+    font-size: 18px;
+}
+
+.status h3 {
+    color: #333;
+}
+
+#lsl_status {
+    font-weight: bold;
+}
