@@ -54,9 +54,10 @@ retry_limit = 4
 board = ""          # Variable for Connected Arduino Board
 supported_boards = {
     "UNO-R3": {"sampling_rate": 250, "Num_channels": 6},
-    "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},
+    "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},           # Baud Rate 115200
     "UNO-R4": {"sampling_rate": 500, "Num_channels": 6},
     "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3},
+    "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8},          # Baud Rate 115200
 }
 
 # Initialize gloabal variables for Incoming Data

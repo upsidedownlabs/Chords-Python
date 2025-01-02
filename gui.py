@@ -51,7 +51,7 @@ def init_gui():
     global plots, curves
     plots = []
     curves = []
-    colors = ['#FF3B3B', '#00FF66', '#FF1493', '#007BFF', '#FFA500', '#FF00FF']  # Different colors for each channel
+    colors = ['#D10054', '#007A8C', '#0A6847', '#674188', '#E65C19', '#2E073F' ]  # Different colors for each channel
     for i in range(6):
         plot = pg.PlotWidget(title=f"Channel {i + 1}")  # Create a plot widget for each channel
         layout.addWidget(plot)  # Add the plot to the layout
