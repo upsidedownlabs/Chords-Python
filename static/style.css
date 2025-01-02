@@ -11,23 +11,25 @@ body {
 }
 
 .header h1 {
-    font-size: 2em;
+    font-size: 2.5em;
     margin-bottom: 20px;
+    color: #333;
 }
 
-.controls button, .app-button {
-    padding: 10px 20px;
+.controls button {
+    padding: 15px 30px;
     margin: 10px;
-    font-size: 16px;
+    font-size: 18px;
     cursor: pointer;
     border: none;
-    border-radius: 5px;
-    background-color: #4CAF50;
-    color: white;
+    border-radius: 25px; /* Rounded shape */
+    background-color: #d1a56c; /* Beige color */
+    color: #333; /* Dark text */
+    transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
-.controls button:hover, .app-button:hover {
-    background-color: #45a049;
+.controls button:hover {
+    background-color: hsl(34, 47%, 40%); /* Dark beige on hover */
 }
 
 button:disabled {
@@ -35,43 +37,89 @@ button:disabled {
     cursor: not-allowed;
 }
 
-/* LSL buttons styles */
-#start_lsl_button, #stop_lsl_button {
-    width: auto;
-    margin: 10px;
-}
-
 /* App button layout */
 .app-buttons {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     margin-top: 20px;
 }
 
-/* Row layout for app buttons */
 .row {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
-.app-button {
-    width: 200px;  /* Set fixed width for all app buttons */
+.app-buttons form {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px; /* Spacing between buttons */
+}
+
+/* App button styles */
+.app-buttons button {
+    width: 200px;
+    height: 80px;
     margin: 10px;
+    font-size: 20px; /* Larger font size */
+    font-weight: bold;
+    text-transform: uppercase; /* Stylish text */
+    border-radius: 25px; /* Rounded edges */
+    border: none;
+    color: white; /* Font color */
+    cursor: pointer;
+    background-color:#9ba59c; /* gray color */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s, background-color 0.3s;
 }
 
-/* Status section */
-.status {
-    margin-top: 20px;
+/* Hover effect for app buttons */
+.app-buttons button:hover {
+    background-color: #656d67; /* Darker shade on hover */
+    transform: scale(1.1);
+    opacity: 0.9;
+}
+
+/* Button active (on click) effect */
+.app-buttons button:active {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+button:disabled {
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><text x="0" y="16" font-size="16">🚫</text></svg>'), not-allowed;
+}
+
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 2px solid #333;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    text-align: center;
+    animation: fade-out 3s forwards;
+}
+
+.popup p {
     font-size: 18px;
-}
-
-.status h3 {
+    font-weight: bold;
     color: #333;
 }
 
-#lsl_status {
-    font-weight: bold;
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        visibility: hidden;
+    }
 }

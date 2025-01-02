@@ -11,6 +11,13 @@
         <div class="header">
             <h1>Chords-Python</h1>
         </div>
+
+         <!-- Pop-up message -->
+         {% if message %}
+         <div class="popup fade-out">
+             <p>{{ message }}</p>
+         </div>
+         {% endif %}
         
         <div class="controls">
             {% if not lsl_started %}
@@ -21,10 +28,6 @@
                 <button id="start_lsl_button" disabled>LSL Stream Running</button>
             {% endif %}
         </div>
-
-        <!-- <div class="status">
-            <h3>LSL Status: <span id="lsl_status" style="color:{{ lsl_color }};">{{ lsl_status }}</span></h3>
-        </div> -->
 
         <div class="app-buttons">
             <!-- Row 1: ECG, EMG, EOG, EEG -->
