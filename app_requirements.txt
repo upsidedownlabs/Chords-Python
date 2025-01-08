@@ -7,3 +7,4 @@ neurokit2==0.2.10
 plotly==5.24.1
 pandas==2.2.3
 tk==0.1.0
+PyAutoGUI==0.9.54

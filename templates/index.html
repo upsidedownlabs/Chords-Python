@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chords-Python</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Chords-Python</h1>
+        </div>
+
+         <!-- Pop-up message -->
+         {% if message %}
+         <div class="popup fade-out">
+             <p>{{ message }}</p>
+         </div>
+         {% endif %}
+        
+        <div class="controls">
+            {% if not lsl_started %}
+                <form action="/start_lsl" method="POST">
+                    <button type="submit" id="start_lsl_button">Start LSL Stream</button>
+                </form>
+            {% else %}
+                <button id="start_lsl_button" disabled>LSL Stream Running</button>
+            {% endif %}
+        </div>
+
+        <div class="app-buttons">
+            <!-- Row 1: ECG, EMG, EOG, EEG -->
+            <div class="row">
+                <form action="/run_app" method="POST">
+                    <button type="submit" name="app_name" value="heartbeat_ecg" {% if not lsl_started %}disabled{% endif %}>ECG with Heart Rate</button>
+                    <button type="submit" name="app_name" value="emgenvelope" {% if not lsl_started %}disabled{% endif %}>EMG with Envelope</button>
+                    <button type="submit" name="app_name" value="eog" {% if not lsl_started %}disabled{% endif %}>EOG with Blinks</button>
+                    <button type="submit" name="app_name" value="ffteeg" {% if not lsl_started %}disabled{% endif %}>EEG with FFT</button>
+                </form>
+            </div>
+
+            <!-- Row 2: Game, GUI, Keystroke, CSVPlotter -->
+            <div class="row">
+                <form action="/run_app" method="POST">
+                    <button type="submit" name="app_name" value="game" {% if not lsl_started %}disabled{% endif %}>Force Ball Game</button>
+                    <button type="submit" name="app_name" value="gui" {% if not lsl_started %}disabled{% endif %}>GUI of 6 Channels</button>
+                    <button type="submit" name="app_name" value="keystroke" {% if not lsl_started %}disabled{% endif %}>Keystroke Emulator</button>
+                    <button type="submit" name="app_name" value="csvplotter" {% if not lsl_started %}disabled{% endif %}>CSV Plotter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
