@@ -27,14 +27,20 @@ def start_lsl():
     try:
         # Start the LSL stream as a subprocess
         if sys.platform == "win32":
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], creationflags=subprocess.CREATE_NO_WINDOW)
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"],stdout=subprocess.PIPE,stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
         else:
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"])
-        
-        if lsl_process.poll() is None:
-            return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green")
-        else:
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        output = lsl_process.stderr.readline().decode().strip()  # Read the initial stderr line
+
+        print(output)
+        if output == "No":
             return render_template("index.html", lsl_started=False, lsl_status="Failed to Start", lsl_color="red")
+        else:
+            return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green")
+    except subprocess.TimeoutExpired:
+        return render_template(
+            "index.html", lsl_started=False, lsl_status="Timeout Error", lsl_color="red"
+        )
     except Exception as e:
         return render_template("index.html", lsl_started=False, lsl_status=f"Error: {e}", lsl_color="red")
 
@@ -44,7 +50,7 @@ def run_app():
 
     # Check if the app is already running
     if app_name in app_processes and app_processes[app_name].poll() is None:
-        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"{app_name} is already Running")
+        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"{app_name} is already Running", running_apps=app_processes.keys())
 
     try:
         # Start the app subprocess
@@ -54,10 +60,20 @@ def run_app():
             process = subprocess.Popen(["python", f"{app_name}.py"])
 
         app_processes[app_name] = process
-        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=None)
+        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", running_apps=app_processes.keys(), message=None)
+        
     except Exception as e:
-        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"Error starting {app_name}: {e}")
+        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"Error starting {app_name}: {e}", running_apps=app_processes.keys())
 
+@app.route("/app_status", methods=["GET"])
+def app_status():
+    # Check the status of all apps
+    statuses = {
+        app_name: (process.poll() is None)  # True if running, False if not
+        for app_name, process in app_processes.items()
+    }
+    return jsonify(statuses)
+ 
 @app.route("/stop_lsl", methods=['POST'])
 def stop_lsl():
     # Terminate LSL process
