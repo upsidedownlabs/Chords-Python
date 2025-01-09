@@ -44,7 +44,7 @@ def run_app():
 
     # Check if the app is already running
     if app_name in app_processes and app_processes[app_name].poll() is None:
-        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"{app_name} is already Running")
+        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"{app_name} is already Running", running_apps=app_processes.keys())
 
     try:
         # Start the app subprocess
@@ -54,10 +54,20 @@ def run_app():
             process = subprocess.Popen(["python", f"{app_name}.py"])
 
         app_processes[app_name] = process
-        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=None)
+        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", running_apps=app_processes.keys(), message=None)
+        
     except Exception as e:
-        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"Error starting {app_name}: {e}")
+        return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green", message=f"Error starting {app_name}: {e}", running_apps=app_processes.keys())
 
+@app.route("/app_status", methods=["GET"])
+def app_status():
+    # Check the status of all apps
+    statuses = {
+        app_name: (process.poll() is None)  # True if running, False if not
+        for app_name, process in app_processes.items()
+    }
+    return jsonify(statuses)
+ 
 @app.route("/stop_lsl", methods=['POST'])
 def stop_lsl():
     # Terminate LSL process

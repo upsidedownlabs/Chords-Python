@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chords-Python</title>
+    <title>Chords-Python Applications</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Chords-Python</h1>
+            <h1>Chords-Python Applications</h1>
+            <p class="bottom-text">Designed with <span class="heart">&#10084;</span> at Upside Down Labs</p>
         </div>
 
          <!-- Pop-up message -->
@@ -19,37 +20,90 @@
          </div>
          {% endif %}
         
-        <div class="controls">
+         <div class="controls">
             {% if not lsl_started %}
                 <form action="/start_lsl" method="POST">
-                    <button type="submit" id="start_lsl_button">Start LSL Stream</button>
+                    <button type="submit" id="start_lsl_button" class="lsl-not-running">Start LSL Stream</button>
                 </form>
             {% else %}
-                <button id="start_lsl_button" disabled>LSL Stream Running</button>
+                <button id="start_lsl_button" class="lsl-running" disabled>LSL Stream Running</button>
             {% endif %}
-        </div>
-
+        </div>        
         <div class="app-buttons">
             <!-- Row 1: ECG, EMG, EOG, EEG -->
             <div class="row">
                 <form action="/run_app" method="POST">
-                    <button type="submit" name="app_name" value="heartbeat_ecg" {% if not lsl_started %}disabled{% endif %}>ECG with Heart Rate</button>
-                    <button type="submit" name="app_name" value="emgenvelope" {% if not lsl_started %}disabled{% endif %}>EMG with Envelope</button>
-                    <button type="submit" name="app_name" value="eog" {% if not lsl_started %}disabled{% endif %}>EOG with Blinks</button>
-                    <button type="submit" name="app_name" value="ffteeg" {% if not lsl_started %}disabled{% endif %}>EEG with FFT</button>
+                    <button type="submit" name="app_name" value="heartbeat_ecg" 
+                            class="{% if 'heartbeat_ecg' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        ECG with Heart Rate
+                    </button>
+                    <button type="submit" name="app_name" value="emgenvelope" 
+                            class="{% if 'emgenvelope' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        EMG with Envelope
+                    </button>
+                    <button type="submit" name="app_name" value="eog" 
+                            class="{% if 'eog' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        EOG with Blinks
+                    </button>
+                    <button type="submit" name="app_name" value="ffteeg" 
+                            class="{% if 'ffteeg' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        EEG with FFT
+                    </button>
                 </form>
             </div>
 
             <!-- Row 2: Game, GUI, Keystroke, CSVPlotter -->
             <div class="row">
                 <form action="/run_app" method="POST">
-                    <button type="submit" name="app_name" value="game" {% if not lsl_started %}disabled{% endif %}>Force Ball Game</button>
-                    <button type="submit" name="app_name" value="gui" {% if not lsl_started %}disabled{% endif %}>GUI of 6 Channels</button>
-                    <button type="submit" name="app_name" value="keystroke" {% if not lsl_started %}disabled{% endif %}>Keystroke Emulator</button>
-                    <button type="submit" name="app_name" value="csvplotter" {% if not lsl_started %}disabled{% endif %}>CSV Plotter</button>
+                    <button type="submit" name="app_name" value="game" 
+                            class="{% if 'game' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        Force Ball Game
+                    </button>
+                    <button type="submit" name="app_name" value="gui" 
+                            class="{% if 'gui' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        GUI of 6 Channels
+                    </button>
+                    <button type="submit" name="app_name" value="keystroke" 
+                            class="{% if 'keystroke' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        Keystroke Emulator
+                    </button>
+                    <button type="submit" name="app_name" value="csvplotter" 
+                            class="{% if 'csvplotter' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        CSV Plotter
+                    </button>
                 </form>
             </div>
         </div>
     </div>
+    <script>           // For checking the running status of the apps
+        function updateAppStatus() {
+            fetch('/app_status')
+                .then(response => response.json())
+                .then(statuses => {
+                    Object.keys(statuses).forEach(app => {
+                        const button = document.querySelector(`button[value="${app}"]`);
+                        if (statuses[app]) {
+                            button.classList.add("running");
+                            button.classList.remove("not-running");
+                        } else {
+                            button.classList.add("not-running");
+                            button.classList.remove("running");
+                        }
+                    });
+                })
+                .catch(error => console.error("Error fetching app statuses:", error));
+        }
+    
+        setInterval(updateAppStatus, 100);     // 100 ms checking
+        document.addEventListener("DOMContentLoaded", updateAppStatus);
+    </script>  
 </body>
 </html>
