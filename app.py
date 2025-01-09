@@ -27,14 +27,20 @@ def start_lsl():
     try:
         # Start the LSL stream as a subprocess
         if sys.platform == "win32":
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], creationflags=subprocess.CREATE_NO_WINDOW)
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"],stdout=subprocess.PIPE,stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
         else:
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"])
-        
-        if lsl_process.poll() is None:
-            return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green")
-        else:
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        output = lsl_process.stderr.readline().decode().strip()  # Read the initial stderr line
+
+        print(output)
+        if output == "No":
             return render_template("index.html", lsl_started=False, lsl_status="Failed to Start", lsl_color="red")
+        else:
+            return render_template("index.html", lsl_started=True, lsl_status="Running", lsl_color="green")
+    except subprocess.TimeoutExpired:
+        return render_template(
+            "index.html", lsl_started=False, lsl_status="Timeout Error", lsl_color="red"
+        )
     except Exception as e:
         return render_template("index.html", lsl_started=False, lsl_status=f"Error: {e}", lsl_color="red")
 

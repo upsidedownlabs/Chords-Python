@@ -11,9 +11,12 @@ body {
 }
 
 .header h1 {
-    font-size: 2.5em;
-    margin-bottom: 20px;
-    color: #333;
+    font-size: 48px;
+    font-weight: bold;
+    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6); /* Background gradient */
+    -webkit-background-clip: text; /* Vendor-prefixed for WebKit-based browsers */
+    background-clip: text; /* Standard property */
+    -webkit-text-fill-color: transparent; /* Makes the text transparent */
 }
 
 .subtitle {
@@ -34,13 +37,13 @@ body {
     cursor: pointer;
     border: none;
     border-radius: 10px;
-    background: #333;
+    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
     color: #fffffe;
     transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
 button:disabled {
-    background-color: rgb(105, 206, 105);
+    background: rgb(105, 206, 105);
     cursor: not-allowed;
 }
 
