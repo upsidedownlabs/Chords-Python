@@ -342,7 +342,9 @@ def main():
         ser = connect_hardware(port=args.port, baudrate=args.baudrate)
     else:
         ser = detect_hardware(baudrate=args.baudrate)
-    
+        if ser is None:
+             sys.stderr.write("No\n")
+             sys.exit(1)  # Exit with a non-zero code to indicate failure
     if ser is None:
         print("Arduino port not specified or detected. Exiting.")  # Notify if no port is available
         return
