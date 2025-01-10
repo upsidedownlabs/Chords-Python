@@ -89,7 +89,7 @@ button:disabled {
 }
 
 button.running {
-    background-color: rgb(105, 206, 105) !important;
+    background-color: rgb(105, 206, 105);
     cursor: not-allowed;
     color: white;
 }

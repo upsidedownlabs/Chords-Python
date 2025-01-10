@@ -68,11 +68,14 @@ def run_app():
 @app.route("/app_status", methods=["GET"])
 def app_status():
     # Check the status of all apps
-    statuses = {
-        app_name: (process.poll() is None)  # True if running, False if not
-        for app_name, process in app_processes.items()
-    }
-    return jsonify(statuses)
+    try:
+        statuses = {
+            app_name: (process.poll() is None)  # True if running, False if not
+            for app_name, process in app_processes.items()
+        }
+        return jsonify(statuses)
+    except Exception as e:
+       return jsonify({"error": str(e)}), 500
  
 @app.route("/stop_lsl", methods=['POST'])
 def stop_lsl():
