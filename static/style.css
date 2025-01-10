@@ -13,10 +13,22 @@ body {
 .header h1 {
     font-size: 48px;
     font-weight: bold;
-    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6); /* Background gradient */
-    -webkit-background-clip: text; /* Vendor-prefixed for WebKit-based browsers */
-    background-clip: text; /* Standard property */
-    -webkit-text-fill-color: transparent; /* Makes the text transparent */
+    background: linear-gradient(90deg, #ec4899, #a855f7, #3b82f6, #ec4899);
+    background-size: 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: scroll-gradient 5s linear infinite;
+}
+
+/* Keyframes for scrolling the gradient */
+@keyframes scroll-gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
 }
 
 .subtitle {
@@ -89,7 +101,7 @@ button:disabled {
 }
 
 button.running {
-    background-color: rgb(105, 206, 105) !important;
+    background-color: rgb(105, 206, 105);
     cursor: not-allowed;
     color: white;
 }

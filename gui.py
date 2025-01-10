@@ -6,7 +6,10 @@ import numpy as np
 
 # Initialize global variables
 inlet = None
-data = np.zeros((6, 2000))  # Buffer to hold the last 2000 samples for each channel
+data = None
+num_channels = 6  # Default number of channels
+curves = []
+plots = []
 
 def update_plots():
     global data
@@ -17,14 +20,14 @@ def update_plots():
         # Update data buffer
         for sample in samples:
             data = np.roll(data, -1, axis=1)  # Shift data left
-            data[:, -1] = sample  # Add new channel data to the right end of the array
+            data[:, -1] = sample[:num_channels]  # Add new channel data to the right end of the array
 
         # Update the curves with the new data
-        for i in range(6):
+        for i in range(num_channels):
             curves[i].setData(data[i])
 
 def plot_lsl_data():
-    global inlet
+    global inlet, num_channels, data
     print("Looking for LSL Stream.")
     streams = resolve_stream('name', 'BioAmpDataStream')  
 
@@ -33,6 +36,15 @@ def plot_lsl_data():
         return
     
     inlet = StreamInlet(streams[0])
+
+    # Get the number of channels from the stream
+    info = inlet.info()
+    num_channels = info.channel_count()
+    print(f"Detected {num_channels} channels.")
+    
+    # Initialize data buffer based on the number of channels
+    data = np.zeros((num_channels, 2000))  # Buffer to hold the last 2000 samples for each channel
+
     init_gui()
 
 def init_gui():
@@ -47,15 +59,16 @@ def init_gui():
     pg.setConfigOption('background', 'w')  # Background color
     pg.setConfigOption('foreground', 'k')  # Foreground color
 
-    # Create plots for each channel (6 in total)
+    # Create plots for each channel based on num_channels
     global plots, curves
     plots = []
     curves = []
     colors = ['#D10054', '#007A8C', '#0A6847', '#674188', '#E65C19', '#2E073F' ]  # Different colors for each channel
-    for i in range(6):
+    for i in range(num_channels):
         plot = pg.PlotWidget(title=f"Channel {i + 1}")  # Create a plot widget for each channel
         layout.addWidget(plot)  # Add the plot to the layout
-        curve = plot.plot(pen=colors[i])  # Create a curve (line) for plotting data
+        color = colors[i % len(colors)]  # Cycle colors if fewer colors than channels
+        curve = plot.plot(pen=color)  # Create a curve (line) for plotting data
         curve.setDownsampling(auto=True)  # Automatically downsample if needed
         curve.setClipToView(True)  # Clip the data to the view
         plots.append(plot)  # Store the plot
@@ -65,7 +78,7 @@ def init_gui():
     status_bar = QtWidgets.QHBoxLayout()
 
     # LSL status label
-    lsl_label = QtWidgets.QLabel("LSL Status: Connected")
+    lsl_label = QtWidgets.QLabel(f"LSL Status: Connected ({num_channels} channels detected)")
     status_bar.addWidget(lsl_label)
 
     layout.addLayout(status_bar)  # Add the status bar to the layout
