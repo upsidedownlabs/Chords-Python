@@ -61,7 +61,6 @@ button:disabled {
 
 .app-buttons {
     margin-top: 20px;
-    cursor: not-allowed;
 }
 
 .row {
@@ -103,7 +102,6 @@ button:disabled {
 
 .lsl-disabled button {
     cursor: not-allowed;
-    pointer-events: none;
 }
 
 button.running {
