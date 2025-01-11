@@ -100,6 +100,10 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.lsl-disabled button {
+    cursor: not-allowed;
+}
+
 button.running {
     background-color: rgb(105, 206, 105);
     cursor: not-allowed;
