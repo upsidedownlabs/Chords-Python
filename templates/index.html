@@ -29,7 +29,7 @@
                 <button id="start_lsl_button" class="lsl-running" disabled>LSL Stream Running</button>
             {% endif %}
         </div>        
-        <div class="app-buttons">
+        <div class="app-buttons {% if not lsl_started %}lsl-disabled{% endif %}">
             <!-- Row 1: ECG, EMG, EOG, EEG -->
             <div class="row">
                 <form action="/run_app" method="POST">
