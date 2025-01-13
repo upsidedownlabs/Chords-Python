@@ -27,7 +27,7 @@ def start_lsl():
     try:
         # Start the LSL stream as a subprocess
         if sys.platform == "win32":
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"],stdout=subprocess.PIPE,stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
         else:
             lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         output = lsl_process.stderr.readline().decode().strip()  # Read the initial stderr line
@@ -79,18 +79,36 @@ def app_status():
  
 @app.route("/stop_lsl", methods=['POST'])
 def stop_lsl():
+    stop_all_processes()
+    return jsonify({'status': 'LSL Stream and applications stopped and server is shutting down.'})
+
+def stop_all_processes():
+    global lsl_process, app_processes
+
     # Terminate LSL process
     if lsl_process and lsl_process.poll() is None:
         lsl_process.terminate()
+        lsl_process.wait(timeout=3)
+        if lsl_process.poll() is None:
+            lsl_process.kill()
 
     # Terminate all app processes
     for app_name, process in app_processes.items():
         if process.poll() is None:
             process.terminate()
+            process.wait(timeout=3)
+            if process.poll() is None:
+                process.kill()
 
-    # Shutdown the server gracefully
-    os._exit(0)
-    return jsonify({'status': 'LSL Stream and applications stopped and server is shutting down.'})
+    app_processes.clear()
+    print("All processes terminated.")
+
+def handle_sigint(signal_num, frame):
+    print("\nCtrl+C pressed! Stopping all processes...")
+    stop_all_processes()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_sigint)   # Register signal handler for Ctrl+C
 
 if __name__ == "__main__":
     app.run(debug=True)
