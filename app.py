@@ -88,16 +88,18 @@ def stop_all_processes():
     # Terminate LSL process
     if lsl_process and lsl_process.poll() is None:
         lsl_process.terminate()
-        lsl_process.wait(timeout=3)
-        if lsl_process.poll() is None:
+        try:
+            lsl_process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
             lsl_process.kill()
 
     # Terminate all app processes
     for app_name, process in app_processes.items():
         if process.poll() is None:
             process.terminate()
-            process.wait(timeout=3)
-            if process.poll() is None:
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
                 process.kill()
 
     app_processes.clear()
