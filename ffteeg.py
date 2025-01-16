@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import hamming
+from numpy import hamming, hanning
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QMainWindow, QWidget
 from PyQt5.QtCore import Qt
 from pyqtgraph import PlotWidget
@@ -25,7 +25,7 @@ class EEGMonitor(QMainWindow):
         self.eeg_plot_widget.setBackground('w')
         self.eeg_plot_widget.showGrid(x=True, y=True)
         self.eeg_plot_widget.setLabel('bottom', 'EEG Plot')
-        self.eeg_plot_widget.setYRange(0, 15000, padding=0)
+        self.eeg_plot_widget.setYRange(0, 5000, padding=0)
         self.eeg_plot_widget.setXRange(0, 10, padding=0)
         self.eeg_plot_widget.setMouseEnabled(x=False, y=True)  # Disable zoom
         self.main_layout.addWidget(self.eeg_plot_widget)
@@ -38,9 +38,10 @@ class EEGMonitor(QMainWindow):
         self.fft_plot.setBackground('w')
         self.fft_plot.showGrid(x=True, y=True)
         self.fft_plot.setLabel('bottom', 'FFT')
-        self.fft_plot.setYRange(0, 25000, padding=0)
+        # self.fft_plot.setYRange(0, 25000, padding=0)
         self.fft_plot.setXRange(0, 50, padding=0)  # Set x-axis to 0 to 50 Hz
         self.fft_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
+        self.fft_plot.setAutoVisible(y=True)  # Allow y-axis to autoscale
         self.bottom_layout.addWidget(self.fft_plot)
 
         # Bar graph for brainwave power bands (right side of the second half)
@@ -77,14 +78,9 @@ class EEGMonitor(QMainWindow):
         self.time_data = np.linspace(0, 10, self.buffer_size)  # Fixed time array for plotting
         self.current_index = 0  # Index for overwriting data
 
-        # Moving window for brainwave power
-        self.moving_window_size = self.sampling_rate * 3   # 3-second window
-        self.moving_window_buffer = np.zeros(self.moving_window_size)
-
         # Filters
         self.b_notch, self.a_notch = iirnotch(50, 30, self.sampling_rate)
-        self.b_highpass, self.a_highpass = butter(4, 1.5 / (0.5 * self.sampling_rate), btype='high')
-        self.b_lowpass, self.a_lowpass = butter(4, 45 / (0.5 * self.sampling_rate), btype='low')
+        self.b_band, self.a_band = butter(4, [0.5 / (self.sampling_rate / 2), 48.0 / (self.sampling_rate / 2)], btype='band')
 
         # Timer for updating the plot
         self.timer = pg.QtCore.QTimer()
@@ -109,15 +105,14 @@ class EEGMonitor(QMainWindow):
 
             # Apply filters to the full data for EEG plot
             filtered_eeg = filtfilt(self.b_notch, self.a_notch, plot_data)
-            filtered_eeg = filtfilt(self.b_highpass, self.a_highpass, filtered_eeg)
-            filtered_eeg = filtfilt(self.b_lowpass, self.a_lowpass, filtered_eeg)
+            filtered_eeg = filtfilt(self.b_band, self.a_band, filtered_eeg)
 
             # Update the EEG plot with the filtered data
             self.eeg_curve.setData(self.time_data, filtered_eeg)
 
             # Perform FFT on the latest 1-second slice
             latest_data = filtered_eeg[-self.sampling_rate:]
-            window = hamming(len(latest_data))
+            window = np.hanning(len(latest_data))
             filtered_eeg_windowed = latest_data * window
 
             # Apply zero-padding
@@ -125,35 +120,21 @@ class EEGMonitor(QMainWindow):
             filtered_eeg_windowed_padded = np.pad(filtered_eeg_windowed, (0, zero_padded_length - len(filtered_eeg_windowed)), 'constant')
 
             eeg_fft = np.abs(fft(filtered_eeg_windowed_padded))[:len(filtered_eeg_windowed_padded) // 2]
+            eeg_fft /= len(filtered_eeg_windowed_padded)    # Normalize FFT 
             freqs = np.fft.fftfreq(len(filtered_eeg_windowed_padded), 1 / self.sampling_rate)[:len(filtered_eeg_windowed_padded) // 2]
 
             # Update FFT plot
             self.fft_curve.setData(freqs, eeg_fft)
 
-            # Update the 3-second moving window buffer
-            for sample in latest_data:
-                self.moving_window_buffer = np.roll(self.moving_window_buffer, -1)
-                self.moving_window_buffer[-1] = sample
-
-            # Apply filters to the moving window buffer
-            filtered_window = filtfilt(self.b_notch, self.a_notch, self.moving_window_buffer)
-            filtered_window = filtfilt(self.b_highpass, self.a_highpass, filtered_window)
-            filtered_window = filtfilt(self.b_lowpass, self.a_lowpass, filtered_window)
-
-            # Perform FFT on the moving window buffer
-            windowed_data = filtered_window * hamming(len(filtered_window))
-            fft_data = np.abs(fft(windowed_data))[:len(windowed_data) // 2]
-            window_freqs = np.fft.fftfreq(len(windowed_data), 1 / self.sampling_rate)[:len(windowed_data) // 2]
-
-            brainwave_power = self.calculate_brainwave_power(fft_data, window_freqs)
+            brainwave_power = self.calculate_brainwave_power(eeg_fft, freqs)
             self.brainwave_bars.setOpts(height=brainwave_power)
 
     def calculate_brainwave_power(self, fft_data, freqs):
-        delta_power = np.sum(fft_data[(freqs >= 0.5) & (freqs <= 4)])
-        theta_power = np.sum(fft_data[(freqs >= 4) & (freqs <= 8)])
-        alpha_power = np.sum(fft_data[(freqs >= 8) & (freqs <= 13)])
-        beta_power = np.sum(fft_data[(freqs >= 13) & (freqs <= 30)])
-        gamma_power = np.sum(fft_data[(freqs >= 30) & (freqs <= 45)])
+        delta_power = np.sum(fft_data[(freqs >= 0.5) & (freqs <= 4)] ** 2)
+        theta_power = np.sum(fft_data[(freqs >= 4) & (freqs <= 8)] ** 2)
+        alpha_power = np.sum(fft_data[(freqs >= 8) & (freqs <= 13)] ** 2)
+        beta_power = np.sum(fft_data[(freqs >= 13) & (freqs <= 30)] ** 2)
+        gamma_power = np.sum(fft_data[(freqs >= 30) & (freqs <= 45)] ** 2)
 
         return [delta_power, theta_power, alpha_power, beta_power, gamma_power]
 
@@ -162,3 +143,7 @@ if __name__ == "__main__":
     window = EEGMonitor()  
     window.show()
     sys.exit(app.exec_())
+
+# PSD is calculated now(Previously ASD is calculated)
+# FFT is normalized to the len(filtered_eeg_window_padded)
+# Hanning window is used now - as it is designed to minimize spectral leakage while hamming may exhibit more spectral leakage.
