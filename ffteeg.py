@@ -143,11 +143,11 @@ class EEGMonitor(QMainWindow):
         alpha_power = math.sqrt(np.sum(((fft_data[(freqs >= 8) & (freqs <= 13)])**2)/6))
         beta_power = math.sqrt(np.sum(((fft_data[(freqs >= 13) & (freqs <=30)])**2)/18))
         gamma_power = math.sqrt(np.sum(((fft_data[(freqs >= 30) & (freqs <= 45)])**2)/16))
-        print(f"Delta", delta_power)
-        print(f"Theta", theta_power)
-        print(f"Alpha", alpha_power)
-        print(f"Beta", beta_power)
-        print(f"Gamma", gamma_power)
+        print("Delta Power", delta_power)
+        print("Theta Power", theta_power)
+        print("Alpha Power", alpha_power)
+        print("Beta Power", beta_power)
+        print("Gamma Power", gamma_power)
         return [delta_power, theta_power, alpha_power, beta_power, gamma_power]
  
 if __name__ == "__main__":
