@@ -6,8 +6,9 @@ from pyqtgraph import PlotWidget
 import pyqtgraph as pg
 import pylsl
 import sys
-from scipy.signal import butter, filtfilt, iirnotch
+from scipy.signal import butter, iirnotch, lfilter, lfilter_zi
 from scipy.fft import fft
+import math
 
 class EEGMonitor(QMainWindow):
     def __init__(self): 
@@ -73,8 +74,6 @@ class EEGMonitor(QMainWindow):
         print(f"Sampling rate: {self.sampling_rate} Hz")
 
         # Data and Buffers
-        self.filter_buffer_size = 30  # Minimum length for filtfilt
-        self.filter_buffer = deque(maxlen=self.filter_buffer_size)
         self.one_second_buffer = deque(maxlen=self.sampling_rate)  # 1-second buffer
         self.buffer_size = self.sampling_rate * 10
         self.moving_window_size = self.sampling_rate * 2  # 2-second window
@@ -85,6 +84,9 @@ class EEGMonitor(QMainWindow):
 
         self.b_notch, self.a_notch = iirnotch(50, 30, self.sampling_rate)
         self.b_band, self.a_band = butter(4, [0.5 / (self.sampling_rate / 2), 48.0 / (self.sampling_rate / 2)], btype='band')
+
+        self.zi_notch = lfilter_zi(self.b_notch, self.a_notch) * 0
+        self.zi_band = lfilter_zi(self.b_band, self.a_band) * 0
 
         # Timer for updating the plot
         self.timer = pg.QtCore.QTimer()
@@ -99,16 +101,13 @@ class EEGMonitor(QMainWindow):
         if samples:
             for sample in samples:
                 raw_point = sample[0]
-                self.filter_buffer.append(raw_point)
 
-                # Apply the filters if the buffer is full
-                if len(self.filter_buffer) == self.filter_buffer_size:
-                    notch_filtered = filtfilt(self.b_notch, self.a_notch, list(self.filter_buffer))[-1]
-                    band_filtered = filtfilt(self.b_band, self.a_band, list(self.filter_buffer))[-1]
-                else:
-                    continue
+                notch_filtered, self.zi_notch = lfilter(self.b_notch, self.a_notch, [raw_point], zi=self.zi_notch)
+                band_filtered, self.zi_band = lfilter(self.b_band, self.a_band, notch_filtered, zi=self.zi_band)
+                band_filtered = band_filtered[-1]  # Get the current filtered point
 
-                self.eeg_data[self.current_index] = band_filtered               # Plot the filtered data
+                # Update the EEG plot
+                self.eeg_data[self.current_index] = band_filtered
                 self.current_index = (self.current_index + 1) % self.buffer_size
 
                 if self.current_index == 0:
@@ -139,12 +138,16 @@ class EEGMonitor(QMainWindow):
         self.brainwave_bars.setOpts(height=brainwave_power)
 
     def calculate_brainwave_power(self, fft_data, freqs):
-        delta_power = np.sum(fft_data[(freqs >= 0.5) & (freqs <= 4)] ** 2)
-        theta_power = np.sum(fft_data[(freqs >= 4) & (freqs <= 8)] ** 2)
-        alpha_power = np.sum(fft_data[(freqs >= 8) & (freqs <= 13)] ** 2)
-        beta_power = np.sum(fft_data[(freqs >= 13) & (freqs <= 30)] ** 2)
-        gamma_power = np.sum(fft_data[(freqs >= 30) & (freqs <= 45)] ** 2)
-
+        delta_power = math.sqrt(np.sum(((fft_data[(freqs >= 0.5) & (freqs <= 4)])**2)/4))
+        theta_power = math.sqrt(np.sum(((fft_data[(freqs >= 4) & (freqs <= 8)])**2)/5))
+        alpha_power = math.sqrt(np.sum(((fft_data[(freqs >= 8) & (freqs <= 13)])**2)/6))
+        beta_power = math.sqrt(np.sum(((fft_data[(freqs >= 13) & (freqs <=30)])**2)/18))
+        gamma_power = math.sqrt(np.sum(((fft_data[(freqs >= 30) & (freqs <= 45)])**2)/16))
+        print(f"Delta", delta_power)
+        print(f"Theta", theta_power)
+        print(f"Alpha", alpha_power)
+        print(f"Beta", beta_power)
+        print(f"Gamma", gamma_power)
         return [delta_power, theta_power, alpha_power, beta_power, gamma_power]
  
 if __name__ == "__main__":
