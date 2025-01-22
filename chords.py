@@ -239,7 +239,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
         if csv_file:
             csv_writer = csv.writer(csv_file)  # Create CSV writer
             csv_writer.writerow([f"Arduino Board: {board}"])
-            csv_writer.writerow([f"Sampling Rate (samples per second): {supported_boards[board]["sampling_rate"]}"])
+            csv_writer.writerow([f"Sampling Rate (samples per second): {supported_boards[board]['sampling_rate']}"])
             csv_writer.writerow([])  # Blank row for separation
             csv_writer.writerow(['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])  # Write header
 
