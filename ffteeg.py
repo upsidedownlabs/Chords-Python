@@ -27,7 +27,7 @@ class EEGMonitor(QMainWindow):
         self.eeg_plot_widget.showGrid(x=True, y=True)
         self.eeg_plot_widget.setLabel('bottom', 'EEG Plot')
         self.eeg_plot_widget.setYRange(-5000, 5000, padding=0)
-        self.eeg_plot_widget.setXRange(0, 2, padding=0)
+        self.eeg_plot_widget.setXRange(0, 4, padding=0)
         self.eeg_plot_widget.setMouseEnabled(x=False, y=True)  # Disable zoom
         self.main_layout.addWidget(self.eeg_plot_widget)
 
@@ -39,9 +39,9 @@ class EEGMonitor(QMainWindow):
         self.fft_plot.setBackground('w')
         self.fft_plot.showGrid(x=True, y=True)
         self.fft_plot.setLabel('bottom', 'FFT')
-        # self.fft_plot.setYRange(0, 25000, padding=0)
+        # self.fft_plot.setYRange(0, 500, padding=0)
         self.fft_plot.setXRange(0, 50, padding=0)  # Set x-axis to 0 to 50 Hz
-        self.fft_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
+        # self.fft_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
         self.fft_plot.setAutoVisible(y=True)  # Allow y-axis to autoscale
         self.bottom_layout.addWidget(self.fft_plot)
 
@@ -74,13 +74,8 @@ class EEGMonitor(QMainWindow):
         print(f"Sampling rate: {self.sampling_rate} Hz")
 
         # Data and Buffers
-        self.one_second_buffer = deque(maxlen=self.sampling_rate)  # 1-second buffer
-        self.buffer_size = self.sampling_rate * 10
-        self.moving_window_size = self.sampling_rate * 2  # 2-second window
-
-        self.eeg_data = np.zeros(self.buffer_size)
-        self.time_data = np.linspace(0, 10, self.buffer_size)
-        self.current_index = 0
+        self.eeg_data = deque(maxlen=500)       # Initialize moving window with 500 samples
+        self.moving_window = deque(maxlen=500)  # 500 samples for FFT and power calculation (sliding window)
 
         self.b_notch, self.a_notch = iirnotch(50, 30, self.sampling_rate)
         self.b_band, self.a_band = butter(4, [0.5 / (self.sampling_rate / 2), 48.0 / (self.sampling_rate / 2)], btype='band')
@@ -93,7 +88,7 @@ class EEGMonitor(QMainWindow):
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(20) 
 
-        self.eeg_curve = self.eeg_plot_widget.plot(self.time_data, self.eeg_data, pen=pg.mkPen('b', width=1))  #EEG Colour is blue
+        self.eeg_curve = self.eeg_plot_widget.plot(pen=pg.mkPen('b', width=1))
         self.fft_curve = self.fft_plot.plot(pen=pg.mkPen('r', width=1))  # FFT Colour is red
 
     def update_plot(self):
@@ -106,29 +101,23 @@ class EEGMonitor(QMainWindow):
                 band_filtered, self.zi_band = lfilter(self.b_band, self.a_band, notch_filtered, zi=self.zi_band)
                 band_filtered = band_filtered[-1]  # Get the current filtered point
 
-                # Update the EEG plot
-                self.eeg_data[self.current_index] = band_filtered
-                self.current_index = (self.current_index + 1) % self.buffer_size
+                # Update EEG data buffer
+                self.eeg_data.append(band_filtered)
 
-                if self.current_index == 0:
-                    plot_data = self.eeg_data
+                if len(self.moving_window) < 500:
+                    self.moving_window.append(band_filtered)
                 else:
-                    plot_data = np.concatenate((self.eeg_data[self.current_index:], self.eeg_data[:self.current_index]))
-
-                recent_data = plot_data[-self.moving_window_size:]
-                recent_time = np.linspace(0, len(recent_data) / self.sampling_rate, len(recent_data))
-                self.eeg_curve.setData(recent_time, recent_data)
-
-                self.one_second_buffer.append(band_filtered)           # Add the filtered point to the 1-second buffer
-                if len(self.one_second_buffer) == self.sampling_rate:  # Process FFT and brainwave power
                     self.process_fft_and_brainpower()
-                    self.one_second_buffer.clear() 
-                    
-    def process_fft_and_brainpower(self):
-        window = np.hanning(len(self.one_second_buffer))       # Apply Hanning window to the buffer
-        buffer_windowed = np.array(self.one_second_buffer) * window
 
-        # Perform FFT
+                    self.moving_window = deque(list(self.moving_window)[50:] + [band_filtered], maxlen=500)
+
+            plot_data = np.array(self.eeg_data)
+            time_axis = np.linspace(0, 4, len(plot_data))
+            self.eeg_curve.setData(time_axis, plot_data)
+
+    def process_fft_and_brainpower(self):
+        window = np.hanning(len(self.moving_window))
+        buffer_windowed = np.array(self.moving_window) * window
         fft_result = np.abs(fft(buffer_windowed))[:len(buffer_windowed) // 2]
         fft_result /= len(buffer_windowed)
         freqs = np.fft.fftfreq(len(buffer_windowed), 1 / self.sampling_rate)[:len(buffer_windowed) // 2]
