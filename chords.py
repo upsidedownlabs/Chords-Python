@@ -55,9 +55,11 @@ board = ""          # Variable for Connected Arduino Board
 supported_boards = {
     "UNO-R3": {"sampling_rate": 250, "Num_channels": 6},
     "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},           # Baud Rate 115200
+    "GENUINO-UNO": {"sampling_rate": 250, "Num_channels": 6}, 
     "UNO-R4": {"sampling_rate": 500, "Num_channels": 6},
     "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3},
     "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8},          # Baud Rate 115200
+    "BLACK-PILL": {"sampling_rate": 500, "Num_channels": 10}, 
 }
 
 # Initialize gloabal variables for Incoming Data
@@ -80,14 +82,18 @@ def connect_hardware(port, baudrate, timeout=1):
         ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)  # Try opening the port
         response = None
         retry_counter = 0
-        while response is None or retry_counter < retry_limit:
+        while response not in supported_boards and retry_counter < retry_limit:
             ser.write(b'WHORU\n') # Check board type
-            response = ser.readline().strip().decode()  # Try reading from the port
+            try:
+                response = ser.readline().strip().decode()  # Attempt to decode the response
+            except UnicodeDecodeError as e:
+                print(f"Decode error: {e}. Ignoring this response.")
+                response = None
             retry_counter += 1
             if response in supported_boards:  # If response is received, assume it's the Arduino
                 global board, sampling_rate, data, num_channels, packet_length
                 board = response # Set board type
-                print(f"{response} detected at {port}")  # Notify the user
+                print(f"{response} detected at {port} with baudrate {baudrate}.")  # Notify the user
                 sampling_rate = supported_boards[board]["sampling_rate"]
                 num_channels = supported_boards[board]["Num_channels"]
                 packet_length = (2 * num_channels) + HEADER_LENGTH + 1
@@ -97,17 +103,19 @@ def connect_hardware(port, baudrate, timeout=1):
         ser.close()  # Close the port if no response
     except (OSError, serial.SerialException):  # Handle exceptions if the port can't be opened
         pass
-    print("Unable to connect to any hardware!")  # Notify if no Arduino is found
+    print(f"Unable to connect to any hardware at baudrate {baudrate}")  # Notify if no Arduino is found
     return None  # Return None if not found
 
-# Function to automatically detect the Arduino's serial port
-def detect_hardware(baudrate, timeout=1):
+def detect_hardware(baudrate=None, timeout=1):
     ports = serial.tools.list_ports.comports()  # List available serial ports
     ser = None
+    baudrates = [baudrate] if baudrate else [230400, 115200]
     for port in ports:  # Iterate through each port
-        ser = connect_hardware(port.device, baudrate)
-        if ser is not None:
-            return ser
+        for baud_rate in baudrates:  # Iterate through all baud rates
+            print(f"Trying {port.device} at Baudrate {baud_rate}...")
+            ser = connect_hardware(port.device, baud_rate, timeout)
+            if ser is not None:
+                return ser
     print("Unable to detect hardware!")  # Notify if no Arduino is found
     return None  # Return None if not found
 
@@ -319,7 +327,7 @@ def main():
     global verbose,ser
     parser = argparse.ArgumentParser(description="Upside Down Labs - Chords-Python Tool",allow_abbrev = False)  # Create argument parser
     parser.add_argument('-p', '--port', type=str, help="Specify the COM port")  # Port argument
-    parser.add_argument('-b', '--baudrate', type=int, default=230400, help="Set baud rate for the serial communication")  # Baud rate 
+    parser.add_argument('-b', '--baudrate', type=int, help="Set baud rate for the serial communication")  # Baud rate 
     parser.add_argument('--csv', action='store_true', help="Create and write to a CSV file")  # CSV logging flag
     parser.add_argument('--lsl', action='store_true', help="Start LSL stream")  # LSL streaming flag
     parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output with statistical data")  # Verbose flag
@@ -336,6 +344,8 @@ def main():
     if not args.csv and not args.lsl:
         parser.print_help()  # Print help if no options are selected
         return
+
+    baudrate = args.baudrate  # Get baud rate from arguments
 
     if args.port:
         print("trying to connect to port:", args.port)
