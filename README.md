@@ -51,7 +51,7 @@ To use the script, run it from the command line with various options:
 ### Options
 
 - `-p`, `--port` <port>: Specify the serial port to use (e.g., COM5, /dev/ttyUSB0).
-- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication. The script will first attempt to use 230400, and if that fails, it will automatically fallback to 115200.
+- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication. By default the script will first attempt to use 230400, and if that fails, it will automatically fallback to 115200.
 - `--csv`: Enable CSV logging. Data will be saved to a timestamped file.
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
