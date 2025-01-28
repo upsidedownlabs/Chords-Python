@@ -96,12 +96,7 @@ To use the script, run it from the command line with various options:
 
 - `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
 
-## Running All Applications
-Here's the updated section for the README:
-
----
-
-### Running All Applications Together
+## Running All Applications Together
 
 To run all applications together:
 
@@ -112,14 +107,14 @@ python app.py
 > [!NOTE] 
 > Before running, make sure to activate the virtual environment and install all dependencies:
 
-> 1. Activate the virtual environment:  
->   ```bash
->   .\venv\Scripts\activate  
->   ```
-> 2. Install dependencies:  
->   ```bash
->   pip install -r chords_requirements.txt
->   ```  
+  1. Activate the virtual environment:  
+    ```bash
+    .\venv\Scripts\activate  
+    ```
+  2. Install dependencies:  
+    ```bash
+    pip install -r chords_requirements.txt
+    ```  
 
 This will launch a Web interface. Use the interface to control the applications:
 
