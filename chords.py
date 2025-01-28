@@ -54,12 +54,16 @@ retry_limit = 4
 board = ""          # Variable for Connected Arduino Board
 supported_boards = {
     "UNO-R3": {"sampling_rate": 250, "Num_channels": 6},
-    "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},           # Baud Rate 115200
+    "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},
     "GENUINO-UNO": {"sampling_rate": 250, "Num_channels": 6}, 
     "UNO-R4": {"sampling_rate": 500, "Num_channels": 6},
     "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3},
-    "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8},          # Baud Rate 115200
-    "BLACK-PILL": {"sampling_rate": 500, "Num_channels": 10}, 
+    "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8},
+    "STM32F4-BLACK-PILL": {"sampling_rate": 500, "Num_channels": 8},
+    "STM32G4-CORE-BOARD": {"sampling_rate": 500, "Num_channels": 16},
+    "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16},
+    "MEGA-2560-CLONE": {"sampling_rate": 250, "Num_channels": 16},
+    "GIGA-R1": {"sampling_rate": 500, "Num_channels": 6},
 }
 
 # Initialize gloabal variables for Incoming Data
