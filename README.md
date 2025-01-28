@@ -66,14 +66,6 @@ To use the script, run it from the command line with various options:
 
 - **Log Intervals**: The script logs data counts every second and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
 
-### LSL Streaming
-
-- **Stream Name**: `BioAmpDataStream`
-- **Stream Type**: `EXG`
-- **Channel Count**: `6`
-- **Sampling Rate**: `UNO-R3 : 250 Hz` , `UNO-R4 : 500 Hz`
-- **Data Format**: `float32`
-
 ## Applications
 
 ### GUI
