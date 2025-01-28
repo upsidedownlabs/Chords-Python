@@ -107,11 +107,11 @@ python app.py
 > [!NOTE] 
 > Before running, make sure to activate the virtual environment and install all dependencies:
 
-  1. Activate the virtual environment:  
+1. Activate the virtual environment:  
     ```bash
     .\venv\Scripts\activate  
     ```
-  2. Install dependencies:  
+2. Install dependencies:  
     ```bash
     pip install -r chords_requirements.txt
     ```  
