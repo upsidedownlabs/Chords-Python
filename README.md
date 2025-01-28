@@ -51,7 +51,7 @@ To use the script, run it from the command line with various options:
 ### Options
 
 - `-p`, `--port` <port>: Specify the serial port to use (e.g., COM5, /dev/ttyUSB0).
-- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication (default is 230400).
+- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication. The script will first attempt to use 230400, and if that fails, it will automatically fallback to 115200.
 - `--csv`: Enable CSV logging. Data will be saved to a timestamped file.
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
@@ -74,29 +74,7 @@ To use the script, run it from the command line with various options:
 - **Sampling Rate**: `UNO-R3 : 250 Hz` , `UNO-R4 : 500 Hz`
 - **Data Format**: `float32`
 
-
-### Script Functions
-
-`auto_detect_arduino(baudrate, timeout=1)`: Detects an Arduino connected via serial port. Returns the port name if detected.
-
-`read_arduino_data(ser, csv_writer=None)`: Reads and processes data from the Arduino. Writes data to CSV and/or LSL stream if enabled.
-
-`start_timer()`: Initializes timers for 1-second and 10-minute intervals.
-
-`log_one_second_data(verbose=False)`: Logs and resets data for the 1-second interval.
-
-`log_ten_minute_data(verbose=False)`: Logs data and statistics for the 10-minute interval.
-
-`parse_data(port,baudrate,lsl_flag=False,csv_flag=False,verbose=False)`: Parses data from Arduino and manages logging, streaming, and GUI updates.
-
-`cleanup()`: Handles all the cleanup tasks.
-
-`main()`: Handles command-line argument parsing and initiates data processing.
-
 ## Applications
-
-> [!IMPORTANT]
- Before using the below Applications make sure you are in application folder.
 
 ### GUI
 
@@ -108,7 +86,7 @@ To use the script, run it from the command line with various options:
 
 ### HEART RATE
 
-- `python heartbeat.ecg.py`:Enable a GUI with real-time ECG and heart rate.
+- `python heartbeat_ecg.py`:Enable a GUI with real-time ECG and heart rate.
 
 ### EMG ENVELOPE
 
@@ -121,6 +99,32 @@ To use the script, run it from the command line with various options:
 ### EEG
 
 - `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT.
+
+### Keystroke
+
+- `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
+
+## Running All Applications
+To run all applications together:
+
+  ```bash
+  python app.py
+  ```
+
+This will launch a Web interface. Use the interface to control the applications:
+
+1. Click the **`Start LSL Stream`** button to initiate the LSL stream.
+2. Then, click on any application button to run the desired module.
+
+### Available Applications
+- `ffteeg`: Perform FFT analysis on EEG data.
+- `heartbeat_ecg`: Analyze ECG data and extract heartbeat metrics.
+- `eog`: Process and detect blinks in EOG signals.
+- `emgenvelope`: Analyze EMG signals for muscle activity or gesture recognition.
+- `keystroke`: Monitor and analyze keystroke dynamics.
+- `game`: Launch an EEG game fro 2 players(Tug of War).
+- `csv_plotter`: Plot data from a CSV file.
+- `gui`: Launch the GUI for real time signal visualization.
 
 
 ## Troubleshooting
