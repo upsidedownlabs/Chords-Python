@@ -109,11 +109,11 @@ python app.py
 
   1. Activate the virtual environment:  
     ```bash
-      .\venv\Scripts\activate  
+    .\venv\Scripts\activate  
     ```
   2. Install dependencies:  
     ```bash
-      pip install -r chords_requirements.txt
+    pip install -r chords_requirements.txt
     ```  
 
 This will launch a Web interface. Use the interface to control the applications:
