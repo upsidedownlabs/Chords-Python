@@ -345,8 +345,6 @@ def main():
         parser.print_help()  # Print help if no options are selected
         return
 
-    baudrate = args.baudrate  # Get baud rate from arguments
-
     if args.port:
         print("trying to connect to port:", args.port)
         ser = connect_hardware(port=args.port, baudrate=args.baudrate)
