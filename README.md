@@ -105,11 +105,29 @@ To use the script, run it from the command line with various options:
 - `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
 
 ## Running All Applications
+Here's the updated section for the README:
+
+---
+
+### Running All Applications Together
+
 To run all applications together:
 
-  ```bash
-  python app.py
-  ```
+```bash
+python app.py
+```
+
+> [!NOTE] 
+> Before running, make sure to activate the virtual environment and install all dependencies:
+
+1. Activate the virtual environment:  
+   ```bash
+   .\venv\Scripts\activate  
+   ```
+2. Install dependencies:  
+   ```bash
+   pip install -r chords_requirements.txt
+   ```  
 
 This will launch a Web interface. Use the interface to control the applications:
 
@@ -122,10 +140,9 @@ This will launch a Web interface. Use the interface to control the applications:
 - `eog`: Process and detect blinks in EOG signals.
 - `emgenvelope`: Analyze EMG signals for muscle activity or gesture recognition.
 - `keystroke`: Monitor and analyze keystroke dynamics.
-- `game`: Launch an EEG game fro 2 players(Tug of War).
+- `game`: Launch an EEG game for 2 players(Tug of War).
 - `csv_plotter`: Plot data from a CSV file.
 - `gui`: Launch the GUI for real time signal visualization.
-
 
 ## Troubleshooting
 
