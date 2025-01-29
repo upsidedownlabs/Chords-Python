@@ -106,9 +106,9 @@ python app.py
 
 > [!NOTE] 
 > Before running, make sure to install all dependencies by running the command:
-    ```bash
-    pip install -r app_requirements.txt
-    ```
+```bash
+pip install -r app_requirements.txt
+```
 
 This will launch a Web interface. Use the interface to control the applications:
 
