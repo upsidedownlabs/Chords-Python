@@ -105,20 +105,14 @@ python app.py
 ```
 
 > [!NOTE] 
-> Before running, make sure to activate the virtual environment and install all dependencies:
-
-1. Activate the virtual environment:  
+> Before running, make sure to install all dependencies:
     ```bash
-    .\venv\Scripts\activate  
-    ```
-2. Install dependencies:  
-    ```bash
-    pip install -r chords_requirements.txt
+    pip install -r app_requirements.txt
     ```  
 
 This will launch a Web interface. Use the interface to control the applications:
 
-1. Click the **`Start LSL Stream`** button to initiate the LSL stream.
+1. Click the `Start LSL Stream` button to initiate the LSL stream.
 2. Then, click on any application button to run the desired module.
 
 ### Available Applications
