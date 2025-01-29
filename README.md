@@ -116,12 +116,12 @@ This will launch a Web interface. Use the interface to control the applications:
 2. Then, click on any application button to run the desired module.
 
 ### Available Applications
-- `ffteeg`: Perform FFT analysis on EEG data.
+- `ffteeg`: Real-time EEG analysis with FFT and brainwave power calculation.
 - `heartbeat_ecg`: Analyze ECG data and extract heartbeat metrics.
-- `eog`: Process and detect blinks in EOG signals.
-- `emgenvelope`: Analyze EMG signals for muscle activity or gesture recognition.
-- `keystroke`: Monitor and analyze keystroke dynamics.
-- `game`: Launch an EEG game for 2 players(Tug of War).
+- `eog`: Real-time EOG monitoring with blink detection.
+- `emgenvelope`: Real-time EMG monitor with filtering and RMS envelope.
+- `keystroke`: GUI for EOG-based blink detection triggering a keystroke.
+- `game`: Launch an EEG game for 2 players (Tug of War).
 - `csv_plotter`: Plot data from a CSV file.
 - `gui`: Launch the GUI for real time signal visualization.
 
