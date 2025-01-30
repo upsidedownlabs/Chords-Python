@@ -59,6 +59,7 @@ supported_boards = {
     "UNO-R4": {"sampling_rate": 500, "Num_channels": 6},
     "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3},
     "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8},
+    "NANO-CLASSIC": {"sampling_rate": 250, "Num_channels": 8},
     "STM32F4-BLACK-PILL": {"sampling_rate": 500, "Num_channels": 8},
     "STM32G4-CORE-BOARD": {"sampling_rate": 500, "Num_channels": 16},
     "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16},
