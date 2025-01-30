@@ -118,9 +118,9 @@ class EEGMonitor(QMainWindow):
     def process_fft_and_brainpower(self):
         window = np.hanning(len(self.moving_window))
         buffer_windowed = np.array(self.moving_window) * window
-        fft_result = np.abs(fft(buffer_windowed))[:len(buffer_windowed) // 2]
+        fft_result = np.abs(np.fft.rfft(buffer_windowed))
         fft_result /= len(buffer_windowed)
-        freqs = np.fft.fftfreq(len(buffer_windowed), 1 / self.sampling_rate)[:len(buffer_windowed) // 2]
+        freqs = np.fft.rfftfreq(len(buffer_windowed), 1 / self.sampling_rate)
         self.fft_curve.setData(freqs, fft_result)
 
         brainwave_power = self.calculate_brainwave_power(fft_result, freqs)
