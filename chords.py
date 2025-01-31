@@ -170,7 +170,7 @@ def read_arduino_data(ser, csv_writer=None, inverted=False):
                 total_packet_count += 1  # Increment total packet count for the current second
                 cumulative_packet_count += 1  # Increment cumulative packet count for the last 10 minutes
 
-                # Extract channel data (6 channels, 2 bytes per channel)
+                # Extract channel data (num_channels, 2 bytes per channel)
                 channel_data = []
                 for channel in range(num_channels):  # Loop through channel data bytes
                     high_byte = packet[2*channel + HEADER_LENGTH]
@@ -254,7 +254,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
             csv_writer.writerow([f"Arduino Board: {board}"])
             csv_writer.writerow([f"Sampling Rate (samples per second): {supported_boards[board]['sampling_rate']}"])
             csv_writer.writerow([])  # Blank row for separation
-            csv_writer.writerow(['Counter', 'Channel1', 'Channel2', 'Channel3', 'Channel4', 'Channel5', 'Channel6'])  # Write header
+            csv_writer.writerow(['Counter'] + [f'Channel{i+1}' for i in range(num_channels)])  # Write header
 
         end_time = time.time() + run_time if run_time else None
         send_command(ser, 'START')
