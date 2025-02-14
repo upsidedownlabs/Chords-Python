@@ -66,33 +66,43 @@ To use the script, run it from the command line with various options:
 
 - **Log Intervals**: The script logs data counts every second and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
 
-## Applications
+## Applications  
+To open another terminal and run an application, ensure the **LSL Stream** is running first.
 
-### GUI
+### Installation  
+Before running any application, install all dependencies with the following command:
+
+```bash
+pip install -r app_requirements.txt
+```
+
+### Available Applications  
+
+#### GUI  
 
 - `python gui.py`: Enable the real-time data plotting GUI.
 
-### FORCE BALL GAME
+#### TUG OF WAR GAME
 
-- `python game.py`: Enable a GUI to play game using EEG Signal.
+- `python game.py`: Enable a GUI to play tug of war game using EEG Signal.
 
-### HEART RATE
+#### HEART RATE
 
 - `python heartbeat_ecg.py`:Enable a GUI with real-time ECG and heart rate.
 
-### EMG ENVELOPE
+#### EMG ENVELOPE
 
 - `python emgenvelope.py`: Enable a GUI with real-time EMG & its Envelope.
 
-### EOG
+#### EOG
 
 - `python eog.py`: Enable a GUI with real-time EOG that detects the blinks and mark them with red dot.
 
-### EEG
+#### EEG
 
 - `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT.
 
-### Keystroke
+#### Keystroke
 
 - `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
 
