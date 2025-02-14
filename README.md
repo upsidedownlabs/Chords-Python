@@ -67,7 +67,7 @@ To use the script, run it from the command line with various options:
 - **Log Intervals**: The script logs data counts every second and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
 
 ## Applications  
-To open another terminal and run an application, ensure the **LSL Stream** is running first.
+Open another terminal and run an application. Ensure the LSL Stream is running first.
 
 ### Installation  
 Before running any application, install all dependencies with the following command:
@@ -96,7 +96,7 @@ pip install -r app_requirements.txt
 
 #### EOG
 
-- `python eog.py`: Enable a GUI with real-time EOG that detects the blinks and mark them with red dot.
+- `python eog.py`: Enable a GUI with real-time EOG that detects blinks and mark them with red dots.
 
 #### EEG
 
