@@ -13,10 +13,12 @@ import os
 pygame.init()
 pygame.mixer.init()  # For sound
 
-# Screen dimensions
-WIDTH, HEIGHT = 800, 600
+# Get screen dimensions
+info = pygame.display.Info()
+WIDTH, HEIGHT = info.current_w, info.current_h
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Force Ball Game")
+pygame.display.set_caption("EEG Tug of War Game")
 
 # Colors
 WHITE = (255, 255, 255)
@@ -50,10 +52,10 @@ player2_pos = [WIDTH - 50 - player_width, HEIGHT // 2 - player_height // 2]
 # Font settings
 font_size = 50
 font = pygame.font.Font(None, font_size)
-title_text = "Force Ball Game"
+title_text = "EEG Tug of War Game"
 
 title_surface = font.render(title_text, True, WHITE)
-title_rect = title_surface.get_rect(center=(800 // 2, font_size))  # Center at the top middle
+title_rect = title_surface.get_rect(center=(WIDTH // 2, font_size))  # Center at the top middle
 
 clock = pygame.time.Clock()
 
