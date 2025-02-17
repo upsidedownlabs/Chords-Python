@@ -100,7 +100,7 @@ pip install -r app_requirements.txt
 
 #### EEG
 
-- `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT.
+- `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT and band powers.
 
 #### Keystroke
 
