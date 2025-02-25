@@ -64,6 +64,11 @@
                             {% if not lsl_started %}disabled{% endif %}>
                         EEG Tug of War Game
                     </button>
+                    <button type="submit" name="app_name" value="beetle" 
+                            class="{% if 'beetle' in running_apps %}running{% else %}not-running{% endif %}" 
+                            {% if not lsl_started %}disabled{% endif %}>
+                        EEG Beetle Game
+                    </button>
                     <button type="submit" name="app_name" value="gui" 
                             class="{% if 'gui' in running_apps %}running{% else %}not-running{% endif %}" 
                             {% if not lsl_started %}disabled{% endif %}>
