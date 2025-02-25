@@ -37,7 +37,7 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Beetle Game')
 
 # Load beetle image
-beetle_image = pygame.image.load('beetle.jpg')
+beetle_image = pygame.image.load('media\\beetle.jpg')
 beetle_image = pygame.transform.scale(beetle_image, (80, 80))
 
 # Function to display a message on the screen
