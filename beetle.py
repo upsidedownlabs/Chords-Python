@@ -37,7 +37,7 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Beetle Game')
 
 # Load beetle image
-beetle_image = pygame.image.load('beetle.jpg')
+beetle_image = pygame.image.load('media\\beetle.jpg')
 beetle_image = pygame.transform.scale(beetle_image, (80, 80))
 
 # Function to display a message on the screen
@@ -103,7 +103,7 @@ else:
     exit()
 
 # Show Game Start Message
-show_message("Game Starting...", 2)
+show_message("Game Starting...", 1)
 
 # Update beetle position
 def update_beetle_position(focus_level, is_focus_stable):
