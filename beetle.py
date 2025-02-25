@@ -80,7 +80,7 @@ show_message("Sit still and relax for 10 seconds", 3)
 
 print("Starting Calibration... Please relax and stay still for 10 seconds.")
 calibration_data = []
-calibration_duration = 5
+calibration_duration = 10
 calibration_start_time = time.time()
 
 while time.time() - calibration_start_time < calibration_duration:
