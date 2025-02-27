@@ -5,6 +5,7 @@ import time
 from pylsl import StreamInlet, resolve_stream
 from scipy.signal import iirnotch, butter, lfilter
 import math
+from PIL import Image
 
 # Initialize LSL stream
 streams = resolve_stream('name', 'BioAmpDataStream')
@@ -36,9 +37,20 @@ pygame.init()
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Beetle Game')
 
-# Load beetle image
-beetle_image = pygame.image.load('media\\beetle.jpg')
-beetle_image = pygame.transform.scale(beetle_image, (80, 80))
+# Load GIF and extract frames
+gif_path = 'media/RobotBug.gif'
+gif = Image.open(gif_path)
+
+frames = []
+for frame in range(gif.n_frames):
+    gif.seek(frame)
+    frame_surface = pygame.image.fromstring(gif.tobytes(), gif.size, gif.mode)
+    frame_surface = pygame.transform.scale(frame_surface, (120, 120))
+    frames.append(frame_surface)
+
+frame_index = 0
+frame_delay = 100  # Time per frame in milliseconds
+last_frame_time = pygame.time.get_ticks()
 
 # Function to display a message on the screen
 def show_message(message, duration=3):
@@ -109,9 +121,9 @@ show_message("Game Starting...", 1)
 def update_beetle_position(focus_level, is_focus_stable):
     global beetle_y
     if is_focus_stable:
-        beetle_y = max(10 + beetle_image.get_height() // 2, beetle_y - focus_speed_upward)     
+        beetle_y = max(10 + frames[0].get_height() // 2, beetle_y - focus_speed_upward)     
     else:
-        beetle_y = min(580 - beetle_image.get_height() // 2, beetle_y + focus_speed_downward)  
+        beetle_y = min(580 - frames[0].get_height() // 2, beetle_y + focus_speed_downward)  
 
 print("STARTING GAME...")
 running = True
@@ -152,8 +164,15 @@ while running:
 
             last_focus_time = current_time
 
+        # Update GIF animation
+        current_tick = pygame.time.get_ticks()
+        if current_tick - last_frame_time >= frame_delay:
+            frame_index = (frame_index + 1) % len(frames)
+            last_frame_time = current_tick
+
         screen.fill("#FFFFFF")
         pygame.draw.rect(screen, (0, 0, 0), (10, 10, 780, 580), 5)  
+        beetle_image = frames[frame_index]  # Get current frame
         screen.blit(beetle_image, (beetle_x - beetle_image.get_width() // 2, beetle_y - beetle_image.get_height() // 2))
         
         pygame.display.update()
