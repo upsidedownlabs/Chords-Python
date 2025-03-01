@@ -2,7 +2,7 @@ import pygame
 import sys
 import queue
 import threading
-from pylsl import StreamInlet, resolve_stream
+from pylsl import StreamInlet, resolve_streams, resolve_byprop
 import numpy as np
 from scipy.signal import welch
 from scipy.integrate import simpson
@@ -89,12 +89,28 @@ def bandpower(data, sf, band, window_sec=None, relative=False):
 
 def eeg_data_thread(eeg_queue):
     global powerData1, powerData2
-    streams = resolve_stream('name', 'BioAmpDataStream')
-    if not streams:
-        print("No LSL stream found!")
-        return
+    print("Searching for available LSL streams...")
+    streams = resolve_streams()
+    available_streams = [s.name() for s in streams]
 
-    inlet = StreamInlet(streams[0])
+    if not available_streams:
+        print("No LSL streams found!")
+        return None
+
+    for stream_name in available_streams:
+        print(f"Trying to connect to {stream_name}...")
+        resolved_streams = resolve_byprop('name', stream_name, timeout=2)
+
+        if resolved_streams:
+            print(f"Successfully connected to {stream_name}!")
+            inlet = StreamInlet(resolved_streams[0])
+            break
+        else:
+            print(f"Failed to connect to {stream_name}.")
+
+    if inlet is None:
+        print("Could not connect to any stream.")
+        return None
     channel_assignments = {0:'Player A', 1:'Player B'}
     sampling_frequency = 500
     bands = {'Alpha': [8, 13],'Beta': [13, 30]}

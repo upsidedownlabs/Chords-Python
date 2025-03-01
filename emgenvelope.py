@@ -39,11 +39,25 @@ class EMGMonitor(QMainWindow):
         self.setCentralWidget(central_widget)
 
         # Set up LSL stream inlet
-        streams = pylsl.resolve_stream('name', 'BioAmpDataStream')
-        if not streams:
-            print("No LSL stream found!")
+        print("Searching for available LSL streams...")
+        available_streams = pylsl.resolve_streams()
+
+        if not available_streams:
+            print("No LSL streams found! Exiting...")
             sys.exit(0)
-        self.inlet = pylsl.StreamInlet(streams[0])
+
+        self.inlet = None
+        for stream in available_streams:
+            try:
+                self.inlet = pylsl.StreamInlet(stream)
+                print(f"Connected to LSL stream: {stream.name()}")
+                break
+            except Exception as e:
+                print(f"Failed to connect to {stream.name()}: {e}")
+
+        if self.inlet is None:
+            print("Unable to connect to any LSL stream! Exiting...")
+            sys.exit(0)
 
         # Sampling rate
         self.sampling_rate = int(self.inlet.info().nominal_srate())
