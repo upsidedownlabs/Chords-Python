@@ -7,13 +7,13 @@ import socket
 from scipy.signal import butter, filtfilt
 from pylsl import StreamInfo, StreamOutlet
 
-stream_name = 'ORIC'
+stream_name = 'NPG'
 data = StreamInfo(stream_name, 'EXG', 3, 250, 'float32', 'uid007')
 outlet = StreamOutlet(data)
 ws = websocket.WebSocket()
 ws.connect("ws://" + socket.gethostbyname("multi-emg.local") + ":81")
 print(stream_name, "WebSocket connected!")
-sys.stderr.write("ORIC WebSocket connected!\n")
+sys.stderr.write("NPG WebSocket connected!\n")
 
 block_size = 13
 packet_size = 0 
