@@ -10,6 +10,16 @@ body {
     padding: 20px;
 }
 
+.controls-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.controls {
+    display: flex;
+}
+
 .header h1 {
     font-size: 48px;
     font-weight: bold;
@@ -101,6 +111,10 @@ button:disabled {
 }
 
 .lsl-disabled button {
+    cursor: not-allowed;
+}
+
+.npg-disabled button {
     cursor: not-allowed;
 }
 
