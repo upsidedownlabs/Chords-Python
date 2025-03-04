@@ -113,6 +113,28 @@
                 appButtonsDiv.classList.add('disabled-apps');
             }
         }
+
+        function checkStatus() {
+        fetch("/app_status")
+            .then(response => response.json())
+            .then(data => {
+                const npgButton = document.getElementById("start_npg_button");
+
+                if (data.npg_started) {
+                    npgButton.classList.remove("npg-not-running");
+                    npgButton.classList.add("npg-running");
+                    npgButton.textContent = "NPG Stream Running";
+                    npgButton.disabled = true;
+                } else {
+                    npgButton.classList.remove("npg-running");
+                    npgButton.classList.add("npg-not-running");
+                    npgButton.textContent = "Start NPG Stream";
+                    npgButton.disabled = false;
+                }
+            });
+    }
+
+    setInterval(checkStatus, 20);  
     
         function updateAppStatus() {
             fetch('/app_status')
@@ -120,8 +142,8 @@
                 .then(statuses => {
                     const lslStarted = statuses.lsl_started || false;
                     const npgStarted = statuses.npg_started || false;
-    
-                    updateButtons(lslStarted, npgStarted);
+    console.log(npgStarted);
+        updateButtons(lslStarted, npgStarted);
     
                     Object.keys(statuses).forEach(app => {
                         const button = document.querySelector(`button[value="${app}"]`);
