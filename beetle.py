@@ -45,29 +45,27 @@ focus_speed_downward = 5
 focus_timeout = 2
 focus_threshold = None
 
-# Initialize Pygame
-pygame.init()
-screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption('Beetle Game')
-
 sprite_count = 10
-beetle_sprites = [pygame.image.load(f'media/beetle{i}.JPG') for i in range(1, sprite_count + 1)]
-beetle_sprites = [pygame.transform.scale(sprite, (140, 160)) for sprite in beetle_sprites]
+beetle_sprites = [pygame.image.load(f'media/Beetle{i}.png') for i in range(1, sprite_count + 1)]
+beetle_sprites = [pygame.transform.smoothscale(sprite, (140, 160)) for sprite in beetle_sprites]
 
 # Animation Variables
 current_sprite = 0
 animation_speed = 100
 sprite_timer = 0
 
-# Function to display a message on the screen
 def show_message(message, duration=3):
     start_time = time.time()
-    font = pygame.font.SysFont("Arial", 50)
+    font = pygame.font.SysFont("Arial", 36, bold=True)
     text = font.render(message, True, (0, 0, 0))
+
     text_rect = text.get_rect(center=(400, 300))
+    border_rect = pygame.Rect(text_rect.left - 20, text_rect.top - 20, text_rect.width + 40, text_rect.height + 40)
 
     while time.time() - start_time < duration:
         screen.fill((255, 255, 255))
+        pygame.draw.rect(screen, (0, 0, 0), border_rect, border_radius=15)
+        pygame.draw.rect(screen, (255, 255, 255), border_rect.inflate(-10, -10), border_radius=10)
         screen.blit(text, text_rect)
         pygame.display.update()
 
@@ -93,6 +91,10 @@ def calculate_focus_level(eeg_data, sampling_rate=500):
     power = (beta_power + gamma_power) / (delta_power + theta_power + alpha_power + beta_power + gamma_power)
     return power
 
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption('Beetle Game')
+
 # Calibration Phase
 show_message("Sit still and relax for 10 seconds", 3)
 
@@ -114,7 +116,7 @@ if len(calibration_data) >= buffer_size:
     mean_focus = np.mean(baseline_focus_levels)
     std_focus = np.std(baseline_focus_levels)
 
-    focus_threshold = mean_focus + 1.5 * std_focus  
+    focus_threshold = mean_focus + 0.5 * std_focus  
     print(f"Calibration Complete. Focus Threshold set at: {focus_threshold:.3f}")
 else:
     print("Calibration failed due to insufficient data.")
@@ -123,15 +125,22 @@ else:
 # Show Game Start Message
 show_message("Game Starting...", 1)
 game_start_time = time.time()
-game_duration = 45  # Game lasts 45 seconds
 
-# Update beetle position
 def update_beetle_position(focus_level, is_focus_stable):
     global beetle_y
+    top_limit = 10 + beetle_sprites[0].get_height() // 2      # Top boundary
+    bottom_limit = 580 - beetle_sprites[0].get_height() // 2  # Bottom boundary
+    
     if is_focus_stable:
-        beetle_y = max(10 + beetle_sprites[0].get_height() // 2, beetle_y - focus_speed_upward)     
+        if beetle_y > top_limit:  # Move up only if not at the top
+            beetle_y -= focus_speed_upward
+        else:
+            beetle_y = top_limit  # Stay at the top if already there
     else:
-        beetle_y = min(580 - beetle_sprites[0].get_height() // 2, beetle_y + focus_speed_downward)  
+        if beetle_y < bottom_limit:  # Move down if below the bottom limit
+            beetle_y += focus_speed_downward
+        else:
+            beetle_y = bottom_limit  # Stay at the bottom if already there
 
 print("STARTING GAME...")
 running = True
@@ -151,7 +160,6 @@ while running:
             buffer.append(filtered_sample)
 
         current_time = time.time()
-        elapsed_time = int(current_time - game_start_time)
 
         if current_time - last_time >= 1:
             last_time = current_time
@@ -181,25 +189,10 @@ while running:
             sprite_timer = 0
             current_sprite = (current_sprite + 1) % len(beetle_sprites)
 
-        # Check win condition
-        if beetle_y <= 80:
-            show_message("You Win!", 1)
-            running = False
-
-        # Check game over condition
-        if elapsed_time >= game_duration:
-            show_message("Game Over! Try Again.", 1)
-            running = False
-
         # Draw everything
         screen.fill("#FFFFFF")
-        pygame.draw.rect(screen, (0, 0, 0), (10, 10, 780, 580), 5)  
-        screen.blit(beetle_sprites[current_sprite], (beetle_x - 40, beetle_y - 40))
-
-        # Display Timer
-        font = pygame.font.SysFont("Arial", 30)
-        timer_text = font.render(f"Time: {game_duration - elapsed_time}s", True, (0, 0, 0))
-        screen.blit(timer_text, (650, 20))  
+        pygame.draw.rect(screen, (50, 50, 50), (10, 10, 780, 580), 5)      # Border Dark Gray
+        screen.blit(beetle_sprites[current_sprite], (beetle_x - 40, beetle_y - 40)) 
 
         pygame.display.update()
 
