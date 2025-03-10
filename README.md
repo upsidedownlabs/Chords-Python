@@ -89,37 +89,41 @@ pip install -r app_requirements.txt
 
 ### Available Applications  
 
+#### ECG with Heart Rate
+
+- `python heartbeat_ecg.py`:Enable a GUI with real-time ECG and heart rate.
+
+#### EMG with Envelope
+
+- `python emgenvelope.py`: Enable a GUI with real-time EMG & its Envelope.
+
+#### EOG with Blinks
+
+- `python eog.py`: Enable a GUI with real-time EOG that detects blinks and mark them with red dots.
+
+#### EEG with FFT
+
+- `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT and band powers.
+
+#### EEG Tug of War Game
+
+- `python game.py`: Enable a GUI to play tug of war game using EEG Signal.
+
+#### EEG Beetle Game
+
+- `python beetle.py`: Enable a GUI for Beetle Game using EEG signal.
+
 #### GUI  
 
 - `python gui.py`: Enable the real-time data plotting GUI.
 
-#### EEG TUG OF WAR GAME
-
-- `python game.py`: Enable a GUI to play tug of war game using EEG Signal.
-
-#### HEART RATE
-
-- `python heartbeat_ecg.py`:Enable a GUI with real-time ECG and heart rate.
-
-#### EMG ENVELOPE
-
-- `python emgenvelope.py`: Enable a GUI with real-time EMG & its Envelope.
-
-#### EOG
-
-- `python eog.py`: Enable a GUI with real-time EOG that detects blinks and mark them with red dots.
-
-#### EEG
-
-- `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT and band powers.
-
-#### Keystroke
+#### EOG Keystroke Emulator
 
 - `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
 
-#### EEG BEETLE GAME
+#### CSV Plotter
 
-- `python beetle.py`: Enable a GUI for Beetle Game using EEG signal.
+- `python csv_plotter.py`: On running, a pop-up window opens with option to load a file, select a channel to plot, and then plot the data.
 
 ## Running All Applications Together in a Web-Interface
 
