@@ -114,6 +114,26 @@
             }
         }
 
+        function checkStatus1() {
+            fetch("/app_status")
+                .then(response => response.json())
+                .then(data => {
+                    const lslButton = document.getElementById("start_lsl_button");
+                    if (data.lsl_started) {
+                        lslButton.classList.remove("lsl-not-running");
+                        lslButton.classList.add("lsl-running");
+                        lslButton.textContent = "LSL Stream Running";
+                        lslButton.disabled = true;
+                    } else {
+                        lslButton.classList.remove("lsl-running");
+                        lslButton.classList.add("lsl-not-running");
+                        lslButton.textContent = "Start LSL Stream";
+                        lslButton.disabled = false;
+                    }
+                })
+                .catch(error => console.error("Error fetching LSL status:", error));
+        }
+
         function checkStatus() {
         fetch("/app_status")
             .then(response => response.json())
@@ -132,9 +152,7 @@
                     npgButton.disabled = false;
                 }
             });
-    }
-
-    setInterval(checkStatus, 20);  
+    }  
     
         function updateAppStatus() {
             fetch('/app_status')
@@ -142,7 +160,7 @@
                 .then(statuses => {
                     const lslStarted = statuses.lsl_started || false;
                     const npgStarted = statuses.npg_started || false;
-    console.log(npgStarted);
+    console.log(lslStarted, npgStarted);
         updateButtons(lslStarted, npgStarted);
     
                     Object.keys(statuses).forEach(app => {
@@ -160,8 +178,11 @@
                 })
                 .catch(error => console.error("Error fetching app statuses:", error));
         }
-    
+
+        setInterval(checkStatus, 50);
+        setInterval(checkStatus1, 50);
         setInterval(updateAppStatus, 100);     // 100 ms checking
+
         document.addEventListener("DOMContentLoaded", updateAppStatus);
     </script>  
 </body>
