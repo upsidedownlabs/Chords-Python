@@ -66,7 +66,7 @@ To use the script, run it from the command line with various options:
   ```bash
   python chords.py --lsl -v --csv -t 60
   ```
--This command executes the Python script `chords.py`, initiates the LSL stream, enables verbose output, activates CSV logging, and sets a timer for 60 seconds:  
+- This command executes the Python script `chords.py`, initiates the LSL stream, enables verbose output, activates CSV logging, and sets a timer for 60 seconds:  
 
 ### Data Logging
 
