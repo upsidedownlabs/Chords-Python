@@ -33,22 +33,22 @@ def start_lsl():
 
     try:
         if sys.platform == "win32":
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW, text=True)
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW, text=True, bufsize=1)
         else:
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
 
         output = lsl_process.stderr.readline().strip()
         print(output)
 
         if "No" in output:
             lsl_running = False
-            return jsonify({"lsl_started": False, "lsl_status": "Failed to Start", "lsl_color": "red"})
+            return render_template("index.html", lsl_started= False, lsl_status= "Failed to Start", lsl_color= "red", apps_enabled=False)
         else:
             lsl_running = True
-            return jsonify({"lsl_started": True, "lsl_status": "Running", "lsl_color": "green"})
+            return render_template("index.html", lsl_started= True, lsl_status= "Running", lsl_color= "green", apps_enabled=True)
 
     except Exception as e:
-        return jsonify({"lsl_started": False, "lsl_status": f"Error: {e}", "lsl_color": "red"})
+        return render_template("index.html", lsl_started= False, lsl_status= f"Error: {e}", lsl_color= "red")
 
 def read_npg_output():
     global npg_process
@@ -73,8 +73,9 @@ def start_npg():
         # Start a separate thread to read npg.py output
         threading.Thread(target=read_npg_output, daemon=True).start()
 
-        npg_running = True
-        return render_template("index.html", npg_started=True, npg_status="Running", npg_color="green", apps_enabled=True)
+        if "NPG WebSocket connected!" in npg_process.stdout.readline().strip():
+            npg_running = True
+            return render_template("index.html", npg_started=True, npg_status="Running", npg_color="green", apps_enabled=True)
 
     except Exception as e:
         npg_running = False
