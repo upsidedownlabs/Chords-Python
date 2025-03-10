@@ -37,9 +37,14 @@ Chords Python script is designed to interface with an Arduino-based bio-potentia
    ```bash
    .\venv\Scripts\activate  
    ```
-3. Install the required Python libraries:
+3. Install the required Python libraries needed to run the python script:
     ```bash
     pip install -r chords_requirements.txt
+    ```
+
+4. Install the required Python libraries needed to run the applications:
+    ```bash
+    pip install -r app_requirements.txt
     ```
 
 ## Usage
@@ -56,6 +61,12 @@ To use the script, run it from the command line with various options:
 - `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
 - `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
 - `-t` : Enable the timer to run program for a set time in seconds.
+
+### Example:
+  ```bash
+  python chords.py --lsl -v --csv -t 60
+  ```
+-This command executes the Python script `chords.py`, initiates the LSL stream, enables verbose output, activates CSV logging, and sets a timer for 60 seconds:  
 
 ### Data Logging
 
@@ -82,7 +93,7 @@ pip install -r app_requirements.txt
 
 - `python gui.py`: Enable the real-time data plotting GUI.
 
-#### TUG OF WAR GAME
+#### EEG TUG OF WAR GAME
 
 - `python game.py`: Enable a GUI to play tug of war game using EEG Signal.
 
@@ -106,9 +117,13 @@ pip install -r app_requirements.txt
 
 - `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
 
-## Running All Applications Together
+#### EEG BEETLE GAME
 
-To run all applications together:
+- `python beetle.py`: Enable a GUI for Beetle Game using EEG signal.
+
+## Running All Applications Together in a Web-Interface
+
+To run all applications simultaneously, execute:
 
 ```bash
 python app.py
@@ -122,29 +137,32 @@ pip install -r app_requirements.txt
 
 This will launch a Web interface. Use the interface to control the applications:
 
-1. Click the `Start LSL Stream` button to initiate the LSL stream.
+1. Click the `Start LSL Stream` button to initiate the LSL stream or `Start NPG Stream` button to initiate the NPG stream.
 2. Then, click on any application button to run the desired module.
+Important: Keep the `python app.py` script running in the background while using any application.
 
 ### Available Applications
-- `ffteeg`: Real-time EEG analysis with FFT and brainwave power calculation.
-- `heartbeat_ecg`: Analyze ECG data and extract heartbeat metrics.
-- `eog`: Real-time EOG monitoring with blink detection.
-- `emgenvelope`: Real-time EMG monitor with filtering and RMS envelope.
-- `keystroke`: GUI for EOG-based blink detection triggering a keystroke.
-- `game`: Launch an EEG game for 2 players (Tug of War).
-- `csv_plotter`: Plot data from a CSV file.
-- `gui`: Launch the GUI for real time signal visualization.
+- `ECG with Heart Rate`: Analyze ECG data and extract heartbeat metrics.
+- `EMG with Envelope`: Real-time EMG monitor with filtering and RMS envelope.
+- `EOG with Blinks`: Real-time EOG monitoring with blink detection.
+- `EEG with FFT`: Real-time EEG analysis with FFT and brainwave power calculation.
+- `EEG Tug of War Game`: Launch an EEG game for 2 players (Tug of War).
+- `EEG Beetle Game`: Launch an EEG Beetle Game.
+- `GUI of Channels`: Launch the GUI for real time signal visualization.
+- `EOG Keystroke Emulator`: GUI for EOG-based blink detection triggering a keystroke.
+- `CSV Plotter`: Plot data from a CSV file.
 
 ## Troubleshooting
 
 - **Arduino Not Detected:** Ensure the Arduino is properly connected and powered. Check the serial port and baud rate settings.
 - **CSV File Not Created:** Ensure you have write permissions in the directory where the script is run.
-- **LSL Stream Issues:** Verify that the `pylsl` library is installed and configured correctly.
+- **LSL Stream Issues:** Ensure that the `pylsl` library is properly installed and configured. Additionally, confirm that Bluetooth is turned off.
 
 ## Contributors
 
 We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
 - [Payal Lakra](https://github.com/payallakra)
+- [Aman Maheshwari](https://github.com/Amanmahe)
 
 The audio file used in `game.py` is sourced from [Pixabay](https://pixabay.com/sound-effects/brass-fanfare-with-timpani-and-windchimes-reverberated-146260/)
