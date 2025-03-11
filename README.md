@@ -41,9 +41,9 @@ Chords Python script is designed to interface with an Arduino-based bio-potentia
 > [!IMPORTANT]
 > You may get an execution policy error if scripts are restricted. To fix it, run:
 
-  ```bash
-  Set-ExecutionPolicy Unrestricted -Scope Process
-  ```
+> ```bash
+> Set-ExecutionPolicy Unrestricted -Scope Process
+> ```
 
 3. Install the required Python libraries needed to run the python script:
     ```bash
