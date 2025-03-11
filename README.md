@@ -150,8 +150,8 @@ Important: Keep the `python app.py` script running in the background while using
 - `EMG with Envelope`: Real-time EMG monitor with filtering and RMS envelope.
 - `EOG with Blinks`: Real-time EOG monitoring with blink detection.
 - `EEG with FFT`: Real-time EEG analysis with FFT and brainwave power calculation.
-- `EEG Tug of War Game`: Launch an EEG game for 2 players (Tug of War).
-- `EEG Beetle Game`: Launch an EEG Beetle Game.
+- `EEG Tug of War`: A 2-player game where brain activity determines the winner in a battle of focus.  
+- `EEG Beetle Game`: Use your concentration to control a beetle's movement in this brain-powered challenge.
 - `GUI of Channels`: Launch the GUI for real time signal visualization.
 - `EOG Keystroke Emulator`: GUI for EOG-based blink detection triggering a keystroke.
 - `CSV Plotter`: Plot data from a CSV file.
