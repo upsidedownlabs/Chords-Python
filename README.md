@@ -174,7 +174,7 @@ Important: Keep the `python app.py` script running in the background while using
 
 We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
-- [Payal Lakra](https://github.com/payallakra)
 - [Aman Maheshwari](https://github.com/Amanmahe)
+- [Payal Lakra](https://github.com/payallakra)
 
 The audio file used in `game.py` is sourced from [Pixabay](https://pixabay.com/sound-effects/brass-fanfare-with-timpani-and-windchimes-reverberated-146260/)
