@@ -44,6 +44,7 @@ focus_speed_upward = 10
 focus_speed_downward = 5
 focus_timeout = 2
 focus_threshold = None
+calibration_duration = 10
 
 sprite_count = 10
 beetle_sprites = [pygame.image.load(f'media/Beetle{i}.png') for i in range(1, sprite_count + 1)]
@@ -95,32 +96,40 @@ pygame.init()
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Beetle Game')
 
-# Calibration Phase
-show_message("Sit still and relax for 10 seconds", 3)
+def calibrate():
+    global focus_threshold
+    calibration_data = []
+    
+    font = pygame.font.SysFont("Arial", 36, bold=True)
+    
+    start_time = time.time()
+    while time.time() - start_time < calibration_duration:
+        remaining_time = max(0, calibration_duration - int(time.time() - start_time))
+        screen.fill((255, 255, 255))
+        message = f"Sit still and relax for {remaining_time} seconds"   # Update the message dynamically
+        text = font.render(message, True, (0, 0, 0))
+        text_rect = text.get_rect(center=(400, 300))
+        screen.blit(text, text_rect)
+        pygame.display.update()
+        
+        sample, _ = inlet.pull_sample(timeout=0.1)
+        if sample:
+            filtered_sample = apply_filters(sample[0])
+            calibration_data.append(filtered_sample)
 
-print("Starting Calibration... Please relax and stay still for 10 seconds.")
-calibration_data = []
-calibration_duration = 10
-calibration_start_time = time.time()
+    if len(calibration_data) >= buffer_size:        # Ensure enough data was collected
+        eeg_data = np.array(calibration_data)
+        baseline_focus_levels = [calculate_focus_level(eeg_data[i:i + buffer_size]) for i in range(0, len(eeg_data), buffer_size)]
+        mean_focus = np.mean(baseline_focus_levels)
+        std_focus = np.std(baseline_focus_levels)
 
-while time.time() - calibration_start_time < calibration_duration:
-    sample, _ = inlet.pull_sample(timeout=0.1)
-    if sample:
-        filtered_sample = apply_filters(sample[0])
-        calibration_data.append(filtered_sample)
+        focus_threshold = mean_focus + 0.5 * std_focus  # Set focus threshold
+        print(f"Calibration Complete. Focus Threshold set at: {focus_threshold:.3f}")
+    else:
+        print("Calibration failed due to insufficient data. Retrying...")
+        calibrate()  # Retry calibration if not enough data
 
-if len(calibration_data) >= buffer_size:
-    eeg_data = np.array(calibration_data)
-    baseline_focus_levels = [calculate_focus_level(eeg_data[i:i + buffer_size]) for i in range(0, len(eeg_data), buffer_size)]
-
-    mean_focus = np.mean(baseline_focus_levels)
-    std_focus = np.std(baseline_focus_levels)
-
-    focus_threshold = mean_focus + 0.5 * std_focus  
-    print(f"Calibration Complete. Focus Threshold set at: {focus_threshold:.3f}")
-else:
-    print("Calibration failed due to insufficient data.")
-    exit()
+calibrate()
 
 # Show Game Start Message
 show_message("Game Starting...", 1)
