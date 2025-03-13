@@ -109,6 +109,11 @@ def calibrate():
         message = f"Sit still and relax for {remaining_time} seconds"   # Update the message dynamically
         text = font.render(message, True, (0, 0, 0))
         text_rect = text.get_rect(center=(400, 300))
+        border_padding = 20  # Space around text
+        border_rect = pygame.Rect(text_rect.left - border_padding, text_rect.top - border_padding, text_rect.width + 2 * border_padding, text_rect.height + 2 * border_padding)
+        pygame.draw.rect(screen, (0, 0, 0), border_rect, border_radius=20, width=3)
+
+        # Render text on screen
         screen.blit(text, text_rect)
         pygame.display.update()
         
