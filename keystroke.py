@@ -26,23 +26,35 @@ class EOGPeakDetector:
         self.stop_threads = False
 
     def initialize_stream(self):
-        print("Attempting to connect to LSL stream...")
-        streams = pylsl.resolve_stream('name', 'BioAmpDataStream')
-        if not streams:
-            print("No LSL stream found!")
+        print("Searching for available LSL streams...")
+        available_streams = pylsl.resolve_streams()
+        
+        if not available_streams:
+            print("No LSL streams found! Connection failed.")
             self.connected = False
             return False
 
-        self.inlet = pylsl.StreamInlet(streams[0])
-        self.sampling_rate = int(self.inlet.info().nominal_srate())
-        print(f"Sampling rate: {self.sampling_rate} Hz")
+        for stream in available_streams:
+            try:
+                self.inlet = pylsl.StreamInlet(stream)
+                print(f"Connected to LSL stream: {stream.name()}")
+                self.sampling_rate = int(self.inlet.info().nominal_srate())
+                print(f"Sampling rate: {self.sampling_rate} Hz")
 
-        self.buffer_size = self.sampling_rate * 1
-        self.eog_data = np.zeros(self.buffer_size)
-        self.b, self.a = butter(4, 10.0 / (0.5 * self.sampling_rate), btype='low')
-        self.connected = True
-        print("LSL stream connected successfully.")
-        return True
+                # Set buffer size and filter coefficients
+                self.buffer_size = self.sampling_rate * 1
+                self.eog_data = np.zeros(self.buffer_size)
+                self.b, self.a = butter(4, 10.0 / (0.5 * self.sampling_rate), btype='low')
+                self.connected = True
+                print("LSL stream connected successfully.")
+                return True  # Stop trying after first successful connection
+
+            except Exception as e:
+                print(f"Failed to connect to stream {stream.name()}: {e}")
+
+        print("Unable to connect to any available LSL stream.")
+        self.connected = False
+        return False
 
     def start_detection(self):
         print("Starting peak detection...")

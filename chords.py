@@ -65,6 +65,7 @@ supported_boards = {
     "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16},
     "MEGA-2560-CLONE": {"sampling_rate": 250, "Num_channels": 16},
     "GIGA-R1": {"sampling_rate": 500, "Num_channels": 6},
+    "NPG-LITE": {"sampling_rate": 500, "Num_channels": 3},
 }
 
 # Initialize gloabal variables for Incoming Data

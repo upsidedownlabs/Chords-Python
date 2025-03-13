@@ -1,5 +1,5 @@
 import sys
-from pylsl import StreamInlet, resolve_stream
+from pylsl import StreamInlet, resolve_streams, resolve_byprop
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
 import numpy as np
@@ -28,16 +28,30 @@ def update_plots():
 
 def plot_lsl_data():
     global inlet, num_channels, data
-    print("Looking for LSL Stream.")
-    streams = resolve_stream('name', 'BioAmpDataStream')  
 
-    if not streams:
-        print("No LSL Stream found.")
-        return
-    
-    inlet = StreamInlet(streams[0])
+    print("Searching for available LSL streams...")
+    streams = resolve_streams()
+    available_streams = [s.name() for s in streams]
 
-    # Get the number of channels from the stream
+    if not available_streams:
+        print("No LSL streams found!")
+        return None
+
+    for stream_name in available_streams:
+        print(f"Trying to connect to {stream_name}...")
+        resolved_streams = resolve_byprop('name', stream_name, timeout=2)
+
+        if resolved_streams:
+            print(f"Successfully connected to {stream_name}!")
+            inlet = StreamInlet(resolved_streams[0])
+            break
+        else:
+            print(f"Failed to connect to {stream_name}.")
+
+    if inlet is None:
+        print("Could not connect to any stream.")
+        return None
+
     info = inlet.info()
     num_channels = info.channel_count()
     print(f"Detected {num_channels} channels.")
@@ -94,4 +108,5 @@ def init_gui():
 
 if __name__ == "__main__":
     plot_lsl_data()
-    sys.exit(app.exec_())  # Start the Qt application
+    if inlet:
+        sys.exit(app.exec_())  # Start the Qt application only if a stream was connected
