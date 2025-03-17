@@ -245,7 +245,7 @@ def parse_data(ser, lsl_flag=False, csv_flag=False, verbose=False, run_time=None
         print("LSL stream started")  # Notify user
     
     if csv_flag:
-        csv_filename = f"chordspy-{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"  # Create timestamped filename
+        csv_filename = f"ChordsPy-{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"  # Create timestamped filename
         print(f"CSV recording started. Data will be saved to {csv_filename}")  # Notify user
 
     try:
