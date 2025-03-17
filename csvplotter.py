@@ -41,12 +41,24 @@ class CSVPlotterApp:
         self.plot_button.pack(pady=10)
 
     def load_csv(self):
-        # Open file dialog to select a CSV file
         self.filename = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if self.filename:
             try:
-                # Read file with pandas
-                self.data = pd.read_csv(self.filename)
+                with open(self.filename, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+
+                header_index = None        # Find the row where 'Counter' appears
+                for i, line in enumerate(lines):
+                    if "Counter" in line:
+                        header_index = i
+                        break
+
+                if header_index is None:
+                    messagebox.showerror("Error", "CSV file must contain a 'Counter' column.")
+                    return
+
+                # Now read CSV again, skipping metadata lines before the header
+                self.data = pd.read_csv(self.filename, skiprows=header_index, header=0)
 
                 # Ensure 'Counter' column is present
                 if 'Counter' not in self.data.columns:
