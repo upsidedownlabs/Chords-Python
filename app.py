@@ -51,11 +51,13 @@ def start_lsl():
         return render_template("index.html", lsl_started= False, lsl_status= f"Error: {e}", lsl_color= "red")
 
 def read_npg_output():
-    global npg_process
+    global npg_process, npg_running
 
     if npg_process:
         for line in iter(npg_process.stdout.readline, ''):
-            print(line.strip())  # Print npg.py output to the terminal
+            line = line.strip()
+            if "NPG WebSocket connected!" in line:
+                npg_running = True
 
 @app.route("/start_npg", methods=["POST"])
 def start_npg():
@@ -72,10 +74,7 @@ def start_npg():
 
         # Start a separate thread to read npg.py output
         threading.Thread(target=read_npg_output, daemon=True).start()
-
-        if "NPG WebSocket connected!" in npg_process.stdout.readline().strip():
-            npg_running = True
-            return render_template("index.html", npg_started=True, npg_status="Running", npg_color="green", apps_enabled=True)
+        return render_template("index.html", npg_started=True, npg_status="Starting...", npg_color="yellow", apps_enabled=False)
 
     except Exception as e:
         npg_running = False
