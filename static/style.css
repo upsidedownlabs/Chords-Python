@@ -61,7 +61,19 @@ body {
     border-radius: 10px;
     background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
     color: #fffffe;
-    transition: transform 0.3s ease, background-color 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.controls button.running {
+    background: rgb(105, 206, 105) !important;
+    cursor: not-allowed;
+    color: white;
+}
+
+.controls button:disabled:not(.running) {
+    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6) !important;
+    opacity: 1 !important;
+    cursor: not-allowed;
 }
 
 button:disabled {
@@ -140,7 +152,46 @@ button.not-running {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     text-align: center;
+    width: 300px;
     animation: fade-out 3s forwards;
+}
+
+.popup p {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.popup-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.popup-button {
+    padding: 10px 25px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    color: #fffffe;
+    transition: transform 0.3s ease;
+}
+
+.yes-button {
+    background: linear-gradient(to right, #3b82f6, #a855f7);
+}
+
+.no-button {
+    background: linear-gradient(to right, #ec4899, #a855f7);
+}
+
+.popup-button:hover {
+    transform: scale(1.05);
+}
+
+.popup-button:active {
+    transform: scale(0.98);
 }
 
 .bottom-text {

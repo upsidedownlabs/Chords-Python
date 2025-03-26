@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chords-Python Applications</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        button:disabled {
+            opacity: 1;
+            cursor: not-allowed;
+        }
+        .disabled-apps button {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -13,33 +23,45 @@
             <p class="bottom-text">Designed with <span class="heart">&#10084;</span> at Upside Down Labs</p>
         </div>
 
-         <!-- Pop-up message -->
-         {% if message %}
-         <div class="popup fade-out">
-             <p>{{ message }}</p>
-         </div>
-         {% endif %}
+        <!-- Pop-up message -->
+        {% if message %}
+        <div class="popup fade-out">
+            <p>{{ message }}</p>
+        </div>
+        {% endif %}
         
         <div class="controls-container">
-        <div class="controls">
-            {% if not lsl_started %}
-                <form action="/start_lsl" method="POST">
-                    <button type="submit" id="start_lsl_button" class="lsl-not-running">Start LSL Stream</button>
-                </form>
-            {% else %}
-                <button id="start_lsl_button" class="lsl-running" disabled>LSL Stream Running</button>
-            {% endif %}
-        </div>
-        <div class="controls">
-            {% if not npg_started %}
+            <div class="controls">
+                <button id="start_lsl_button" 
+                        class="{% if lsl_started %}running{% else %}not-running{% endif %}" 
+                        onclick="showCSVConfirmation()"
+                        {% if lsl_started or npg_started %}disabled{% endif %}>
+                    {% if lsl_started %}LSL Stream Running{% else %}Start LSL Stream{% endif %}
+                </button>
+            </div>
+            <div class="controls">
                 <form action="/start_npg" method="POST">
-                    <button type="submit" id="start_npg_button" class="npg-not-running">Start NPG Stream</button>
+                    <button type="submit" id="start_npg_button" 
+                            class="{% if npg_started %}running{% else %}not-running{% endif %}"
+                            {% if lsl_started or npg_started %}disabled{% endif %}>
+                        {% if npg_started %}NPG Stream Running{% else %}Start NPG Stream{% endif %}
+                    </button>
                 </form>
-            {% else %}
-                <button id="start_npg_button" class="npg-running" disabled>NPG Stream Running</button>
-            {% endif %}
+            </div>
         </div>
-    </div>             
+        
+        <!-- CSV Confirmation Popup (only for LSL) -->
+        <div id="csvConfirmationPopup" class="popup" style="display: none;">
+            <p>Do you want to save LSL data as CSV?</p>
+            <div class="popup-buttons">
+                <form id="csvForm" method="POST" action="/start_lsl">
+                    <input type="hidden" name="csv" id="csvInput" value="false">
+                    <button type="button" class="popup-button yes-button" onclick="setCSVChoice(true)">YES</button>
+                    <button type="button" class="popup-button no-button" onclick="setCSVChoice(false)">NO</button>
+                </form>
+            </div>
+        </div>            
+        
         <div class="app-buttons {% if not (lsl_started or npg_started) %}disabled-apps{% endif %}">
             <!-- Row 1: ECG, EMG, EOG, EEG -->
             <div class="row">
@@ -92,7 +114,7 @@
                     </button>
                     <button type="submit" name="app_name" value="csvplotter" 
                             class="{% if 'csvplotter' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not lsl_started or npg_started %}disabled{% endif %}>
+                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
                         CSV Plotter
                     </button>
                 </form>
@@ -100,90 +122,100 @@
         </div>
     </div>
     <script>
-        function updateButtons(lsl_started, npg_started) {
-            let buttons = document.querySelectorAll('.app-buttons button');
-            buttons.forEach(button => {
-                button.disabled = !(lsl_started || npg_started);
-            });
+        function showCSVConfirmation() {document.getElementById('csvConfirmationPopup').style.display = 'block';}
     
-            let appButtonsDiv = document.querySelector('.app-buttons');
-            if (lsl_started || npg_started) {
-                appButtonsDiv.classList.remove('disabled-apps');
-            } else {
-                appButtonsDiv.classList.add('disabled-apps');
-            }
+        function setCSVChoice(saveAsCSV) {
+            document.getElementById('csvInput').value = saveAsCSV ? 'true' : 'false'; 
+            document.getElementById('csvForm').submit();
+            document.getElementById('csvConfirmationPopup').style.display = 'none';
         }
 
-        function checkStatus1() {
+        function updateAllStatuses() {
             fetch("/app_status")
                 .then(response => response.json())
                 .then(data => {
+                    const lslRunning = data.lsl_started || false;
+                    const npgRunning = data.npg_started || false;
+                    
                     const lslButton = document.getElementById("start_lsl_button");
-                    if (data.lsl_started) {
-                        lslButton.classList.remove("lsl-not-running");
-                        lslButton.classList.add("lsl-running");
+                    const npgButton = document.getElementById("start_npg_button");
+                    
+                    if (lslRunning) {
+                        lslButton.classList.add("running");
+                        lslButton.classList.remove("not-running");
                         lslButton.textContent = "LSL Stream Running";
                         lslButton.disabled = true;
                     } else {
-                        lslButton.classList.remove("lsl-running");
-                        lslButton.classList.add("lsl-not-running");
+                        lslButton.classList.remove("running");
+                        lslButton.classList.add("not-running");
                         lslButton.textContent = "Start LSL Stream";
-                        lslButton.disabled = false;
+                        lslButton.disabled = npgRunning;
                     }
-                })
-                .catch(error => console.error("Error fetching LSL status:", error));
-        }
+                    
+                    if (npgRunning) {
+                        npgButton.classList.add("running");
+                        npgButton.classList.remove("not-running");
+                        npgButton.textContent = "NPG Stream Running";
+                        npgButton.disabled = true;
+                    } else {
+                        npgButton.classList.remove("running");
+                        npgButton.classList.add("not-running");
+                        npgButton.textContent = "Start NPG Stream";
+                        npgButton.disabled = lslRunning;
+                    }
 
-        function checkStatus() {
-        fetch("/app_status")
-            .then(response => response.json())
-            .then(data => {
-                const npgButton = document.getElementById("start_npg_button");
+                    const appButtons = document.querySelectorAll('.app-buttons button');
+                    const appsEnabled = lslRunning || npgRunning;
+                    
+                    appButtons.forEach(button => {button.disabled = !appsEnabled;});
+                    
+                    const appButtonsDiv = document.querySelector('.app-buttons');
+                    if (appsEnabled) {appButtonsDiv.classList.remove('disabled-apps');} 
+                    else {appButtonsDiv.classList.add('disabled-apps');}
 
-                if (data.npg_started) {
-                    npgButton.classList.remove("npg-not-running");
-                    npgButton.classList.add("npg-running");
-                    npgButton.textContent = "NPG Stream Running";
-                    npgButton.disabled = true;
-                } else {
-                    npgButton.classList.remove("npg-running");
-                    npgButton.classList.add("npg-not-running");
-                    npgButton.textContent = "Start NPG Stream";
-                    npgButton.disabled = false;
-                }
-            });
-    }  
-    
-        function updateAppStatus() {
-            fetch('/app_status')
-                .then(response => response.json())
-                .then(statuses => {
-                    const lslStarted = statuses.lsl_started || false;
-                    const npgStarted = statuses.npg_started || false;
-    console.log(lslStarted, npgStarted);
-        updateButtons(lslStarted, npgStarted);
-    
-                    Object.keys(statuses).forEach(app => {
-                        const button = document.querySelector(`button[value="${app}"]`);
-                        if (button) {
-                            if (statuses[app]) {
-                                button.classList.add("running");
-                                button.classList.remove("not-running");
-                            } else {
-                                button.classList.add("not-running");
-                                button.classList.remove("running");
+                    Object.keys(data).forEach(app => {
+                        if (app !== 'lsl_started' && app !== 'npg_started') {
+                            const button = document.querySelector(`button[value="${app}"]`);
+                            if (button) {
+                                if (data[app]) {
+                                    button.classList.add("running");
+                                    button.classList.remove("not-running");
+                                } else {
+                                    button.classList.add("not-running");
+                                    button.classList.remove("running");
+                                }
                             }
                         }
                     });
                 })
-                .catch(error => console.error("Error fetching app statuses:", error));
+                .catch(error => console.error("Error:", error));
         }
+        function checkAppStatus() {
+            fetch("/check_app_status")
+                .then(response => response.json())
+                .then(data => {
+                    const runningApps = data.running_apps || [];
+                    
+                    // Update all app buttons
+                    document.querySelectorAll('.app-buttons button').forEach(button => {
+                        const appName = button.value;
+                        if (runningApps.includes(appName)) {
+                            button.classList.add("running");
+                            button.classList.remove("not-running");
+                        } else {
+                            button.classList.remove("running");
+                            button.classList.add("not-running");
+                        }
+                    });
+                });
+        }
+        
+        document.addEventListener("DOMContentLoaded", () => {
+        setInterval(checkAppStatus, 200);
+        });
 
-        setInterval(checkStatus, 50);
-        setInterval(checkStatus1, 50);
-        setInterval(updateAppStatus, 100);     // 100 ms checking
-
-        document.addEventListener("DOMContentLoaded", updateAppStatus);
+        setInterval(updateAllStatuses, 100);
+        document.addEventListener("DOMContentLoaded", updateAllStatuses);
     </script>  
 </body>
 </html>

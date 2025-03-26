@@ -1,11 +1,10 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import subprocess
 import psutil
-import os
 import signal
 import sys
 import atexit
-import threading
+import time
 
 app = Flask(__name__)
 lsl_process = None
@@ -13,6 +12,7 @@ lsl_running = False
 npg_running = False
 npg_process = None
 app_processes = {}
+current_message = None
 
 def is_process_running(name):
     for proc in psutil.process_iter(['pid', 'name']):
@@ -22,107 +22,126 @@ def is_process_running(name):
 
 @app.route("/")
 def home():
-    return render_template("index.html", lsl_started=False, lsl_status="Stopped", lsl_color="red")
+    return render_template("index.html", lsl_started=lsl_running, npg_started=npg_running, running_apps=[k for k,v in app_processes.items() if v.poll() is None], message=current_message)
 
 @app.route("/start_lsl", methods=["POST"])
 def start_lsl():
-    global lsl_process, lsl_running
+    global lsl_process, lsl_running, current_message
+    save_csv = request.form.get('csv', 'false').lower() == 'true'
+
+    if npg_running:
+        current_message = "Please stop NPG stream first"
+        return redirect(url_for('home'))
 
     if lsl_running:
-        return jsonify({"status": "LSL stream already running", "lsl_started": True})
+        current_message = "LSL stream already running"
+        return redirect(url_for('home'))
 
     try:
-        if sys.platform == "win32":
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW, text=True, bufsize=1)
-        else:
-            lsl_process = subprocess.Popen(["python", "chords.py", "--lsl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+        command = ["python", "chords.py", "--lsl"]
+        if save_csv:
+            command.append("--csv")
 
+        creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        lsl_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=creation_flags, text=True, bufsize=1)
+
+        time.sleep(2)
         output = lsl_process.stderr.readline().strip()
-        print(output)
-
         if "No" in output:
+            current_message = "Failed to start LSL stream"
             lsl_running = False
-            return render_template("index.html", lsl_started= False, lsl_status= "Failed to Start", lsl_color= "red", apps_enabled=False)
         else:
+            current_message = "LSL stream started successfully"
             lsl_running = True
-            return render_template("index.html", lsl_started= True, lsl_status= "Running", lsl_color= "green", apps_enabled=True)
 
     except Exception as e:
-        return render_template("index.html", lsl_started= False, lsl_status= f"Error: {e}", lsl_color= "red")
+        current_message = f"Error starting LSL: {str(e)}"
+        lsl_running = False
 
-def read_npg_output():
-    global npg_process, npg_running
-
-    if npg_process:
-        for line in iter(npg_process.stdout.readline, ''):
-            line = line.strip()
-            if "NPG WebSocket connected!" in line:
-                npg_running = True
+    return redirect(url_for('home'))
 
 @app.route("/start_npg", methods=["POST"])
 def start_npg():
-    global npg_process, npg_running
+    global npg_process, npg_running, current_message
+
+    if lsl_running:
+        current_message = "Please stop LSL stream first"
+        return redirect(url_for('home'))
 
     if npg_running:
-        return jsonify({"status": "NPG already running", "npg_started": True})
+        current_message = "NPG already running"
+        return redirect(url_for('home'))
 
     try:
-        if sys.platform == "win32":
-            npg_process = subprocess.Popen(["python", "npg.py"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW, text=True, bufsize=1)
-        else:
-            npg_process = subprocess.Popen(["python3", "npg.py"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        npg_process = subprocess.Popen(["python", "npg.py"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1)
 
-        # Start a separate thread to read npg.py output
-        threading.Thread(target=read_npg_output, daemon=True).start()
-        return render_template("index.html", npg_started=True, npg_status="Starting...", npg_color="yellow", apps_enabled=False)
+        time.sleep(2)
+        for line in iter(npg_process.stdout.readline, ''):
+            if "NPG WebSocket connected!" in line.strip():
+                current_message = "NPG stream started successfully"
+                npg_running = True
+                break
+        else:
+            current_message = "Failed to connect NPG stream"
+            npg_running = False
 
     except Exception as e:
+        current_message = f"Error starting NPG: {str(e)}"
         npg_running = False
-        return render_template("index.html", npg_started=False, npg_status=f"Error: {e}", npg_color="red", apps_enabled=False)
+
+    return redirect(url_for('home'))
 
 @app.route("/run_app", methods=["POST"])
 def run_app():
-    global lsl_running, npg_running
+    global current_message
     app_name = request.form.get("app_name")
+    valid_apps = ["heartbeat_ecg", "emgenvelope", "eog", "ffteeg", "game", "beetle", "gui", "keystroke", "csvplotter"]
 
     if not (lsl_running or npg_running):
-        return render_template("index.html", message="Start LSL or NPG first!", running_apps=app_processes.keys())
+        current_message = "Start LSL or NPG first!"
+        return redirect(url_for('home'))
+
+    if app_name not in valid_apps:
+        current_message = "Invalid application"
+        return redirect(url_for('home'))
 
     if app_name in app_processes and app_processes[app_name].poll() is None:
-        return render_template("index.html", message=f"{app_name} is already running", running_apps=app_processes.keys())
+        current_message = f"{app_name} is already running"
+        return redirect(url_for('home'))
 
     try:
-        # Start the app subprocess
-        if sys.platform == "win32":
-            process = subprocess.Popen(["python", f"{app_name}.py"], creationflags=subprocess.CREATE_NO_WINDOW)
-        else:
-            process = subprocess.Popen(["python", f"{app_name}.py"])
-
+        creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        process = subprocess.Popen(["python", f"{app_name}.py"], creationflags=creation_flags)
+        
         app_processes[app_name] = process
-        return render_template("index.html", running_apps=app_processes.keys(), message=None)
+        current_message = f"{app_name} started successfully"
     except Exception as e:
-        return render_template("index.html", message=f"Error starting {app_name}: {e}", running_apps=app_processes.keys())
+        current_message = f"Error starting {app_name}: {str(e)}"
 
-@app.route("/app_status", methods=["GET"])
-def app_status():
-    # Check the status of all apps
-    try:
-        statuses = {
-            "lsl_started": lsl_running,
-            "npg_started": npg_running
-        }
-        statuses.update({app_name: (process.poll() is None) for app_name, process in app_processes.items()})
-        return jsonify(statuses)
-    except Exception as e:
-       return jsonify({"error": str(e)}), 500
- 
-@app.route("/stop_lsl", methods=['POST'])
-def stop_lsl():
+    return redirect(url_for('home'))
+
+@app.route("/stop_all", methods=['POST'])
+def stop_all():
+    global current_message
     stop_all_processes()
-    return jsonify({'status': 'LSL Stream and applications stopped and server is shutting down.'})
+    current_message = "All processes stopped"
+    return redirect(url_for('home'))
+
+def cleanup_processes():
+    global app_processes
+    app_processes = {
+        k: v for k, v in app_processes.items()
+        if v.poll() is None  # Only keep running processes
+    }
+
+@app.route("/check_app_status", methods=["GET"])
+def check_app_status():
+    cleanup_processes()  # Remove finished processes
+    return jsonify({"running_apps": list(app_processes.keys())})
 
 def stop_all_processes():
-    global lsl_process, npg_process, app_processes, lsl_running, npg_running
+    global lsl_process, npg_process, app_processes, lsl_running, npg_running, current_message
 
     # Terminate LSL process
     if lsl_process and lsl_process.poll() is None:
