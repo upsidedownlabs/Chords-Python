@@ -16,7 +16,7 @@ NEW_PACKET_LEN = SINGLE_SAMPLE_LEN * BLOCK_COUNT  # Total packet length (70 byte
 
 # Set up an LSL stream with int16 data format (irregular rate)
 stream_name = "NPG"
-info = StreamInfo(stream_name, "EXG", 3, 500, "int16", "uid007")
+info = StreamInfo(stream_name, "EXG", 3, 0, "int16", "uid007")
 outlet = StreamOutlet(info)
 
 # Global variables for unrolled counter, sample counting, and timing
@@ -116,5 +116,5 @@ async def run():
         while True:
             await asyncio.sleep(1)
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     asyncio.run(run())
