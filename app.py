@@ -5,6 +5,7 @@ import signal
 import sys
 import atexit
 import time
+import os
 
 app = Flask(__name__)
 lsl_process = None
@@ -73,22 +74,42 @@ def start_npg():
         return redirect(url_for('home'))
 
     try:
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "direct.py")
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        npg_process = subprocess.Popen(["python", "npg.py"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1)
+        
+        npg_process = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1, cwd=os.path.dirname(os.path.abspath(__file__)))
 
-        time.sleep(2)
-        for line in iter(npg_process.stdout.readline, ''):
-            if "NPG WebSocket connected!" in line.strip():
+        start_time = time.time()
+        connected = False
+        while time.time() - start_time < 10:  # 10 second timeout
+            line = npg_process.stdout.readline()
+            if not line:
+                break
+            if "Connected to NPG-30:30:f9:f9:db:76" in line.strip():
                 current_message = "NPG stream started successfully"
                 npg_running = True
+                connected = True
                 break
-        else:
-            current_message = "Failed to connect NPG stream"
+        
+        if not connected:
+            current_message = "Failed to connect NPG stream (timeout)"
+            npg_process.terminate()
             npg_running = False
-
+            return redirect(url_for('home'))
+        
+        def consume_output():
+            while npg_process.poll() is None:  # While process is running
+                npg_process.stdout.readline()  # Keep reading to prevent buffer fill
+        
+        import threading
+        output_thread = threading.Thread(target=consume_output, daemon=True)
+        output_thread.start()
+        
     except Exception as e:
         current_message = f"Error starting NPG: {str(e)}"
         npg_running = False
+        if 'npg_process' in globals() and npg_process.poll() is None:
+            npg_process.terminate()
 
     return redirect(url_for('home'))
 
