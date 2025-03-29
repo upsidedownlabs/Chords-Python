@@ -6,13 +6,87 @@
     <title>Chords-Python Applications</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        button:disabled {
-            opacity: 1;
+        /* NPG Device Popup Styles */
+        #npgDevicePopup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            width: 400px;
+            max-width: 90%;
+            display: none;
+        }
+        #npgDevicePopup h3 {
+            margin-top: 0;
+            color: #a855f7;
+            text-align: center;
+        }
+        #npgDeviceList {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .npg-device-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .npg-device-item:hover {
+            background: #e9ecef;
+        }
+        .npg-device-item.selected {
+            background: #a855f7;
+            color: white;
+        }
+        #npgPopupStatus {
+            margin: 10px 0;
+            min-height: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .scanning-status {
+            color: #3b82f6;
+        }
+        .connected-status {
+            color: #10b981;
+        }
+        .error-status {
+            color: #ef4444;
+        }
+        .npg-popup-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .npg-popup-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .npg-connect-btn {
+            background: #10b981;
+            color: white;
+        }
+        .npg-connect-btn:disabled {
+            background: #a7f3d0;
             cursor: not-allowed;
         }
-        .disabled-apps button {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .npg-cancel-btn {
+            background: #f1f1f1;
         }
     </style>
 </head>
@@ -40,13 +114,12 @@
                 </button>
             </div>
             <div class="controls">
-                <form action="/start_npg" method="POST">
-                    <button type="submit" id="start_npg_button" 
-                            class="{% if npg_started %}running{% else %}not-running{% endif %}"
-                            {% if lsl_started or npg_started %}disabled{% endif %}>
-                        {% if npg_started %}NPG Stream Running{% else %}Start NPG Stream{% endif %}
-                    </button>
-                </form>
+                <button id="start_npg_button" 
+                        class="{% if npg_started %}running{% else %}not-running{% endif %}"
+                        onclick="showNPGPopup()"
+                        {% if lsl_started or npg_started %}disabled{% endif %}>
+                    {% if npg_started %}NPG Stream Running{% else %}Start NPG Stream{% endif %}
+                </button>
             </div>
         </div>
         
@@ -121,8 +194,174 @@
             </div>
         </div>
     </div>
+
+    <!-- NPG Device Selection Popup -->
+    <div id="npgDevicePopup">
+        <h3>Select NPG Device</h3>
+        <div id="npgPopupStatus">Ready to scan devices</div>
+        <div id="npgDeviceList">
+            <p>Click "Scan Devices" to begin</p>
+        </div>
+        <div class="npg-popup-buttons">
+            <button class="npg-popup-btn" id="scanDevicesBtn" onclick="scanNPGDevices()">Scan Devices</button>
+            <button class="npg-popup-btn npg-connect-btn" id="npgConnectBtn" disabled onclick="connectToDevice()">Connect</button>
+            <button class="npg-popup-btn npg-cancel-btn" onclick="hideNPGPopup()">Cancel</button>
+        </div>
+    </div>
+
     <script>
-        function showCSVConfirmation() {document.getElementById('csvConfirmationPopup').style.display = 'block';}
+        let selectedDevice = null;
+        let connectionCheckInterval = null;
+
+        function showNPGPopup() {
+            document.getElementById('npgDevicePopup').style.display = 'block';
+            // Hide any other persistent popup
+            document.getElementById('csvConfirmationPopup').style.display = 'none';
+            // Reset scan state
+            document.getElementById('npgPopupStatus').textContent = 'Ready to scan devices';
+            document.getElementById('npgDeviceList').innerHTML = '<p>Click "Scan Devices" to begin</p>';
+            document.getElementById('npgConnectBtn').disabled = true;
+            selectedDevice = null;
+        }
+
+        // Hide NPG Device Popup
+        function hideNPGPopup() {
+            document.getElementById('npgDevicePopup').style.display = 'none';
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = null;
+            }
+        }
+
+        // For temporary popups (GUI notifications, etc)
+        function showTemporaryPopup(message) {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.innerHTML = `<p>${message}</p>`;
+            document.body.appendChild(popup);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                popup.remove();
+            }, 3000);
+        }
+
+        async function scanNPGDevices() {
+            const statusDiv = document.getElementById('npgPopupStatus');
+            const deviceList = document.getElementById('npgDeviceList');
+            const scanBtn = document.getElementById('scanDevicesBtn');
+            
+            scanBtn.disabled = true;
+            statusDiv.textContent = 'Scanning for devices...';
+            statusDiv.className = 'scanning-status';
+            deviceList.innerHTML = '<p>Searching for NPG devices...</p>';
+            
+            try {
+                const response = await fetch('/scan_devices', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.devices.length > 0) {
+                    deviceList.innerHTML = '';
+                    
+                    data.devices.forEach(device => {
+                        const div = document.createElement('div');
+                        div.className = 'npg-device-item';
+                        div.textContent = `${device.name || 'Unknown'} (${device.address})`;
+                        div.dataset.address = device.address;
+                        
+                        div.addEventListener('click', () => {
+                            document.querySelectorAll('.npg-device-item').forEach(item => {
+                                item.classList.remove('selected');
+                            });
+                            div.classList.add('selected');
+                            selectedDevice = device.address;
+                            document.getElementById('npgConnectBtn').disabled = false;
+                        });
+                        
+                        deviceList.appendChild(div);
+                    });
+                    
+                    statusDiv.textContent = `Found ${data.devices.length} device(s) - select one to connect`;
+                    statusDiv.className = '';
+                } else {
+                    deviceList.innerHTML = '<p>No NPG devices found</p>';
+                    statusDiv.textContent = data.message || 'No devices found';
+                    statusDiv.className = 'error-status';
+                }
+            } catch (error) {
+                console.error('Scan error:', error);
+                deviceList.innerHTML = '<p>Scan failed</p>';
+                statusDiv.textContent = 'Scan failed - please try again';
+                statusDiv.className = 'error-status';
+            } finally {
+                scanBtn.disabled = false;
+            }
+        }
+
+        async function connectToDevice() {
+            if (!selectedDevice) return;
+            
+            const statusDiv = document.getElementById('npgPopupStatus');
+            const connectBtn = document.getElementById('npgConnectBtn');
+            const scanBtn = document.getElementById('scanDevicesBtn');
+            
+            connectBtn.disabled = true;
+            scanBtn.disabled = true;
+            statusDiv.textContent = `Connecting to device...`;
+            statusDiv.className = 'scanning-status';
+            
+            try {
+                const response = await fetch('/connect_device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `device_address=${encodeURIComponent(selectedDevice)}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'pending') {
+                    connectionCheckInterval = setInterval(async () => {
+                        const statusResponse = await fetch('/check_connection');
+                        const statusData = await statusResponse.json();
+                        
+                        if (statusData.connected) {
+                            clearInterval(connectionCheckInterval);
+                            statusDiv.textContent = `Successfully connected to ${selectedDevice}`;
+                            statusDiv.className = 'connected-status';
+                            
+                            // Update main NPG button
+                            const npgButton = document.getElementById('start_npg_button');
+                            npgButton.classList.add('running');
+                            npgButton.textContent = 'NPG Stream Running';
+                            npgButton.disabled = true;
+                            
+                            // Close popup after delay
+                            setTimeout(hideNPGPopup, 1500);
+                            // Refresh to enable apps
+                            setTimeout(() => location.reload(), 2000);
+                        } else if (statusData.message) {
+                            statusDiv.textContent = statusData.message;
+                            statusDiv.className = 'error-status';
+                            connectBtn.disabled = false;
+                            scanBtn.disabled = false;
+                        }
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                statusDiv.textContent = 'Connection failed - please try again';
+                statusDiv.className = 'error-status';
+                connectBtn.disabled = false;
+                scanBtn.disabled = false;
+            }
+        }
+
+        function showCSVConfirmation() {
+            document.getElementById('csvConfirmationPopup').style.display = 'block';
+            document.getElementById('npgDevicePopup').style.display = 'none';
+        }
     
         function setCSVChoice(saveAsCSV) {
             document.getElementById('csvInput').value = saveAsCSV ? 'true' : 'false'; 
@@ -190,6 +429,7 @@
                 })
                 .catch(error => console.error("Error:", error));
         }
+
         function checkAppStatus() {
             fetch("/check_app_status")
                 .then(response => response.json())
@@ -211,11 +451,10 @@
         }
         
         document.addEventListener("DOMContentLoaded", () => {
-        setInterval(checkAppStatus, 200);
+            setInterval(checkAppStatus, 200);
+            setInterval(updateAllStatuses, 100);
+            updateAllStatuses();
         });
-
-        setInterval(updateAllStatuses, 100);
-        document.addEventListener("DOMContentLoaded", updateAllStatuses);
-    </script>  
+    </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 import subprocess
 import psutil
 import signal
@@ -6,14 +6,20 @@ import sys
 import atexit
 import time
 import os
+import json
+from threading import Thread
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key_here'
+
 lsl_process = None
 lsl_running = False
 npg_running = False
 npg_process = None
 app_processes = {}
 current_message = None
+discovered_devices = []
+npg_connection_thread = None
 
 def is_process_running(name):
     for proc in psutil.process_iter(['pid', 'name']):
@@ -23,7 +29,93 @@ def is_process_running(name):
 
 @app.route("/")
 def home():
-    return render_template("index.html", lsl_started=lsl_running, npg_started=npg_running, running_apps=[k for k,v in app_processes.items() if v.poll() is None], message=current_message)
+    return render_template("index.html", lsl_started=lsl_running, npg_started=npg_running, running_apps=[k for k,v in app_processes.items() if v.poll() is None], message=current_message, devices=session.get('devices', []), selected_device=session.get('selected_device'))
+
+@app.route("/scan_devices", methods=["POST"])
+def scan_devices():
+    global discovered_devices
+    
+    try:
+        # Run the scanning in a separate process
+        scan_process = subprocess.Popen([sys.executable, "npg-ble.py", "--scan"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Wait for scan to complete (with timeout)
+        try:
+            stdout, stderr = scan_process.communicate(timeout=10)
+            if scan_process.returncode != 0:
+                raise Exception(f"Scan failed: {stderr}")
+            
+            # Parse the output to get devices
+            devices = []
+            for line in stdout.split('\n'):
+                if line.startswith("DEVICE:"):
+                    parts = line[len("DEVICE:"):].strip().split('|')
+                    if len(parts) >= 2:
+                        devices.append({
+                            "name": parts[0],
+                            "address": parts[1]
+                        })
+            
+            session['devices'] = devices
+            discovered_devices = devices
+            return jsonify({"status": "success", "devices": devices})
+            
+        except subprocess.TimeoutExpired:
+            scan_process.kill()
+            return jsonify({"status": "error", "message": "Device scan timed out"})
+            
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/connect_device", methods=["POST"])
+def connect_device():
+    global npg_process, npg_running, npg_connection_thread
+    
+    device_address = request.form.get("device_address")
+    if not device_address:
+        return jsonify({"status": "error", "message": "No device selected"})
+    
+    session['selected_device'] = device_address
+    
+    def connect_and_monitor():
+        global npg_process, npg_running, current_message
+        
+        try:
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "npg-ble.py")
+            npg_process = subprocess.Popen([sys.executable, script_path, "--connect", device_address], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            
+            # Monitor the output for connection status
+            connected = False
+            start_time = time.time()
+            while time.time() - start_time < 10:  # 10 second timeout
+                line = npg_process.stdout.readline()
+                if not line:
+                    break
+                if "Connected to" in line:
+                    connected = True
+                    npg_running = True
+                    current_message = f"Connected to {device_address}"
+                    break
+            
+            if not connected:
+                current_message = f"Failed to connect to {device_address}"
+                if npg_process.poll() is None:
+                    npg_process.terminate()
+                npg_running = False
+        
+        except Exception as e:
+            current_message = f"Connection error: {str(e)}"
+            npg_running = False
+    
+    # Start the connection in a separate thread
+    npg_connection_thread = Thread(target=connect_and_monitor)
+    npg_connection_thread.start()
+    
+    return jsonify({"status": "pending"})
+
+@app.route("/check_connection", methods=["GET"])
+def check_connection():
+    return jsonify({"connected": npg_running, "message": current_message})
 
 @app.route("/start_lsl", methods=["POST"])
 def start_lsl():
