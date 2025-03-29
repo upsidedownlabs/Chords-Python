@@ -74,7 +74,7 @@ def start_npg():
         return redirect(url_for('home'))
 
     try:
-        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "direct.py")
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "one.py")
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         
         npg_process = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1, cwd=os.path.dirname(os.path.abspath(__file__)))
