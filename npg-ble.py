@@ -4,6 +4,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 import sys
 import argparse
+import os
 
 # BLE parameters (must match your firmware)
 DEVICE_NAME_PREFIX = "NPG"
@@ -22,6 +23,10 @@ samples_received = 0
 start_time = None
 total_missing_samples = 0
 outlet = None
+last_received_time = None
+DATA_TIMEOUT = 2.0
+monitor_task = None
+client = None
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -43,7 +48,8 @@ async def scan_devices():
         print(f"DEVICE:{dev.name}|{dev.address}")
 
 def process_sample(sample_data: bytearray):
-    global prev_unrolled_counter, samples_received, start_time, total_missing_samples, outlet
+    global prev_unrolled_counter, samples_received, start_time, total_missing_samples, outlet, last_received_time
+    last_received_time = time.time()
     
     if len(sample_data) != SINGLE_SAMPLE_LEN:
         print("Unexpected sample length:", len(sample_data))
@@ -73,9 +79,9 @@ def process_sample(sample_data: bytearray):
     
     # Process channels
     channels = [
-        int.from_bytes(sample_data[1:3]),  # Channel 0
-        int.from_bytes(sample_data[3:5]),  # Channel 1
-        int.from_bytes(sample_data[5:7])]
+        int.from_bytes(sample_data[1:3], byteorder='little'),  # Channel 0
+        int.from_bytes(sample_data[3:5], byteorder='little'),  # Channel 1
+        int.from_bytes(sample_data[5:7], byteorder='little')]  # Channel 2
     
     # Push to LSL
     if outlet:
@@ -91,19 +97,30 @@ def process_sample(sample_data: bytearray):
 def notification_handler(sender, data: bytearray):
     try:
         if len(data) == NEW_PACKET_LEN:
-            # Process batched samples
             for i in range(0, NEW_PACKET_LEN, SINGLE_SAMPLE_LEN):
                 process_sample(data[i:i+SINGLE_SAMPLE_LEN])
         elif len(data) == SINGLE_SAMPLE_LEN:
-            # Process single sample
             process_sample(data)
         else:
             print(f"Unexpected packet length: {len(data)} bytes")
     except Exception as e:
         print(f"Error processing data: {e}")
 
+async def monitor_connection():
+    global last_received_time, client
+    
+    while True:
+        if last_received_time and (time.time() - last_received_time) > DATA_TIMEOUT:
+            print("\nData Interrupted")
+            os._exit(1)
+        if client and not client.is_connected:
+            print("\nData Interrupted (Bluetooth disconnected)")
+            os._exit(1)
+            
+        await asyncio.sleep(0.5)
+
 async def connect_to_device(device_address):
-    global outlet
+    global outlet, last_received_time, monitor_task, client
     
     print(f"Attempting to connect to {device_address}...", file=sys.stderr)
     
@@ -111,9 +128,8 @@ async def connect_to_device(device_address):
     info = StreamInfo("NPG", "EXG", 3, 500, "int16", "npg1234")
     outlet = StreamOutlet(info)
     
-    client = None
+    client = BleakClient(device_address)
     try:
-        client = BleakClient(device_address)
         await client.connect()
         
         if not client.is_connected:
@@ -121,6 +137,9 @@ async def connect_to_device(device_address):
             return False
         
         print(f"Connected to {device_address}")
+        
+        last_received_time = time.time()
+        monitor_task = asyncio.create_task(monitor_connection())
         
         # Send start command
         await client.write_gatt_char(CONTROL_CHAR_UUID, b"START", response=True)
@@ -140,16 +159,25 @@ async def connect_to_device(device_address):
         print(f"Connection error: {str(e)}", file=sys.stderr)
         return False
     finally:
+        if monitor_task:
+            monitor_task.cancel()
         if client and client.is_connected:
             await client.disconnect()
 
 if __name__ == "__main__":
     args = parse_args()
     
-    if args.scan:
-        asyncio.run(scan_devices())
-    elif args.connect:
-        asyncio.run(connect_to_device(args.connect))
-    else:
-        print("Please specify --scan or --connect", file=sys.stderr)
+    try:
+        if args.scan:
+            asyncio.run(scan_devices())
+        elif args.connect:
+            asyncio.run(connect_to_device(args.connect))
+        else:
+            print("Please specify --scan or --connect", file=sys.stderr)
+            sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nScript terminated by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\nError: {str(e)}", file=sys.stderr)
         sys.exit(1)
