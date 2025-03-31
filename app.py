@@ -8,6 +8,7 @@ import time
 import os
 import json
 from threading import Thread
+from flask import Response, stream_with_context
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -117,6 +118,69 @@ def connect_device():
 def check_connection():
     return jsonify({"connected": npg_running, "message": current_message})
 
+def monitor_process_output(process, process_type):
+    global lsl_running, npg_running, current_message, app_processes
+    
+    while True:
+        if process.poll() is not None:  # Process has terminated
+            if process_type == "lsl":
+                lsl_running = False
+                current_message = "LSL stream terminated"
+            elif process_type == "npg":
+                npg_running = False
+                current_message = "NPG stream terminated"
+            break
+            
+        line = process.stdout.readline()
+        if not line:
+            time.sleep(0.1)
+            continue
+            
+        print(f"{process_type} output:", line.strip())  # Debug logging
+            
+        if process_type == "lsl" and ("Error while closing serial connection" in line or "disconnected" in line.lower()):
+            lsl_running = False
+            current_message = "LSL stream error - connection closed"
+            stop_dependent_apps("lsl")
+            if process.poll() is None:
+                process.terminate()
+            break
+            
+        elif process_type == "npg" and ("Data Interrupted" in line or "Data Interrupted (Bluetooth disconnected)" in line):
+            npg_running = False
+            current_message = "NPG stream error - data interrupted"
+            stop_dependent_apps("npg")
+            if process.poll() is None:
+                process.terminate()
+            break
+
+def stop_dependent_apps(stream_type):
+    global app_processes, current_message, lsl_running, npg_running
+    
+    apps_to_stop = []
+    for app_name, process in list(app_processes.items()):
+        if process.poll() is None:  # If process is running
+            apps_to_stop.append(app_name)
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                process.kill()
+            del app_processes[app_name]
+    
+    if stream_type == "lsl":
+        lsl_running = False
+    elif stream_type == "npg":
+        npg_running = False
+    elif stream_type == "all":
+        lsl_running = False
+        npg_running = False
+    
+    if apps_to_stop:
+        current_message = f"Stopped {', '.join(apps_to_stop)} due to {stream_type.upper()} stream termination"
+    elif stream_type in ["lsl", "npg"]:
+        current_message = f"{stream_type.upper()} stream terminated - dependent apps stopped"
+
 @app.route("/start_lsl", methods=["POST"])
 def start_lsl():
     global lsl_process, lsl_running, current_message
@@ -136,10 +200,13 @@ def start_lsl():
             command.append("--csv")
 
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        lsl_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=creation_flags, text=True, bufsize=1)
+        lsl_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1)
+
+        monitor_thread = Thread(target=monitor_process_output, args=(lsl_process, "lsl"), daemon=True)
+        monitor_thread.start()
 
         time.sleep(2)
-        output = lsl_process.stderr.readline().strip()
+        output = lsl_process.stdout.readline().strip()
         if "No" in output:
             current_message = "Failed to start LSL stream"
             lsl_running = False
@@ -159,52 +226,32 @@ def start_npg():
 
     if lsl_running:
         current_message = "Please stop LSL stream first"
-        return redirect(url_for('home'))
+        return jsonify({"status": "error", "message": current_message})
+
+    device_address = session.get('selected_device')
+    if not device_address:
+        current_message = "No device selected"
+        return jsonify({"status": "error", "message": current_message})
 
     if npg_running:
         current_message = "NPG already running"
-        return redirect(url_for('home'))
+        return jsonify({"status": "error", "message": current_message})
 
     try:
-        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "one.py")
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "npg-ble.py")
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         
-        npg_process = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1, cwd=os.path.dirname(os.path.abspath(__file__)))
+        npg_process = subprocess.Popen([sys.executable, script_path, "--connect", device_address], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1)
 
-        start_time = time.time()
-        connected = False
-        while time.time() - start_time < 10:  # 10 second timeout
-            line = npg_process.stdout.readline()
-            if not line:
-                break
-            if "Connected to NPG-30:30:f9:f9:db:76" in line.strip():
-                current_message = "NPG stream started successfully"
-                npg_running = True
-                connected = True
-                break
-        
-        if not connected:
-            current_message = "Failed to connect NPG stream (timeout)"
-            npg_process.terminate()
-            npg_running = False
-            return redirect(url_for('home'))
-        
-        def consume_output():
-            while npg_process.poll() is None:  # While process is running
-                npg_process.stdout.readline()  # Keep reading to prevent buffer fill
-        
-        import threading
-        output_thread = threading.Thread(target=consume_output, daemon=True)
-        output_thread.start()
+        monitor_thread = Thread(target=monitor_process_output, args=(npg_process, "npg"), daemon=True)
+        monitor_thread.start()
+        return jsonify({"status": "pending", "message": "Attempting to connect to NPG device..."})
         
     except Exception as e:
         current_message = f"Error starting NPG: {str(e)}"
         npg_running = False
-        if 'npg_process' in globals() and npg_process.poll() is None:
-            npg_process.terminate()
-
-    return redirect(url_for('home'))
-
+        return jsonify({"status": "error", "message": current_message})
+    
 @app.route("/run_app", methods=["POST"])
 def run_app():
     global current_message
@@ -233,6 +280,21 @@ def run_app():
         current_message = f"Error starting {app_name}: {str(e)}"
 
     return redirect(url_for('home'))
+
+@app.route("/stream_events")
+def stream_events():
+    def event_stream():
+        last_state = {"lsl_running": False, "npg_running": False, "running_apps": [], "message": ""}
+        
+        while True:
+            current_state = {"lsl_running": lsl_running, "npg_running": npg_running, "running_apps": [k for k,v in app_processes.items() if v.poll() is None], "message": current_message}
+            if current_state != last_state:
+                yield f"data: {json.dumps(current_state)}\n\n"
+                last_state = current_state.copy()
+            
+            time.sleep(0.5)
+    
+    return Response(event_stream(), mimetype="text/event-stream")
 
 @app.route("/stop_all", methods=['POST'])
 def stop_all():
@@ -266,22 +328,19 @@ def stop_all_processes():
         lsl_running = False
 
     if npg_process and npg_process.poll() is None:
-        npg_process.terminate()
+        npg_process.send_signal(signal.SIGINT)
         try:
             npg_process.wait(timeout=3)
         except subprocess.TimeoutExpired:
-            npg_process.kill()
+            npg_process.terminate()
+            try:
+                npg_process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                npg_process.kill()
         npg_running = False
 
-    for app_name, process in list(app_processes.items()):
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                process.kill()
-        del app_processes[app_name]
-
+    stop_dependent_apps("all")
+    current_message = "All processes stopped"
     print("All processes terminated.")
 
 def handle_sigint(signal_num, frame):

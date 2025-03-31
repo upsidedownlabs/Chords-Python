@@ -212,19 +212,17 @@
     <script>
         let selectedDevice = null;
         let connectionCheckInterval = null;
-
+        let eventSource;
+    
         function showNPGPopup() {
             document.getElementById('npgDevicePopup').style.display = 'block';
-            // Hide any other persistent popup
             document.getElementById('csvConfirmationPopup').style.display = 'none';
-            // Reset scan state
             document.getElementById('npgPopupStatus').textContent = 'Ready to scan devices';
             document.getElementById('npgDeviceList').innerHTML = '<p>Click "Scan Devices" to begin</p>';
             document.getElementById('npgConnectBtn').disabled = true;
             selectedDevice = null;
         }
-
-        // Hide NPG Device Popup
+    
         function hideNPGPopup() {
             document.getElementById('npgDevicePopup').style.display = 'none';
             if (connectionCheckInterval) {
@@ -232,20 +230,7 @@
                 connectionCheckInterval = null;
             }
         }
-
-        // For temporary popups (GUI notifications, etc)
-        function showTemporaryPopup(message) {
-            const popup = document.createElement('div');
-            popup.className = 'popup';
-            popup.innerHTML = `<p>${message}</p>`;
-            document.body.appendChild(popup);
-            
-            // Remove after animation completes
-            setTimeout(() => {
-                popup.remove();
-            }, 3000);
-        }
-
+    
         async function scanNPGDevices() {
             const statusDiv = document.getElementById('npgPopupStatus');
             const deviceList = document.getElementById('npgDeviceList');
@@ -297,7 +282,7 @@
                 scanBtn.disabled = false;
             }
         }
-
+    
         async function connectToDevice() {
             if (!selectedDevice) return;
             
@@ -330,17 +315,7 @@
                             clearInterval(connectionCheckInterval);
                             statusDiv.textContent = `Successfully connected to ${selectedDevice}`;
                             statusDiv.className = 'connected-status';
-                            
-                            // Update main NPG button
-                            const npgButton = document.getElementById('start_npg_button');
-                            npgButton.classList.add('running');
-                            npgButton.textContent = 'NPG Stream Running';
-                            npgButton.disabled = true;
-                            
-                            // Close popup after delay
                             setTimeout(hideNPGPopup, 1500);
-                            // Refresh to enable apps
-                            setTimeout(() => location.reload(), 2000);
                         } else if (statusData.message) {
                             statusDiv.textContent = statusData.message;
                             statusDiv.className = 'error-status';
@@ -357,7 +332,7 @@
                 scanBtn.disabled = false;
             }
         }
-
+    
         function showCSVConfirmation() {
             document.getElementById('csvConfirmationPopup').style.display = 'block';
             document.getElementById('npgDevicePopup').style.display = 'none';
@@ -368,92 +343,102 @@
             document.getElementById('csvForm').submit();
             document.getElementById('csvConfirmationPopup').style.display = 'none';
         }
-
-        function updateAllStatuses() {
-            fetch("/app_status")
-                .then(response => response.json())
-                .then(data => {
-                    const lslRunning = data.lsl_started || false;
-                    const npgRunning = data.npg_started || false;
-                    
-                    const lslButton = document.getElementById("start_lsl_button");
-                    const npgButton = document.getElementById("start_npg_button");
-                    
-                    if (lslRunning) {
-                        lslButton.classList.add("running");
-                        lslButton.classList.remove("not-running");
-                        lslButton.textContent = "LSL Stream Running";
-                        lslButton.disabled = true;
-                    } else {
-                        lslButton.classList.remove("running");
-                        lslButton.classList.add("not-running");
-                        lslButton.textContent = "Start LSL Stream";
-                        lslButton.disabled = npgRunning;
-                    }
-                    
-                    if (npgRunning) {
-                        npgButton.classList.add("running");
-                        npgButton.classList.remove("not-running");
-                        npgButton.textContent = "NPG Stream Running";
-                        npgButton.disabled = true;
-                    } else {
-                        npgButton.classList.remove("running");
-                        npgButton.classList.add("not-running");
-                        npgButton.textContent = "Start NPG Stream";
-                        npgButton.disabled = lslRunning;
-                    }
-
-                    const appButtons = document.querySelectorAll('.app-buttons button');
-                    const appsEnabled = lslRunning || npgRunning;
-                    
-                    appButtons.forEach(button => {button.disabled = !appsEnabled;});
-                    
-                    const appButtonsDiv = document.querySelector('.app-buttons');
-                    if (appsEnabled) {appButtonsDiv.classList.remove('disabled-apps');} 
-                    else {appButtonsDiv.classList.add('disabled-apps');}
-
-                    Object.keys(data).forEach(app => {
-                        if (app !== 'lsl_started' && app !== 'npg_started') {
-                            const button = document.querySelector(`button[value="${app}"]`);
-                            if (button) {
-                                if (data[app]) {
-                                    button.classList.add("running");
-                                    button.classList.remove("not-running");
-                                } else {
-                                    button.classList.add("not-running");
-                                    button.classList.remove("running");
-                                }
-                            }
-                        }
-                    });
-                })
-                .catch(error => console.error("Error:", error));
+    
+        function updateAppButtons(runningApps) {
+            // Get all app buttons
+            const appButtons = document.querySelectorAll('.app-buttons button[type="submit"]');
+            
+            appButtons.forEach(button => {
+                const appName = button.value;
+                const isRunning = runningApps.includes(appName);
+                
+                if (isRunning) {
+                    button.classList.add('running');
+                    button.classList.remove('not-running');
+                    button.textContent = button.textContent.replace('Start', 'Stop') || `Stop ${appName}`;
+                } else {
+                    button.classList.remove('running');
+                    button.classList.add('not-running');
+                    button.textContent = button.textContent.replace('Stop', 'Start') || `Start ${appName}`;
+                }
+            });
         }
-
-        function checkAppStatus() {
-            fetch("/check_app_status")
+    
+        function setupEventSource() {
+            if (eventSource) eventSource.close();
+    
+            eventSource = new EventSource('/stream_events');
+            eventSource.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                
+                // Update LSL button
+                const lslButton = document.getElementById('start_lsl_button');
+                if (data.lsl_running) {
+                    lslButton.textContent = 'LSL Stream Running';
+                    lslButton.classList.add('running');
+                    lslButton.classList.remove('not-running');
+                    lslButton.disabled = true;
+                } else {
+                    lslButton.textContent = 'Start LSL Stream';
+                    lslButton.classList.remove('running');
+                    lslButton.classList.add('not-running');
+                    lslButton.disabled = data.npg_running;
+                }
+                
+                // Update NPG button
+                const npgButton = document.getElementById('start_npg_button');
+                if (data.npg_running) {
+                    npgButton.textContent = 'NPG Stream Running';
+                    npgButton.classList.add('running');
+                    npgButton.classList.remove('not-running');
+                    npgButton.disabled = true;
+                } else {
+                    npgButton.textContent = 'Start NPG Stream';
+                    npgButton.classList.remove('running');
+                    npgButton.classList.add('not-running');
+                    npgButton.disabled = data.lsl_running;
+                }
+                
+                // Update app buttons container state
+                const appButtonsDiv = document.querySelector('.app-buttons');
+                if (data.lsl_running || data.npg_running) {
+                    appButtonsDiv.classList.remove('disabled-apps');
+                } else {
+                    appButtonsDiv.classList.add('disabled-apps');
+                }
+                
+                // Update individual app buttons
+                if (data.running_apps) {
+                    updateAppButtons(data.running_apps);
+                }
+                
+                // Update status message if available
+                if (data.message) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'popup fade-out';
+                    messageDiv.innerHTML = `<p>${data.message}</p>`;
+                    document.querySelector('.container').appendChild(messageDiv);
+                    setTimeout(() => messageDiv.remove(), 3000);
+                }
+            };
+            
+            eventSource.onerror = function() {
+                console.log("SSE connection error - reconnecting...");
+                setTimeout(setupEventSource, 1000);
+            };
+        }
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventSource();
+            
+            // Initial state setup
+            fetch('/check_app_status')
                 .then(response => response.json())
                 .then(data => {
-                    const runningApps = data.running_apps || [];
-                    
-                    // Update all app buttons
-                    document.querySelectorAll('.app-buttons button').forEach(button => {
-                        const appName = button.value;
-                        if (runningApps.includes(appName)) {
-                            button.classList.add("running");
-                            button.classList.remove("not-running");
-                        } else {
-                            button.classList.remove("running");
-                            button.classList.add("not-running");
-                        }
-                    });
+                    if (data.running_apps) {
+                        updateAppButtons(data.running_apps);
+                    }
                 });
-        }
-        
-        document.addEventListener("DOMContentLoaded", () => {
-            setInterval(checkAppStatus, 200);
-            setInterval(updateAllStatuses, 100);
-            updateAllStatuses();
         });
     </script>
 </body>
