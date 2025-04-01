@@ -83,6 +83,8 @@ body {
 }
 
 .app-buttons button {
+    white-space: nowrap;
+    text-overflow: ellipsis;  
     width: 200px;
     height: 80px;
     margin: 10px;
