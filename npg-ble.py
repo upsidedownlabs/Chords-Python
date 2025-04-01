@@ -5,6 +5,9 @@ from pylsl import StreamInfo, StreamOutlet
 import sys
 import argparse
 import os
+import signal
+import threading
+from typing import Optional
 
 # BLE parameters (must match your firmware)
 DEVICE_NAME_PREFIX = "NPG"
@@ -12,172 +15,205 @@ SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 DATA_CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 CONTROL_CHAR_UUID = "0000ff01-0000-1000-8000-00805f9b34fb"
 
-# Packet parameters for batched samples:
-SINGLE_SAMPLE_LEN = 7              # Each sample is 7 bytes
-BLOCK_COUNT = 10                   # Batch size: 10 samples per notification
-NEW_PACKET_LEN = SINGLE_SAMPLE_LEN * BLOCK_COUNT  # Total packet length (70 bytes)
+# Packet parameters
+SINGLE_SAMPLE_LEN = 7
+BLOCK_COUNT = 10
+NEW_PACKET_LEN = SINGLE_SAMPLE_LEN * BLOCK_COUNT
 
-# Global variables
-prev_unrolled_counter = None
-samples_received = 0
-start_time = None
-total_missing_samples = 0
-outlet = None
-last_received_time = None
-DATA_TIMEOUT = 2.0
-monitor_task = None
-client = None
+class NPGBluetoothClient:
+    def __init__(self):
+        self.prev_unrolled_counter = None
+        self.samples_received = 0
+        self.start_time = None
+        self.total_missing_samples = 0
+        self.outlet = None
+        self.last_received_time = None
+        self.DATA_TIMEOUT = 2.0
+        self.client = None
+        self.monitor_task = None
+        self.print_rate_task = None
+        self.running = False
+        self.loop = None
+        self.connection_event = threading.Event()
+        self.stop_event = threading.Event()
+
+    def process_sample(self, sample_data: bytearray):
+        self.last_received_time = time.time()
+        
+        if len(sample_data) != SINGLE_SAMPLE_LEN:
+            print("Unexpected sample length:", len(sample_data))
+            return
+            
+        sample_counter = sample_data[0]
+        if self.prev_unrolled_counter is None:
+            self.prev_unrolled_counter = sample_counter
+        else:
+            last = self.prev_unrolled_counter % 256
+            if sample_counter < last:
+                current_unrolled = self.prev_unrolled_counter - last + sample_counter + 256
+            else:
+                current_unrolled = self.prev_unrolled_counter - last + sample_counter
+            
+            if current_unrolled != self.prev_unrolled_counter + 1:
+                missing = current_unrolled - (self.prev_unrolled_counter + 1)
+                print(f"Missing {missing} sample(s)")
+                self.total_missing_samples += missing
+            
+            self.prev_unrolled_counter = current_unrolled
+
+        if self.start_time is None:
+            self.start_time = time.time()
+        
+        channels = [
+            int.from_bytes(sample_data[1:3], byteorder='big', signed=True),
+            int.from_bytes(sample_data[3:5], byteorder='big', signed=True),
+            int.from_bytes(sample_data[5:7], byteorder='big', signed=True)]
+        
+        if self.outlet:
+            self.outlet.push_sample(channels)
+        
+        self.samples_received += 1
+        
+        if self.samples_received % 500 == 0:
+            elapsed = time.time() - self.start_time
+            print(f"Received {self.samples_received} samples in {elapsed:.2f}s")
+
+    def notification_handler(self, sender, data: bytearray):
+        try:
+            if len(data) == NEW_PACKET_LEN:
+                for i in range(0, NEW_PACKET_LEN, SINGLE_SAMPLE_LEN):
+                    self.process_sample(data[i:i+SINGLE_SAMPLE_LEN])
+            elif len(data) == SINGLE_SAMPLE_LEN:
+                self.process_sample(data)
+            else:
+                print(f"Unexpected packet length: {len(data)} bytes")
+        except Exception as e:
+            print(f"Error processing data: {e}")
+
+    async def print_rate(self):
+        while not self.stop_event.is_set():
+            await asyncio.sleep(1)
+            print(f"Samples per second: {self.samples_received}")
+            self.samples_received = 0
+
+    async def monitor_connection(self):
+        while not self.stop_event.is_set():
+            if self.last_received_time and (time.time() - self.last_received_time) > self.DATA_TIMEOUT:
+                print("\nData Interrupted")
+                self.running = False
+                break
+            if self.client and not self.client.is_connected:
+                print("\nBluetooth disconnected")
+                self.running = False
+                break
+            await asyncio.sleep(0.5)
+
+    async def async_connect(self, device_address):
+        try:
+            print(f"Attempting to connect to {device_address}...")
+            
+            # Set up LSL stream
+            info = StreamInfo("NPG", "EXG", 3, 500, "int16", "npg1234")
+            self.outlet = StreamOutlet(info)
+            
+            self.client = BleakClient(device_address)
+            await self.client.connect()
+            
+            if not self.client.is_connected:
+                print("Failed to connect")
+                return False
+            
+            print(f"Connected to {device_address}", flush=True)
+            self.connection_event.set()
+            
+            self.last_received_time = time.time()
+            self.monitor_task = asyncio.create_task(self.monitor_connection())
+            self.print_rate_task = asyncio.create_task(self.print_rate())
+            
+            # Send start command
+            await self.client.write_gatt_char(CONTROL_CHAR_UUID, b"START", response=True)
+            print("Sent START command")
+            
+            # Subscribe to notifications
+            await self.client.start_notify(DATA_CHAR_UUID, self.notification_handler)
+            print("Subscribed to data notifications")
+            
+            self.running = True
+            while self.running and not self.stop_event.is_set():
+                await asyncio.sleep(1)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Connection error: {str(e)}")
+            return False
+        finally:
+            await self.cleanup()
+
+    async def cleanup(self):
+        if self.monitor_task:
+            self.monitor_task.cancel()
+        if self.print_rate_task:
+            self.print_rate_task.cancel()
+        if self.client and self.client.is_connected:
+            await self.client.disconnect()
+        self.running = False
+        self.connection_event.clear()
+
+    def connect(self, device_address):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
+        try:
+            self.loop.run_until_complete(self.async_connect(device_address))
+        except Exception as e:
+            print(f"Error in connection: {str(e)}")
+            return False
+        finally:
+            if self.loop.is_running():
+                self.loop.close()
+
+    def stop(self):
+        self.stop_event.set()
+        self.running = False
+        if self.loop and self.loop.is_running():
+            self.loop.call_soon_threadsafe(self.loop.stop)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scan", action="store_true", help="Scan for devices and print them")
-    parser.add_argument("--connect", type=str, help="Connect to a specific device address")
+    parser.add_argument("--scan", action="store_true", help="Scan for devices")
+    parser.add_argument("--connect", type=str, help="Connect to device address")
     return parser.parse_args()
 
 async def scan_devices():
-    print("Scanning for BLE devices...", file=sys.stderr)
+    print("Scanning for BLE devices...")
     devices = await BleakScanner.discover()
     filtered = [d for d in devices if d.name and d.name.startswith(DEVICE_NAME_PREFIX)]
     
     if not filtered:
-        print("No devices found.", file=sys.stderr)
+        print("No devices found.")
         return
     
-    # Print devices in format that Flask can parse
     for dev in filtered:
         print(f"DEVICE:{dev.name}|{dev.address}")
 
-def process_sample(sample_data: bytearray):
-    global prev_unrolled_counter, samples_received, start_time, total_missing_samples, outlet, last_received_time
-    last_received_time = time.time()
-    
-    if len(sample_data) != SINGLE_SAMPLE_LEN:
-        print("Unexpected sample length:", len(sample_data))
-        return
-        
-    sample_counter = sample_data[0]
-    # Unroll the counter:
-    if prev_unrolled_counter is None:
-        prev_unrolled_counter = sample_counter
-    else:
-        last = prev_unrolled_counter % 256
-        if sample_counter < last:
-            current_unrolled = prev_unrolled_counter - last + sample_counter + 256
-        else:
-            current_unrolled = prev_unrolled_counter - last + sample_counter
-        
-        if current_unrolled != prev_unrolled_counter + 1:
-            missing = current_unrolled - (prev_unrolled_counter + 1)
-            print(f"Missing {missing} sample(s): expected {prev_unrolled_counter + 1}, got {current_unrolled}")
-            total_missing_samples += missing
-        
-        prev_unrolled_counter = current_unrolled
-
-    # Set start_time when first sample is received
-    if start_time is None:
-        start_time = time.time()
-    
-    # Process channels
-    channels = [
-        int.from_bytes(sample_data[1:3], byteorder='little'),  # Channel 0
-        int.from_bytes(sample_data[3:5], byteorder='little'),  # Channel 1
-        int.from_bytes(sample_data[5:7], byteorder='little')]  # Channel 2
-    
-    # Push to LSL
-    if outlet:
-        outlet.push_sample(channels)
-    
-    samples_received += 1
-    
-    # Periodic status print
-    if samples_received % 100 == 0:
-        elapsed = time.time() - start_time
-        print(f"Sample {prev_unrolled_counter} at {elapsed:.2f}s - Channels: {channels} - Missing: {total_missing_samples}")
-
-def notification_handler(sender, data: bytearray):
-    try:
-        if len(data) == NEW_PACKET_LEN:
-            for i in range(0, NEW_PACKET_LEN, SINGLE_SAMPLE_LEN):
-                process_sample(data[i:i+SINGLE_SAMPLE_LEN])
-        elif len(data) == SINGLE_SAMPLE_LEN:
-            process_sample(data)
-        else:
-            print(f"Unexpected packet length: {len(data)} bytes")
-    except Exception as e:
-        print(f"Error processing data: {e}")
-
-async def monitor_connection():
-    global last_received_time, client
-    
-    while True:
-        if last_received_time and (time.time() - last_received_time) > DATA_TIMEOUT:
-            print("\nData Interrupted")
-            os._exit(1)
-        if client and not client.is_connected:
-            print("\nData Interrupted (Bluetooth disconnected)")
-            os._exit(1)
-            
-        await asyncio.sleep(0.5)
-
-async def connect_to_device(device_address):
-    global outlet, last_received_time, monitor_task, client
-    
-    print(f"Attempting to connect to {device_address}...", file=sys.stderr)
-    
-    # Set up LSL stream (500Hz sampling rate)
-    info = StreamInfo("NPG", "EXG", 3, 500, "int16", "npg1234")
-    outlet = StreamOutlet(info)
-    
-    client = BleakClient(device_address)
-    try:
-        await client.connect()
-        
-        if not client.is_connected:
-            print("Failed to connect", file=sys.stderr)
-            return False
-        
-        print(f"Connected to {device_address}")
-        
-        last_received_time = time.time()
-        monitor_task = asyncio.create_task(monitor_connection())
-        
-        # Send start command
-        await client.write_gatt_char(CONTROL_CHAR_UUID, b"START", response=True)
-        print("Sent START command")
-        
-        # Subscribe to notifications
-        await client.start_notify(DATA_CHAR_UUID, notification_handler)
-        print("Subscribed to data notifications")
-        
-        # Keep connection alive
-        while client.is_connected:
-            await asyncio.sleep(1)
-            
-        return True
-        
-    except Exception as e:
-        print(f"Connection error: {str(e)}", file=sys.stderr)
-        return False
-    finally:
-        if monitor_task:
-            monitor_task.cancel()
-        if client and client.is_connected:
-            await client.disconnect()
-
 if __name__ == "__main__":
     args = parse_args()
+    client = NPGBluetoothClient()
     
     try:
         if args.scan:
             asyncio.run(scan_devices())
         elif args.connect:
-            asyncio.run(connect_to_device(args.connect))
+            client.connect(args.connect)
+            try:
+                while client.running:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                client.stop()
         else:
-            print("Please specify --scan or --connect", file=sys.stderr)
+            print("Please specify --scan or --connect")
             sys.exit(1)
-    except KeyboardInterrupt:
-        print("\nScript terminated by user")
-        sys.exit(0)
     except Exception as e:
-        print(f"\nError: {str(e)}", file=sys.stderr)
+        print(f"Error: {str(e)}")
         sys.exit(1)
