@@ -202,10 +202,6 @@ def start_lsl():
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         lsl_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1)
 
-        monitor_thread = Thread(target=monitor_process_output, args=(lsl_process, "lsl"), daemon=True)
-        monitor_thread.start()
-
-        time.sleep(2)
         output = lsl_process.stdout.readline().strip()
         if "No" in output:
             current_message = "Failed to start LSL stream"
@@ -213,6 +209,15 @@ def start_lsl():
         else:
             current_message = "LSL stream started successfully"
             lsl_running = True
+
+        if not lsl_running:
+            current_message = "Failed to start LSL stream - no data detected"
+            if lsl_process.poll() is None:
+                lsl_process.terminate()
+            return redirect(url_for('home'))
+
+        monitor_thread = Thread(target=monitor_process_output, args=(lsl_process, "lsl"), daemon=True)
+        monitor_thread.start()
 
     except Exception as e:
         current_message = f"Error starting LSL: {str(e)}"
