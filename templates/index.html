@@ -316,6 +316,9 @@
                     lslButton.classList.remove('running');
                     lslButton.classList.add('not-running');
                     lslButton.disabled = data.npg_running;
+                    if (!data.lsl_running && !data.npg_running) {
+                        updateAppButtons([]);
+                    }
                 }
                 
                 // Update NPG button state
@@ -330,11 +333,15 @@
                     npgButton.classList.remove('running');
                     npgButton.classList.add('not-running');
                     npgButton.disabled = data.lsl_running;
+                    if (!data.npg_running && !data.lsl_running) {
+                        updateAppButtons([]);
+                    }
                 }
                 
                 // Update app buttons when stream stops
                 if ((data.message && data.message.includes('terminated')) || 
-                    (data.message && data.message.includes('disconnected'))) {
+                    (data.message && data.message.includes('disconnected')) ||
+                    (data.message && data.message.includes('interrupted'))) {
                     updateAppButtons([]);
                     
                     // If we're in the NPG popup, update status
@@ -350,14 +357,9 @@
                 }
                 
                 // Update running apps list
-                if (data.running_apps) {
+                if (data.running_apps && (data.lsl_running || data.npg_running)) {
                     updateAppButtons(data.running_apps);
                 }
-            };
-            
-            eventSource.onerror = function() {
-                console.log("SSE connection error - reconnecting...");
-                setTimeout(setupEventSource, 1000);
             };
         }
     
