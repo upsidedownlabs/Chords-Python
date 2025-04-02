@@ -60,13 +60,13 @@ body {
 }
 
 .controls button.running {
-    background: rgb(105, 206, 105) !important;
+    background: rgb(105, 206, 105);
     cursor: not-allowed;
 }
 
 .controls button:disabled:not(.running) {
-    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6) !important;
-    opacity: 1 !important;
+    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
+    opacity: 1;
     cursor: not-allowed;
 }
 
@@ -132,10 +132,10 @@ body {
 
 #csvConfirmationPopup,
 #npgDevicePopup {
-    animation: none !important; /* Disable fade-out */
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: none; /* Start hidden, we'll control visibility via JS */
+    animation: none; /* Disable fade-out */
+    visibility: visible;
+    opacity: 1;
+    display: none;
 }
 
 .popup:not(#csvConfirmationPopup):not(#npgDevicePopup) {
@@ -269,6 +269,89 @@ body {
 .npg-scan-btn:disabled {
     background: #93c5fd;
     cursor: not-allowed;
+}
+
+/* NPG Device Popup Styles */
+#npgDevicePopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    z-index: 1000;
+    width: 400px;
+    max-width: 90%;
+    display: none;
+}
+#npgDevicePopup h3 {
+    margin-top: 0;
+    color: #a855f7;
+    text-align: center;
+}
+#npgDeviceList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px;
+}
+.npg-device-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.npg-device-item:hover {
+    background: #e9ecef;
+}
+.npg-device-item.selected {
+    background: #a855f7;
+    color: white;
+}
+#npgPopupStatus {
+    margin: 10px 0;
+    min-height: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+.scanning-status {
+    color: #3b82f6;
+}
+.connected-status {
+    color: #10b981;
+}
+.error-status {
+    color: #ef4444;
+}
+.npg-popup-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+.npg-popup-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.npg-connect-btn {
+    background: #10b981;
+    color: white;
+}
+.npg-connect-btn:disabled {
+    background: #a7f3d0;
+    cursor: not-allowed;
+}
+.npg-cancel-btn {
+    background: #f1f1f1;
 }
 
 .bottom-text {
