@@ -4,10 +4,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 import sys
 import argparse
-import os
-import signal
 import threading
-from typing import Optional
 
 # BLE parameters (must match your firmware)
 DEVICE_NAME_PREFIX = "NPG"
