@@ -292,7 +292,7 @@
             
             connectBtn.disabled = true;
             scanBtn.disabled = true;
-            statusDiv.textContent = `Connecting to device...`;
+            statusDiv.textContent = 'Connecting to device...';
             statusDiv.className = 'scanning-status';
             
             try {
@@ -307,22 +307,38 @@
                 const data = await response.json();
                 
                 if (data.status === 'pending') {
-                    connectionCheckInterval = setInterval(async () => {
+                    const checkStatus = async () => {
                         const statusResponse = await fetch('/check_connection');
                         const statusData = await statusResponse.json();
                         
+                        console.log("Connection status:", statusData);
                         if (statusData.connected) {
                             clearInterval(connectionCheckInterval);
-                            statusDiv.textContent = `Successfully connected to ${selectedDevice}`;
+                            statusDiv.textContent = statusData.message;
                             statusDiv.className = 'connected-status';
-                            setTimeout(hideNPGPopup, 1500);
-                        } else if (statusData.message) {
+                            setTimeout(() => {
+                                hideNPGPopup();
+                                window.location.reload(); // Force refresh to sync state
+                            }, 1000);
+                        } else if (statusData.message.includes('Error') || 
+                                statusData.message.includes('Failed')) {
+                            clearInterval(connectionCheckInterval);
                             statusDiv.textContent = statusData.message;
                             statusDiv.className = 'error-status';
                             connectBtn.disabled = false;
                             scanBtn.disabled = false;
                         }
-                    }, 1000);
+                    };
+                    
+                    // Check every 500ms for faster response
+                    connectionCheckInterval = setInterval(checkStatus, 500);
+                    // Initial immediate check
+                    await checkStatus();
+                } else if (data.status === 'error') {
+                    statusDiv.textContent = data.message;
+                    statusDiv.className = 'error-status';
+                    connectBtn.disabled = false;
+                    scanBtn.disabled = false;
                 }
             } catch (error) {
                 console.error('Connection error:', error);
@@ -366,12 +382,13 @@
     
         function setupEventSource() {
             if (eventSource) eventSource.close();
-    
+
             eventSource = new EventSource('/stream_events');
             eventSource.onmessage = function(e) {
                 const data = JSON.parse(e.data);
+                console.log("SSE Update:", data);
                 
-                // Update LSL button
+                // Update LSL button state
                 const lslButton = document.getElementById('start_lsl_button');
                 if (data.lsl_running) {
                     lslButton.textContent = 'LSL Stream Running';
@@ -385,7 +402,7 @@
                     lslButton.disabled = data.npg_running;
                 }
                 
-                // Update NPG button
+                // Update NPG button state
                 const npgButton = document.getElementById('start_npg_button');
                 if (data.npg_running) {
                     npgButton.textContent = 'NPG Stream Running';
@@ -399,26 +416,26 @@
                     npgButton.disabled = data.lsl_running;
                 }
                 
-                // Update app buttons container state
-                const appButtonsDiv = document.querySelector('.app-buttons');
-                if (data.lsl_running || data.npg_running) {
-                    appButtonsDiv.classList.remove('disabled-apps');
-                } else {
-                    appButtonsDiv.classList.add('disabled-apps');
+                // Update app buttons when stream stops
+                if ((data.message && data.message.includes('terminated')) || 
+                    (data.message && data.message.includes('disconnected'))) {
+                    updateAppButtons([]);
+                    
+                    // If we're in the NPG popup, update status
+                    if (document.getElementById('npgDevicePopup').style.display === 'block') {
+                        const statusDiv = document.getElementById('npgPopupStatus');
+                        statusDiv.textContent = data.message;
+                        statusDiv.className = 'error-status';
+                        
+                        // Re-enable scan button if connection failed
+                        document.getElementById('scanDevicesBtn').disabled = false;
+                        document.getElementById('npgConnectBtn').disabled = true;
+                    }
                 }
                 
-                // Update individual app buttons
+                // Update running apps list
                 if (data.running_apps) {
                     updateAppButtons(data.running_apps);
-                }
-                
-                // Update status message if available
-                if (data.message) {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'popup fade-out';
-                    messageDiv.innerHTML = `<p>${data.message}</p>`;
-                    document.querySelector('.container').appendChild(messageDiv);
-                    setTimeout(() => messageDiv.remove(), 3000);
                 }
             };
             

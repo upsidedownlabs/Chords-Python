@@ -103,7 +103,7 @@ class NPGBluetoothClient:
                 self.running = False
                 break
             if self.client and not self.client.is_connected:
-                print("\nBluetooth disconnected")
+                print("\nData Interrupted (Bluetooth disconnected)")
                 self.running = False
                 break
             await asyncio.sleep(0.5)

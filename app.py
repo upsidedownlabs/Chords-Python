@@ -70,7 +70,7 @@ def scan_devices():
 
 @app.route("/connect_device", methods=["POST"])
 def connect_device():
-    global npg_process, npg_running, npg_connection_thread
+    global npg_process, npg_running, npg_connection_thread, current_message
     
     device_address = request.form.get("device_address")
     if not device_address:
@@ -78,45 +78,82 @@ def connect_device():
     
     session['selected_device'] = device_address
     
+    if npg_connection_thread and npg_connection_thread.is_alive():
+        if npg_process and npg_process.poll() is None:
+            npg_process.terminate()
+            try:
+                npg_process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                npg_process.kill()
+    
     def connect_and_monitor():
         global npg_process, npg_running, current_message
         
         try:
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "npg-ble.py")
-            npg_process = subprocess.Popen([sys.executable, script_path, "--connect", device_address], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            npg_process = subprocess.Popen([sys.executable, script_path, "--connect", device_address], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True, creationflags=creation_flags)
+            time.sleep(1)
             
             # Monitor the output for connection status
             connected = False
-            start_time = time.time()
-            while time.time() - start_time < 10:  # 10 second timeout
-                line = npg_process.stdout.readline()
-                if not line:
-                    break
+            for line in iter(npg_process.stdout.readline, ''):
                 if "Connected to" in line:
                     connected = True
-                    npg_running = True
-                    current_message = f"Connected to {device_address}"
+                if npg_process.poll() is not None:
                     break
             
-            if not connected:
+            if connected:
+                current_message = f"Connected to {device_address}"
+                npg_running = True
+                monitor_thread = Thread(target=monitor_process_output, args=(npg_process, "npg"), daemon=True)
+                monitor_thread.start()
+            else:
                 current_message = f"Failed to connect to {device_address}"
+                npg_running = False
                 if npg_process.poll() is None:
                     npg_process.terminate()
-                npg_running = False
         
         except Exception as e:
             current_message = f"Connection error: {str(e)}"
             npg_running = False
+            if npg_process and npg_process.poll() is None:
+                npg_process.terminate()
     
-    # Start the connection in a separate thread
-    npg_connection_thread = Thread(target=connect_and_monitor)
+    # Start the connection in a new thread
+    npg_connection_thread = Thread(target=connect_and_monitor, daemon=True)
     npg_connection_thread.start()
     
     return jsonify({"status": "pending"})
 
 @app.route("/check_connection", methods=["GET"])
 def check_connection():
-    return jsonify({"connected": npg_running, "message": current_message})
+    global npg_running, current_message, npg_process
+
+    if npg_process is None or npg_process.poll() is not None:
+        npg_running = False
+        if npg_process:
+            output = npg_process.stdout.read()
+            current_message = f"Connection terminated: {output}"
+        else:
+            current_message = "No active connection"
+        return jsonify({"connected": False, "message": current_message})
+    
+    while True:
+        line = npg_process.stdout.readline()
+        if not line:
+            break
+        
+        if "Connected to" in line:
+            npg_running = True
+            current_message = line.strip()
+            return jsonify({"connected": True, "message": current_message})
+        elif "Data Interrupted" in line or "Data Interrupted (Bluetooth disconnected)" in line:
+            npg_running = False
+            current_message = line.strip()
+            return jsonify({"connected": False, "message": current_message})
+    
+    return jsonify({"connected": npg_running, "message": current_message or "Connecting..."})
 
 def monitor_process_output(process, process_type):
     global lsl_running, npg_running, current_message, app_processes
@@ -138,18 +175,23 @@ def monitor_process_output(process, process_type):
             
         print(f"{process_type} output:", line.strip())  # Debug logging
             
-        if process_type == "lsl" and ("Error while closing serial connection" in line or "disconnected" in line.lower()):
-            lsl_running = False
-            current_message = "LSL stream error - connection closed"
-            stop_dependent_apps("lsl")
+        if process_type == "npg" and ("Data Interrupted" in line or "Data Interrupted (Bluetooth disconnected)" in line):
+            current_message = "NPG connection lost - stopping all applications"
+            npg_running = False
+            stop_dependent_apps("npg")
+            
             if process.poll() is None:
                 process.terminate()
+                try:
+                    process.wait(timeout=0.5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
             break
             
-        elif process_type == "npg" and ("Data Interrupted" in line or "Data Interrupted (Bluetooth disconnected)" in line):
-            npg_running = False
-            current_message = "NPG stream error - data interrupted"
-            stop_dependent_apps("npg")
+        elif process_type == "lsl" and ("Error while closing serial connection" in line or "disconnected" in line.lower()):
+            current_message = "LSL stream error - connection closed"
+            lsl_running = False
+            stop_dependent_apps("lsl")
             if process.poll() is None:
                 process.terminate()
             break
@@ -289,10 +331,10 @@ def run_app():
 @app.route("/stream_events")
 def stream_events():
     def event_stream():
-        last_state = {"lsl_running": False, "npg_running": False, "running_apps": [], "message": ""}
+        last_state = None
         
         while True:
-            current_state = {"lsl_running": lsl_running, "npg_running": npg_running, "running_apps": [k for k,v in app_processes.items() if v.poll() is None], "message": current_message}
+            current_state = {"lsl_running": lsl_running, "npg_running": npg_running, "running_apps": [k for k,v in app_processes.items() if v.poll() is None], "message": current_message, "stream_interrupted": ("Data Interrupted" in current_message if current_message else False)}
             if current_state != last_state:
                 yield f"data: {json.dumps(current_state)}\n\n"
                 last_state = current_state.copy()
