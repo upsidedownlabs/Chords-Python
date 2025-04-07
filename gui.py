@@ -30,20 +30,20 @@ def plot_lsl_data():
     global inlet, num_channels, data
 
     print("Searching for available LSL streams...")
-    streams = resolve_streams()
-    available_streams = [s.name() for s in streams]
+    streams = resolve_streams()                         # Discover available LSL streams
+    available_streams = [s.name() for s in streams]     # Get list of stream names
 
     if not available_streams:
         print("No LSL streams found!")
         return None
 
-    for stream_name in available_streams:
+    for stream_name in available_streams:         # Try to connect to each available stream until successful
         print(f"Trying to connect to {stream_name}...")
-        resolved_streams = resolve_byprop('name', stream_name, timeout=2)
+        resolved_streams = resolve_byprop('name', stream_name, timeout=2)   # Attempt to resolve the stream by its name
 
         if resolved_streams:
             print(f"Successfully connected to {stream_name}!")
-            inlet = StreamInlet(resolved_streams[0])
+            inlet = StreamInlet(resolved_streams[0])           # Create an inlet to receive data from the stream
             break
         else:
             print(f"Failed to connect to {stream_name}.")
@@ -52,7 +52,7 @@ def plot_lsl_data():
         print("Could not connect to any stream.")
         return None
 
-    info = inlet.info()
+    info = inlet.info()                # Get stream info.
     num_channels = info.channel_count()
     print(f"Detected {num_channels} channels.")
     
