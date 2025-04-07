@@ -14,10 +14,14 @@ body {
     display: flex;
     justify-content: center;
     gap: 20px;
+    margin-bottom: 20px;
 }
 
 .controls {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
 .header h1 {
@@ -33,18 +37,8 @@ body {
 
 /* Keyframes for scrolling the gradient */
 @keyframes scroll-gradient {
-    0% {
-        background-position: 0% 50%;
-    }
-    100% {
-        background-position: 100% 50%;
-    }
-}
-
-.subtitle {
-    font-size: 1.2em;
-    color: #333;
-    margin-top: -10px;
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
 }
 
 .heart {
@@ -61,11 +55,18 @@ body {
     border-radius: 10px;
     background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
     color: #fffffe;
-    transition: transform 0.3s ease, background-color 0.3s ease;
+    transition: all 0.3s ease;
+    width: 250px;
 }
 
-button:disabled {
+.controls button.running {
     background: rgb(105, 206, 105);
+    cursor: not-allowed;
+}
+
+.controls button:disabled:not(.running) {
+    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
+    opacity: 1;
     cursor: not-allowed;
 }
 
@@ -78,16 +79,12 @@ button:disabled {
     justify-content: center;
     flex-wrap: wrap;
     margin-bottom: 20px;
-}
-
-.app-buttons form {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 15px; /* Spacing between buttons */
+    gap: 15px;
 }
 
 .app-buttons button {
+    white-space: nowrap;
+    text-overflow: ellipsis;  
     width: 200px;
     height: 80px;
     margin: 10px;
@@ -99,33 +96,18 @@ button:disabled {
     cursor: pointer;
     background-color: #fffffe;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s, background-color 0.3s;
+    transition: all 0.3s;
 }
 
-.app-buttons button:active {
-    transform: scale(1.05);
+.app-buttons button.running {
     background-color: rgb(105, 206, 105);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     color: white;
     cursor: not-allowed;
 }
 
-.lsl-disabled button {
+.app-buttons button:disabled:not(.running) {
+    opacity: 0.6;
     cursor: not-allowed;
-}
-
-.npg-disabled button {
-    cursor: not-allowed;
-}
-
-button.running {
-    background-color: rgb(105, 206, 105);
-    cursor: not-allowed;
-    color: white;
-}
-
-button.not-running {
-    background-color: #fffffe;
 }
 
 .popup {
@@ -133,14 +115,243 @@ button.not-running {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 2px solid #333;
-    padding: 20px;
+    background-color: white;
+    padding: 25px;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
     z-index: 1000;
+    width: 400px;
+    max-width: 90%;
+}
+
+.popup h3 {
+    margin-top: 0;
+    color: #a855f7;
     text-align: center;
-    animation: fade-out 3s forwards;
+}
+
+#csvConfirmationPopup,
+#npgDevicePopup {
+    animation: none; /* Disable fade-out */
+    visibility: visible;
+    opacity: 1;
+    display: none;
+}
+
+.popup:not(#csvConfirmationPopup):not(#npgDevicePopup) {
+    animation: fade-out 2s forwards;
+}
+
+#csvConfirmationPopup,
+#npgDevicePopup {
+    z-index: 1001; /* Higher than other popups */
+}
+
+.popup p {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+.popup-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.popup-button {
+    padding: 10px 25px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.yes-button {
+    background: linear-gradient(to right, #3b82f6, #a855f7);
+    color: white;
+}
+
+.no-button {
+    background: linear-gradient(to right, #ec4899, #a855f7);
+    color: white;
+}
+
+#npgDeviceList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.npg-device-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.npg-device-item:hover {
+    background: #e9ecef;
+}
+
+.npg-device-item.selected {
+    background: #a855f7;
+    color: white;
+}
+
+#npgPopupStatus {
+    margin: 10px 0;
+    min-height: 24px;
+    font-weight: bold;
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.scanning-status {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.connected-status {
+    background: #dcfce7;
+    color: #047857;
+}
+
+.error-status {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.npg-popup-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.npg-popup-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.npg-connect-btn {
+    background: #10b981;
+    color: white;
+}
+
+.npg-connect-btn:disabled {
+    background: #a7f3d0;
+    cursor: not-allowed;
+}
+
+.npg-cancel-btn {
+    background: #f1f1f1;
+}
+
+.npg-scan-btn {
+    background: #3b82f6;
+    color: white;
+}
+
+.npg-scan-btn:disabled {
+    background: #93c5fd;
+    cursor: not-allowed;
+}
+
+/* NPG Device Popup Styles */
+#npgDevicePopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    z-index: 1000;
+    width: 400px;
+    max-width: 90%;
+    display: none;
+}
+#npgDevicePopup h3 {
+    margin-top: 0;
+    color: #a855f7;
+    text-align: center;
+}
+#npgDeviceList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px;
+}
+.npg-device-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.npg-device-item:hover {
+    background: #e9ecef;
+}
+.npg-device-item.selected {
+    background: #a855f7;
+    color: white;
+}
+#npgPopupStatus {
+    margin: 10px 0;
+    min-height: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+.scanning-status {
+    color: #3b82f6;
+}
+.connected-status {
+    color: #10b981;
+}
+.error-status {
+    color: #ef4444;
+}
+.npg-popup-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+.npg-popup-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.npg-connect-btn {
+    background: #10b981;
+    color: white;
+}
+.npg-connect-btn:disabled {
+    background: #a7f3d0;
+    cursor: not-allowed;
+}
+.npg-cancel-btn {
+    background: #f1f1f1;
 }
 
 .bottom-text {
@@ -150,10 +361,11 @@ button.not-running {
     transform: translateX(-50%);
     text-align: center;
     font-size: 13px;
+    color: #666;
 }
 
 @keyframes fade-out {
     0% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { opacity: 0; visibility: hidden; }
+    80% { opacity: 0.8; }
+    100% { opacity: 0.6; visibility: hidden; }
 }

@@ -13,33 +13,44 @@
             <p class="bottom-text">Designed with <span class="heart">&#10084;</span> at Upside Down Labs</p>
         </div>
 
-         <!-- Pop-up message -->
-         {% if message %}
-         <div class="popup fade-out">
-             <p>{{ message }}</p>
-         </div>
-         {% endif %}
+        <!-- Pop-up message -->
+        {% if message %}
+        <div class="popup fade-out">
+            <p>{{ message }}</p>
+        </div>
+        {% endif %}
         
         <div class="controls-container">
-        <div class="controls">
-            {% if not lsl_started %}
-                <form action="/start_lsl" method="POST">
-                    <button type="submit" id="start_lsl_button" class="lsl-not-running">Start LSL Stream</button>
-                </form>
-            {% else %}
-                <button id="start_lsl_button" class="lsl-running" disabled>LSL Stream Running</button>
-            {% endif %}
+            <div class="controls">
+                <button id="start_lsl_button" 
+                        class="{% if lsl_started %}running{% else %}not-running{% endif %}" 
+                        onclick="showCSVConfirmation()"
+                        {% if lsl_started or npg_started %}disabled{% endif %}>
+                    {% if lsl_started %}LSL Stream Running{% else %}Start LSL Stream{% endif %}
+                </button>
+            </div>
+            <div class="controls">
+                <button id="start_npg_button" 
+                        class="{% if npg_started %}running{% else %}not-running{% endif %}"
+                        onclick="showNPGPopup()"
+                        {% if lsl_started or npg_started %}disabled{% endif %}>
+                    {% if npg_started %}NPG Stream Running{% else %}Start NPG Stream{% endif %}
+                </button>
+            </div>
         </div>
-        <div class="controls">
-            {% if not npg_started %}
-                <form action="/start_npg" method="POST">
-                    <button type="submit" id="start_npg_button" class="npg-not-running">Start NPG Stream</button>
+        
+        <!-- CSV Confirmation Popup (only for LSL) -->
+        <div id="csvConfirmationPopup" class="popup" style="display: none;">
+            <p>Do you want to save LSL data as CSV?</p>
+            <div class="popup-buttons">
+                <form id="csvForm" method="POST" action="/start_lsl">
+                    <input type="hidden" name="csv" id="csvInput" value="false">
+                    <button type="button" class="popup-button yes-button" onclick="setCSVChoice(true)">YES</button>
+                    <button type="button" class="popup-button no-button" onclick="setCSVChoice(false)">NO</button>
                 </form>
-            {% else %}
-                <button id="start_npg_button" class="npg-running" disabled>NPG Stream Running</button>
-            {% endif %}
-        </div>
-    </div>             
+            </div>
+        </div>            
+        
         <div class="app-buttons {% if not (lsl_started or npg_started) %}disabled-apps{% endif %}">
             <!-- Row 1: ECG, EMG, EOG, EEG -->
             <div class="row">
@@ -92,98 +103,278 @@
                     </button>
                     <button type="submit" name="app_name" value="csvplotter" 
                             class="{% if 'csvplotter' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not lsl_started or npg_started %}disabled{% endif %}>
+                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
                         CSV Plotter
                     </button>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- NPG Device Selection Popup -->
+    <div id="npgDevicePopup">
+        <h3>Select NPG Device</h3>
+        <div id="npgPopupStatus">Ready to scan devices</div>
+        <div id="npgDeviceList">
+            <p>Click "Scan Devices" to begin</p>
+        </div>
+        <div class="npg-popup-buttons">
+            <button class="npg-popup-btn" id="scanDevicesBtn" onclick="scanNPGDevices()">Scan Devices</button>
+            <button class="npg-popup-btn npg-connect-btn" id="npgConnectBtn" disabled onclick="connectToDevice()">Connect</button>
+            <button class="npg-popup-btn npg-cancel-btn" onclick="hideNPGPopup()">Cancel</button>
+        </div>
+    </div>
+
     <script>
-        function updateButtons(lsl_started, npg_started) {
-            let buttons = document.querySelectorAll('.app-buttons button');
-            buttons.forEach(button => {
-                button.disabled = !(lsl_started || npg_started);
-            });
+        let selectedDevice = null;
+        let connectionCheckInterval = null;
+        let eventSource;
     
-            let appButtonsDiv = document.querySelector('.app-buttons');
-            if (lsl_started || npg_started) {
-                appButtonsDiv.classList.remove('disabled-apps');
-            } else {
-                appButtonsDiv.classList.add('disabled-apps');
+        function showNPGPopup() {
+            document.getElementById('npgDevicePopup').style.display = 'block';
+            document.getElementById('csvConfirmationPopup').style.display = 'none';
+            document.getElementById('npgPopupStatus').textContent = 'Ready to scan devices';
+            document.getElementById('npgDeviceList').innerHTML = '<p>Click "Scan Devices" to begin</p>';
+            document.getElementById('npgConnectBtn').disabled = true;
+            selectedDevice = null;
+        }
+    
+        function hideNPGPopup() {
+            document.getElementById('npgDevicePopup').style.display = 'none';
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = null;
             }
         }
-
-        function checkStatus1() {
-            fetch("/app_status")
-                .then(response => response.json())
-                .then(data => {
-                    const lslButton = document.getElementById("start_lsl_button");
-                    if (data.lsl_started) {
-                        lslButton.classList.remove("lsl-not-running");
-                        lslButton.classList.add("lsl-running");
-                        lslButton.textContent = "LSL Stream Running";
-                        lslButton.disabled = true;
-                    } else {
-                        lslButton.classList.remove("lsl-running");
-                        lslButton.classList.add("lsl-not-running");
-                        lslButton.textContent = "Start LSL Stream";
-                        lslButton.disabled = false;
-                    }
-                })
-                .catch(error => console.error("Error fetching LSL status:", error));
-        }
-
-        function checkStatus() {
-        fetch("/app_status")
-            .then(response => response.json())
-            .then(data => {
-                const npgButton = document.getElementById("start_npg_button");
-
-                if (data.npg_started) {
-                    npgButton.classList.remove("npg-not-running");
-                    npgButton.classList.add("npg-running");
-                    npgButton.textContent = "NPG Stream Running";
-                    npgButton.disabled = true;
+    
+        async function scanNPGDevices() {
+            const statusDiv = document.getElementById('npgPopupStatus');
+            const deviceList = document.getElementById('npgDeviceList');
+            const scanBtn = document.getElementById('scanDevicesBtn');
+            
+            scanBtn.disabled = true;
+            statusDiv.textContent = 'Scanning for devices...';
+            statusDiv.className = 'scanning-status';
+            deviceList.innerHTML = '<p>Searching for NPG devices...</p>';
+            
+            try {
+                const response = await fetch('/scan_devices', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.devices.length > 0) {
+                    deviceList.innerHTML = '';
+                    
+                    data.devices.forEach(device => {
+                        const div = document.createElement('div');
+                        div.className = 'npg-device-item';
+                        div.textContent = `${device.name || 'Unknown'} (${device.address})`;
+                        div.dataset.address = device.address;
+                        
+                        div.addEventListener('click', () => {
+                            document.querySelectorAll('.npg-device-item').forEach(item => {
+                                item.classList.remove('selected');
+                            });
+                            div.classList.add('selected');
+                            selectedDevice = device.address;
+                            document.getElementById('npgConnectBtn').disabled = false;
+                        });
+                        
+                        deviceList.appendChild(div);
+                    });
+                    
+                    statusDiv.textContent = `Found ${data.devices.length} device(s) - select one to connect`;
+                    statusDiv.className = '';
                 } else {
-                    npgButton.classList.remove("npg-running");
-                    npgButton.classList.add("npg-not-running");
-                    npgButton.textContent = "Start NPG Stream";
-                    npgButton.disabled = false;
+                    deviceList.innerHTML = '<p>No NPG devices found</p>';
+                    statusDiv.textContent = data.message || 'No devices found';
+                    statusDiv.className = 'error-status';
+                }
+            } catch (error) {
+                console.error('Scan error:', error);
+                deviceList.innerHTML = '<p>Scan failed</p>';
+                statusDiv.textContent = 'Scan failed - please try again';
+                statusDiv.className = 'error-status';
+            } finally {
+                scanBtn.disabled = false;
+            }
+        }
+    
+        async function connectToDevice() {
+            if (!selectedDevice) return;
+            
+            const statusDiv = document.getElementById('npgPopupStatus');
+            const connectBtn = document.getElementById('npgConnectBtn');
+            const scanBtn = document.getElementById('scanDevicesBtn');
+            
+            connectBtn.disabled = true;
+            scanBtn.disabled = true;
+            statusDiv.textContent = 'Connecting to device...';
+            statusDiv.className = 'scanning-status';
+            
+            try {
+                const response = await fetch('/connect_device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `device_address=${encodeURIComponent(selectedDevice)}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'pending') {
+                    const checkStatus = async () => {
+                        const statusResponse = await fetch('/check_connection');
+                        const statusData = await statusResponse.json();
+                        
+                        console.log("Connection status:", statusData);
+                        if (statusData.connected) {
+                            clearInterval(connectionCheckInterval);
+                            statusDiv.textContent = statusData.message;
+                            statusDiv.className = 'connected-status';
+                            setTimeout(() => {
+                                hideNPGPopup();
+                                window.location.reload(); // Force refresh to sync state
+                            }, 1000);
+                        } else if (statusData.message.includes('Error') || 
+                                statusData.message.includes('Failed')) {
+                            clearInterval(connectionCheckInterval);
+                            statusDiv.textContent = statusData.message;
+                            statusDiv.className = 'error-status';
+                            connectBtn.disabled = false;
+                            scanBtn.disabled = false;
+                        }
+                    };
+                    
+                    // Check every 500ms for faster response
+                    connectionCheckInterval = setInterval(checkStatus, 500);
+                    // Initial immediate check
+                    await checkStatus();
+                } else if (data.status === 'error') {
+                    statusDiv.textContent = data.message;
+                    statusDiv.className = 'error-status';
+                    connectBtn.disabled = false;
+                    scanBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                statusDiv.textContent = 'Connection failed - please try again';
+                statusDiv.className = 'error-status';
+                connectBtn.disabled = false;
+                scanBtn.disabled = false;
+            }
+        }
+    
+        function showCSVConfirmation() {
+            document.getElementById('csvConfirmationPopup').style.display = 'block';
+            document.getElementById('npgDevicePopup').style.display = 'none';
+        }
+    
+        function setCSVChoice(saveAsCSV) {
+            document.getElementById('csvInput').value = saveAsCSV ? 'true' : 'false'; 
+            document.getElementById('csvForm').submit();
+            document.getElementById('csvConfirmationPopup').style.display = 'none';
+        }
+    
+        function updateAppButtons(runningApps) {
+            // Get all app buttons
+            const appButtons = document.querySelectorAll('.app-buttons button[type="submit"]');
+            
+            appButtons.forEach(button => {
+                const appName = button.value;
+                const isRunning = runningApps.includes(appName);
+                
+                if (isRunning) {
+                    button.classList.add('running');
+                    button.classList.remove('not-running');
+                    button.textContent = button.textContent.replace('Start', 'Stop') || `Stop ${appName}`;
+                } else {
+                    button.classList.remove('running');
+                    button.classList.add('not-running');
+                    button.textContent = button.textContent.replace('Stop', 'Start') || `Start ${appName}`;
                 }
             });
-    }  
-    
-        function updateAppStatus() {
-            fetch('/app_status')
-                .then(response => response.json())
-                .then(statuses => {
-                    const lslStarted = statuses.lsl_started || false;
-                    const npgStarted = statuses.npg_started || false;
-    console.log(lslStarted, npgStarted);
-        updateButtons(lslStarted, npgStarted);
-    
-                    Object.keys(statuses).forEach(app => {
-                        const button = document.querySelector(`button[value="${app}"]`);
-                        if (button) {
-                            if (statuses[app]) {
-                                button.classList.add("running");
-                                button.classList.remove("not-running");
-                            } else {
-                                button.classList.add("not-running");
-                                button.classList.remove("running");
-                            }
-                        }
-                    });
-                })
-                .catch(error => console.error("Error fetching app statuses:", error));
         }
+    
+        function setupEventSource() {
+            if (eventSource) eventSource.close();
 
-        setInterval(checkStatus, 50);
-        setInterval(checkStatus1, 50);
-        setInterval(updateAppStatus, 100);     // 100 ms checking
-
-        document.addEventListener("DOMContentLoaded", updateAppStatus);
-    </script>  
+            eventSource = new EventSource('/stream_events');
+            eventSource.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log("SSE Update:", data);
+                
+                // Update LSL button state
+                const lslButton = document.getElementById('start_lsl_button');
+                if (data.lsl_running) {
+                    lslButton.textContent = 'LSL Stream Running';
+                    lslButton.classList.add('running');
+                    lslButton.classList.remove('not-running');
+                    lslButton.disabled = true;
+                } else {
+                    lslButton.textContent = 'Start LSL Stream';
+                    lslButton.classList.remove('running');
+                    lslButton.classList.add('not-running');
+                    lslButton.disabled = data.npg_running;
+                    if (!data.lsl_running && !data.npg_running) {
+                        updateAppButtons([]);
+                    }
+                }
+                
+                // Update NPG button state
+                const npgButton = document.getElementById('start_npg_button');
+                if (data.npg_running) {
+                    npgButton.textContent = 'NPG Stream Running';
+                    npgButton.classList.add('running');
+                    npgButton.classList.remove('not-running');
+                    npgButton.disabled = true;
+                } else {
+                    npgButton.textContent = 'Start NPG Stream';
+                    npgButton.classList.remove('running');
+                    npgButton.classList.add('not-running');
+                    npgButton.disabled = data.lsl_running;
+                    if (!data.npg_running && !data.lsl_running) {
+                        updateAppButtons([]);
+                    }
+                }
+                
+                // Update app buttons when stream stops
+                if ((data.message && data.message.includes('terminated')) || 
+                    (data.message && data.message.includes('disconnected')) ||
+                    (data.message && data.message.includes('interrupted'))) {
+                    updateAppButtons([]);
+                    
+                    // If we're in the NPG popup, update status
+                    if (document.getElementById('npgDevicePopup').style.display === 'block') {
+                        const statusDiv = document.getElementById('npgPopupStatus');
+                        statusDiv.textContent = data.message;
+                        statusDiv.className = 'error-status';
+                        
+                        // Re-enable scan button if connection failed
+                        document.getElementById('scanDevicesBtn').disabled = false;
+                        document.getElementById('npgConnectBtn').disabled = true;
+                    }
+                }
+                
+                // Update running apps list
+                if (data.running_apps && (data.lsl_running || data.npg_running)) {
+                    updateAppButtons(data.running_apps);
+                }
+            };
+        }
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventSource();
+            
+            // Initial state setup
+            fetch('/check_app_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.running_apps) {
+                        updateAppButtons(data.running_apps);
+                    }
+                });
+        });
+    </script>
 </body>
 </html>
