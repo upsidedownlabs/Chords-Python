@@ -19,9 +19,10 @@
             <p>{{ message }}</p>
         </div>
         {% endif %}
-        
+        <!-- Container for LSL and NPG stream control buttons -->
         <div class="controls-container">
             <div class="controls">
+                <!-- Button to start LSL Stream, disabled if already running or if NPG is running -->
                 <button id="start_lsl_button" 
                         class="{% if lsl_started %}running{% else %}not-running{% endif %}" 
                         onclick="showCSVConfirmation()"
@@ -30,6 +31,7 @@
                 </button>
             </div>
             <div class="controls">
+                <!-- Button to start NPG Stream, disabled if already running or if LSL is running -->
                 <button id="start_npg_button" 
                         class="{% if npg_started %}running{% else %}not-running{% endif %}"
                         onclick="showNPGPopup()"
@@ -50,7 +52,7 @@
                 </form>
             </div>
         </div>            
-        
+        <!-- App buttons (disabled until either one of stream is active) -->
         <div class="app-buttons {% if not (lsl_started or npg_started) %}disabled-apps{% endif %}">
             <!-- Row 1: ECG, EMG, EOG, EEG -->
             <div class="row">
@@ -78,7 +80,7 @@
                 </form>
             </div>
 
-            <!-- Row 2: Game, GUI, Keystroke, CSVPlotter -->
+            <!-- Row 2: Tug of War Game,EEG Beetle Game, GUI, Keystroke, CSVPlotter -->
             <div class="row">
                 <form action="/run_app" method="POST">
                     <button type="submit" name="app_name" value="game" 
@@ -114,10 +116,13 @@
     <!-- NPG Device Selection Popup -->
     <div id="npgDevicePopup">
         <h3>Select NPG Device</h3>
+        <!-- Status message for scanning status or connection updates -->
         <div id="npgPopupStatus">Ready to scan devices</div>
+        <!-- Device list area where detected devices will be listed -->
         <div id="npgDeviceList">
             <p>Click "Scan Devices" to begin</p>
         </div>
+        <!-- Buttons for scanning, connecting, or canceling the device selection -->
         <div class="npg-popup-buttons">
             <button class="npg-popup-btn" id="scanDevicesBtn" onclick="scanNPGDevices()">Scan Devices</button>
             <button class="npg-popup-btn npg-connect-btn" id="npgConnectBtn" disabled onclick="connectToDevice()">Connect</button>
@@ -126,10 +131,11 @@
     </div>
 
     <script>
-        let selectedDevice = null;
-        let connectionCheckInterval = null;
-        let eventSource;
+        let selectedDevice = null;           // Store the selected device address
+        let connectionCheckInterval = null;  // Used to repeatedly check connection status
+        let eventSource;                     // EventSource for server-sent events for real-time updates
     
+        // Function to display the NPG device selection popup
         function showNPGPopup() {
             document.getElementById('npgDevicePopup').style.display = 'block';
             document.getElementById('csvConfirmationPopup').style.display = 'none';
@@ -139,6 +145,7 @@
             selectedDevice = null;
         }
     
+        // Function to hide the NPG popup and stop connection checks
         function hideNPGPopup() {
             document.getElementById('npgDevicePopup').style.display = 'none';
             if (connectionCheckInterval) {
@@ -147,11 +154,13 @@
             }
         }
     
+        // Function to fetch and list available NPG devices from backend
         async function scanNPGDevices() {
             const statusDiv = document.getElementById('npgPopupStatus');
             const deviceList = document.getElementById('npgDeviceList');
             const scanBtn = document.getElementById('scanDevicesBtn');
             
+            // Show scanning status and disable scan button
             scanBtn.disabled = true;
             statusDiv.textContent = 'Scanning for devices...';
             statusDiv.className = 'scanning-status';
@@ -161,15 +170,18 @@
                 const response = await fetch('/scan_devices', { method: 'POST' });
                 const data = await response.json();
                 
+                // If devices are found
                 if (data.status === 'success' && data.devices.length > 0) {
                     deviceList.innerHTML = '';
                     
+                    // Display each device to UI and make them selectable
                     data.devices.forEach(device => {
                         const div = document.createElement('div');
                         div.className = 'npg-device-item';
                         div.textContent = `${device.name || 'Unknown'} (${device.address})`;
                         div.dataset.address = device.address;
                         
+                        // Add click event to highlight selected device
                         div.addEventListener('click', () => {
                             document.querySelectorAll('.npg-device-item').forEach(item => {
                                 item.classList.remove('selected');
@@ -189,16 +201,17 @@
                     statusDiv.textContent = data.message || 'No devices found';
                     statusDiv.className = 'error-status';
                 }
-            } catch (error) {
+            } catch (error) {              // Handle scan error
                 console.error('Scan error:', error);
                 deviceList.innerHTML = '<p>Scan failed</p>';
                 statusDiv.textContent = 'Scan failed - please try again';
                 statusDiv.className = 'error-status';
             } finally {
-                scanBtn.disabled = false;
+                scanBtn.disabled = false;  // Re-enable scan button
             }
         }
     
+        // Function to connect to the selected NPG device
         async function connectToDevice() {
             if (!selectedDevice) return;
             
@@ -206,6 +219,7 @@
             const connectBtn = document.getElementById('npgConnectBtn');
             const scanBtn = document.getElementById('scanDevicesBtn');
             
+            // Show connecting state
             connectBtn.disabled = true;
             scanBtn.disabled = true;
             statusDiv.textContent = 'Connecting to device...';
@@ -222,17 +236,20 @@
                 
                 const data = await response.json();
                 
+                // If connection is pending, start checking status
                 if (data.status === 'pending') {
                     const checkStatus = async () => {
                         const statusResponse = await fetch('/check_connection');
                         const statusData = await statusResponse.json();
                         
+                        // Log connection status for debugging
                         console.log("Connection status:", statusData);
+                        // Check if connected or if there was an error
                         if (statusData.connected) {
                             clearInterval(connectionCheckInterval);
                             statusDiv.textContent = statusData.message;
                             statusDiv.className = 'connected-status';
-                            setTimeout(() => {
+                            setTimeout(() => {            // Hide popup after 1 second
                                 hideNPGPopup();
                                 window.location.reload(); // Force refresh to sync state
                             }, 1000);
@@ -265,21 +282,24 @@
             }
         }
     
+        // Function to show the CSV confirmation popup when the LSL button is clicked
         function showCSVConfirmation() {
             document.getElementById('csvConfirmationPopup').style.display = 'block';
             document.getElementById('npgDevicePopup').style.display = 'none';
         }
     
+        // Function to set the CSV choice and submit the form. This is called when the user clicks YES or NO in the CSV Popup.
         function setCSVChoice(saveAsCSV) {
             document.getElementById('csvInput').value = saveAsCSV ? 'true' : 'false'; 
             document.getElementById('csvForm').submit();
             document.getElementById('csvConfirmationPopup').style.display = 'none';
         }
     
+        // Function to update the state of app buttons based on running applications. This function is called when the server sends updates about running applications.
         function updateAppButtons(runningApps) {
             // Get all app buttons
             const appButtons = document.querySelectorAll('.app-buttons button[type="submit"]');
-            
+            // Loop through each button and check if the corresponding app is running
             appButtons.forEach(button => {
                 const appName = button.value;
                 const isRunning = runningApps.includes(appName);
@@ -296,6 +316,7 @@
             });
         }
     
+        // Function to set up the EventSource for receiving real-time updates from the server. This function is called when the page loads and whenever the connection is re-established.
         function setupEventSource() {
             if (eventSource) eventSource.close();
 
@@ -364,13 +385,13 @@
         }
     
         document.addEventListener('DOMContentLoaded', function() {
-            setupEventSource();
+            setupEventSource();    // Initialize the SSE connection to receive real-time updates from the server
             
-            // Initial state setup
+            // Fetch the current status of running applications when the page loads
             fetch('/check_app_status')
-                .then(response => response.json())
+                .then(response => response.json())  // Parse the JSON response from the server
                 .then(data => {
-                    if (data.running_apps) {
+                    if (data.running_apps) {        // If there are running applications, update the UI to show their current state
                         updateAppButtons(data.running_apps);
                     }
                 });
