@@ -13,10 +13,10 @@ from flask import Response
 app = Flask(__name__)
 app.secret_key = '--'
 
-lsl_process = None            # Process for LSL
+lsl_process = None            # Process Variable for LSL
 lsl_running = False           # Flag to check if LSL is running
 npg_running = False           # Flag to check if NPG is running
-npg_process = None            # Process for NPG
+npg_process = None            # Process Variable for NPG
 app_processes = {}            # Dictionary to hold other app processes
 current_message = None        # Message to display in the UI
 discovered_devices = []       # List for all discovered devices
@@ -29,7 +29,7 @@ def is_process_running(name):
             return True                               # Returns True if process found
     return False                                      # Returns False if process not found
 
-@app.route("/")
+@app.route("/")   # Route for the Home page
 def home():
     """Render the home page with the current status of LSL Stream , NPG stream, running applications, messages."""
     return render_template("index.html", lsl_started=lsl_running, npg_started=npg_running, running_apps=[k for k,v in app_processes.items() if v.poll() is None], message=current_message, devices=session.get('devices', []), selected_device=session.get('selected_device'))
@@ -255,7 +255,7 @@ def start_lsl():
         lsl_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=creation_flags, text=True, bufsize=1)
 
         output = lsl_process.stdout.readline().strip()
-        if "No" in output:      # Check for failure messages in output
+        if "Serial Connection not established properly.Try Again" in output:      # Check for failure messages in output
             current_message = "Failed to start LSL stream"
             lsl_running = False
         else:
@@ -348,7 +348,7 @@ def stream_events():
         last_state = None    # Initialize last_state to None
         
         while True:
-            current_state = {"lsl_running": lsl_running, "npg_running": npg_running, "running_apps": [k for k,v in app_processes.items() if v.poll() is None], "message": current_message, "stream_interrupted": (("Data Interrupted (Bluetooth Disconnected)" or "Error while closing serial connection" in current_message) if current_message else False)}
+            current_state = {"lsl_running": lsl_running, "npg_running": npg_running, "running_apps": [k for k,v in app_processes.items() if v.poll() is None], "message": current_message, "stream_interrupted": (current_message and ("Data Interrupted (Bluetooth Disconnected)" in current_message or "Error while closing serial connection" in current_message))}
             if current_state != last_state:
                 yield f"data: {json.dumps(current_state)}\n\n"
                 last_state = current_state.copy()
@@ -369,7 +369,7 @@ def cleanup_processes():
     """ Remove finished processes from the app_processes dictionary."""
     global app_processes
     app_processes = {
-        k: v for k, v in app_processes.items()
+        k: v for k, v in app_processes.items()          # need to update
         if v.poll() is None  # Only keep running processes
     }
 
