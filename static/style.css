@@ -1,3 +1,4 @@
+/* General body styles */
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -5,11 +6,13 @@ body {
     padding: 0;
 }
 
+/* Main container alignment */
 .container {
     text-align: center;
     padding: 20px;
 }
 
+/* Layout for top control buttons */
 .controls-container {
     display: flex;
     justify-content: center;
@@ -17,6 +20,7 @@ body {
     margin-bottom: 20px;
 }
 
+/* Styling for each set of control buttons */
 .controls {
     display: flex;
     flex-direction: column;
@@ -24,6 +28,7 @@ body {
     gap: 10px;
 }
 
+/* Gradient animated heading */
 .header h1 {
     font-size: 48px;
     font-weight: bold;
@@ -41,11 +46,13 @@ body {
     100% { background-position: 100% 50%; }
 }
 
+/* Heart icon styling */
 .heart {
     color: #a855f7;
     font-size: 1.2em;
 }
 
+/* Button styling in controls */
 .controls button {
     padding: 15px 30px;
     margin: 10px;
@@ -59,21 +66,25 @@ body {
     width: 250px;
 }
 
+/* Style for active buttons */
 .controls button.running {
     background: rgb(105, 206, 105);
     cursor: not-allowed;
 }
 
+/* Disabled button style */
 .controls button:disabled:not(.running) {
     background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
     opacity: 1;
     cursor: not-allowed;
 }
 
+/* Layout for app buttons section */
 .app-buttons {
     margin-top: 20px;
 }
 
+/* Button rows with spacing */
 .row {
     display: flex;
     justify-content: center;
@@ -82,6 +93,7 @@ body {
     gap: 15px;
 }
 
+/* Individual app button styling */
 .app-buttons button {
     white-space: nowrap;
     text-overflow: ellipsis;  
@@ -99,17 +111,20 @@ body {
     transition: all 0.3s;
 }
 
+/* Running app button appearance */
 .app-buttons button.running {
     background-color: rgb(105, 206, 105);
     color: white;
     cursor: not-allowed;
 }
 
+/* Disabled app button style */
 .app-buttons button:disabled:not(.running) {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
+/* Generic popup box */
 .popup {
     position: fixed;
     top: 50%;
@@ -124,12 +139,14 @@ body {
     max-width: 90%;
 }
 
+/* Popup title */
 .popup h3 {
     margin-top: 0;
     color: #a855f7;
     text-align: center;
 }
 
+/* Popups initially hidden */
 #csvConfirmationPopup,
 #npgDevicePopup {
     animation: none; /* Disable fade-out */
@@ -138,15 +155,18 @@ body {
     display: none;
 }
 
+/* Fade out other popups */
 .popup:not(#csvConfirmationPopup):not(#npgDevicePopup) {
     animation: fade-out 2s forwards;
 }
 
+/* Higher z-index for priority popups */
 #csvConfirmationPopup,
 #npgDevicePopup {
     z-index: 1001; /* Higher than other popups */
 }
 
+/* Popup content text */
 .popup p {
     font-size: 18px;
     margin-bottom: 20px;
@@ -154,6 +174,7 @@ body {
     text-align: center;
 }
 
+/* Container for popup buttons */
 .popup-buttons {
     display: flex;
     justify-content: center;
@@ -161,6 +182,7 @@ body {
     margin-top: 20px;
 }
 
+/* Common popup button style */
 .popup-button {
     padding: 10px 25px;
     font-size: 16px;
@@ -170,6 +192,7 @@ body {
     transition: all 0.2s;
 }
 
+/* Yes and No buttons */
 .yes-button {
     background: linear-gradient(to right, #3b82f6, #a855f7);
     color: white;
@@ -180,6 +203,7 @@ body {
     color: white;
 }
 
+/* Scrollable list of NPG devices */
 #npgDeviceList {
     max-height: 300px;
     overflow-y: auto;
@@ -189,6 +213,7 @@ body {
     padding: 10px;
 }
 
+/* Each device item style */
 .npg-device-item {
     padding: 12px;
     margin: 8px 0;
@@ -207,6 +232,7 @@ body {
     color: white;
 }
 
+/* Status display in popup */
 #npgPopupStatus {
     margin: 10px 0;
     min-height: 24px;
@@ -216,6 +242,7 @@ body {
     border-radius: 6px;
 }
 
+/* Status color styles */
 .scanning-status {
     background: #dbeafe;
     color: #1d4ed8;
@@ -231,6 +258,7 @@ body {
     color: #b91c1c;
 }
 
+/* Button row for NPG popup */
 .npg-popup-buttons {
     display: flex;
     justify-content: flex-end;
@@ -238,6 +266,7 @@ body {
     margin-top: 20px;
 }
 
+/* NPG popup buttons */
 .npg-popup-btn {
     padding: 10px 20px;
     border: none;
@@ -291,69 +320,8 @@ body {
     color: #a855f7;
     text-align: center;
 }
-#npgDeviceList {
-    max-height: 300px;
-    overflow-y: auto;
-    margin: 15px 0;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 10px;
-}
-.npg-device-item {
-    padding: 12px;
-    margin: 8px 0;
-    background: #f8f9fa;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.npg-device-item:hover {
-    background: #e9ecef;
-}
-.npg-device-item.selected {
-    background: #a855f7;
-    color: white;
-}
-#npgPopupStatus {
-    margin: 10px 0;
-    min-height: 24px;
-    font-weight: bold;
-    text-align: center;
-}
-.scanning-status {
-    color: #3b82f6;
-}
-.connected-status {
-    color: #10b981;
-}
-.error-status {
-    color: #ef4444;
-}
-.npg-popup-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-.npg-popup-btn {
-    padding: 8px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-}
-.npg-connect-btn {
-    background: #10b981;
-    color: white;
-}
-.npg-connect-btn:disabled {
-    background: #a7f3d0;
-    cursor: not-allowed;
-}
-.npg-cancel-btn {
-    background: #f1f1f1;
-}
 
+/* Bottom fixed text label */
 .bottom-text {
     position: fixed;
     bottom: 1px;
@@ -364,6 +332,7 @@ body {
     color: #666;
 }
 
+/* Animation for fading out popups */
 @keyframes fade-out {
     0% { opacity: 1; }
     80% { opacity: 0.8; }

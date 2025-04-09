@@ -15,19 +15,21 @@ class ECGMonitor(QMainWindow):
         self.setWindowTitle("Real-Time ECG Monitor")  # Set up GUI window
         self.setGeometry(100, 100, 800, 600)
 
-        self.plot_widget = PlotWidget(self)
-        self.plot_widget.setBackground('w')
-        self.plot_widget.showGrid(x=True, y=True)
+        self.plot_widget = PlotWidget(self)           # Create the plotting widget
+        self.plot_widget.setBackground('w')           # Set background color to white
+        self.plot_widget.showGrid(x=True, y=True)     # Show grid lines
 
         # Heart rate label at the bottom
         self.heart_rate_label = QLabel(self)
         self.heart_rate_label.setStyleSheet("font-size: 20px; font-weight: bold; color: black;")
         self.heart_rate_label.setAlignment(Qt.AlignCenter)
 
+        # Layout setup - vertical layout for plot and label
         layout = QVBoxLayout()
         layout.addWidget(self.plot_widget)
         layout.addWidget(self.heart_rate_label)
 
+        # Set the central widget that holds all other widgets
         central_widget = QWidget()
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
@@ -36,6 +38,7 @@ class ECGMonitor(QMainWindow):
         print("Searching for available LSL streams...")
         available_streams = pylsl.resolve_streams()
 
+        # Exit if no streams are found
         if not available_streams:
             print("No LSL streams found! Exiting...")
             sys.exit(0)
@@ -53,7 +56,7 @@ class ECGMonitor(QMainWindow):
             print("Unable to connect to any LSL stream! Exiting...")
             sys.exit(0)
 
-        # Sampling rate
+        # Get Sampling rate from the stream info.
         self.sampling_rate = int(self.inlet.info().nominal_srate())
         print(f"Sampling rate: {self.sampling_rate} Hz")
         
@@ -61,13 +64,13 @@ class ECGMonitor(QMainWindow):
         self.buffer_size = self.sampling_rate * 10  # Fixed-size buffer for 10 seconds
         self.ecg_data = np.zeros(self.buffer_size)  # Fixed-size array for circular buffer
         self.time_data = np.linspace(0, 10, self.buffer_size)  # Fixed time array for plotting
-        self.r_peaks = []  # Store the indices of R-peaks
-        self.heart_rate = None
+        self.r_peaks = []       # Store the indices of R-peaks
+        self.heart_rate = None  # Initialize heart rate variable
         self.current_index = 0  # Index for overwriting data
 
         self.b, self.a = butter(4, 20.0 / (0.5 * self.sampling_rate), btype='low')   # Low-pass filter coefficients
 
-        self.timer = pg.QtCore.QTimer()   # Timer for updating the plot
+        self.timer = pg.QtCore.QTimer()   # Timer for updating the plot (every 10 ms)
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(10)
 
@@ -86,7 +89,7 @@ class ECGMonitor(QMainWindow):
         self.moving_average_window_size = 5   # Initialize moving average buffer
         self.heart_rate_history = []          # Buffer to store heart rates for moving average
 
-        # Connect double-click event
+        # Connect double-click event for zoom reset
         self.plot_widget.scene().sigMouseClicked.connect(self.on_double_click)
 
     def on_double_click(self, event):
@@ -139,11 +142,11 @@ class ECGMonitor(QMainWindow):
                 # Update heart rate label with moving average & convert into int
                 self.heart_rate_label.setText(f"Heart Rate: {int(moving_average_hr)} BPM")
         else:
-            self.heart_rate_label.setText("Heart Rate: Calculating...") 
+            self.heart_rate_label.setText("Heart Rate: Calculating...")   # Display message if not enough R-peaks detected
 
     def plot_r_peaks(self, filtered_ecg):
-        r_peak_times = self.time_data[self.r_peaks]   # Extract the time of detected R-peaks
-        r_peak_values = filtered_ecg[self.r_peaks]
+        r_peak_times = self.time_data[self.r_peaks]             # Extract the time of detected R-peaks
+        r_peak_values = filtered_ecg[self.r_peaks]              # Get corresponding ECG values
         self.r_peak_curve.setData(r_peak_times, r_peak_values)  # Plot R-peaks as red dots
 
 if __name__ == "__main__":

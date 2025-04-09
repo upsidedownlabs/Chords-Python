@@ -4,12 +4,12 @@ import pandas as pd
 import plotly.graph_objects as go
 
 class CSVPlotterApp:
-    def __init__(self, root):
+    def __init__(self, root):                 # Initialize the main application window
         self.root = root
         self.root.title("CSV Plotter GUI")
-        self.filename = None
-        self.data = None
-        self.create_widgets()
+        self.filename = None                  # Variable to store the selected CSV file name
+        self.data = None                      # Variable to store the loaded data
+        self.create_widgets()                 # Call the method to create widgets
 
     def create_widgets(self):
         # Create a frame for buttons and file name display
@@ -41,19 +41,19 @@ class CSVPlotterApp:
         self.plot_button.pack(pady=10)
 
     def load_csv(self):
-        self.filename = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        self.filename = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])   # Open file dialog to select CSV file
         if self.filename:
             try:
-                with open(self.filename, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
+                with open(self.filename, "r", encoding="utf-8") as f:                    # Open the selected CSV file
+                    lines = f.readlines()                                                # Read all lines into a list for header detection
 
-                header_index = None        # Find the row where 'Counter' appears
-                for i, line in enumerate(lines):
+                header_index = None                                                      # Initialize the variable to track where (Header)'Counter' appears
+                for i, line in enumerate(lines):                                         # Iterate through lines to find the header line
                     if "Counter" in line:
-                        header_index = i
-                        break
+                        header_index = i                                                 # Store the index of the line containing 'Counter'
+                        break                                                            # If found, break the loop
 
-                if header_index is None:
+                if header_index is None:                                                 # If no header row with 'Counter' was found, show error and exit
                     messagebox.showerror("Error", "CSV file must contain a 'Counter' column.")
                     return
 
@@ -73,7 +73,7 @@ class CSVPlotterApp:
                 messagebox.showerror("Error", f"Could not load CSV file: {e}")
 
     def setup_dropdown_menu(self):
-        # Get available channel columns (Channel1 to Channel6)
+        # Get available channel columns
         channel_columns = [col for col in self.data.columns if 'Channel' in col]
 
         # Populate dropdown menu with available channels
@@ -82,6 +82,7 @@ class CSVPlotterApp:
             self.channel_selection.set(channel_columns[0])  # Default selection to the first channel
 
     def plot_data(self):
+        """Creates an interactive plot of the selected data channel using Plotly."""
         selected_channel = self.channel_selection.get()   # Get the selected channel
         if not selected_channel:
             messagebox.showerror("Error", "No channel selected for plotting")
@@ -96,9 +97,9 @@ class CSVPlotterApp:
             yaxis_title="Value",
             template="plotly_white"
         )
-        fig.show()
+        fig.show()               # Display the plot in a new window
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = CSVPlotterApp(root)
-    root.mainloop()
+    root = tk.Tk()               # Create the main Tkinter root window
+    app = CSVPlotterApp(root)    # Create an instance of the CSVPlotterApp class
+    root.mainloop()              # Start the Tkinter main loop
