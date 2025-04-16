@@ -1,6 +1,6 @@
-from serial_usb import Serial_USB
-from npg_wifi import NPG_Wifi
-from npg_ble import NPG_Ble
+from chords_serial import Serial_USB
+from chords_wifi import NPG_Wifi
+from chords_ble import NPG_Ble
 from pylsl import StreamInfo, StreamOutlet
 import argparse
 import time
