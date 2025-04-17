@@ -1,8 +1,9 @@
 import sys
-from pylsl import StreamInlet, resolve_streams, resolve_byprop
+from pylsl import StreamInlet, resolve_streams, resolve_byprop, LostError
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
 import numpy as np
+import time
 
 # Initialize global variables
 inlet = None
@@ -10,13 +11,19 @@ data = None
 num_channels = 6  # Default number of channels
 curves = []
 plots = []
+last_data_time = None
+stream_active = True
 
 def update_plots():
-    global data
-    if inlet is not None:
-        # Pull multiple samples at once
-        samples, timestamps = inlet.pull_chunk(timeout=0.0, max_samples=10)  # Pull up to 10 samples
-
+    global data, last_data_time, stream_active
+    if inlet is None or not stream_active:
+        return
+    
+    # Pull multiple samples at once
+    samples, timestamps = inlet.pull_chunk(timeout=0.0, max_samples=10)  # Pull up to 10 samples
+    
+    if samples:
+        last_data_time = time.time()
         # Update data buffer
         for sample in samples:
             data = np.roll(data, -1, axis=1)  # Shift data left
@@ -25,9 +32,17 @@ def update_plots():
         # Update the curves with the new data
         for i in range(num_channels):
             curves[i].setData(data[i])
+    else:
+        # Check if data not received for more than 2 seconds
+        if last_data_time and (time.time() - last_data_time) > 2:
+            stream_active = False
+            lsl_label.setText("LSL Status: Stream disconnected")
+            QtWidgets.QApplication.processEvents()
+            timer.stop()
+            win.close()
 
 def plot_lsl_data():
-    global inlet, num_channels, data
+    global inlet, num_channels, data, last_data_time, stream_active
 
     print("Searching for available LSL streams...")
     streams = resolve_streams()                         # Discover available LSL streams
@@ -44,6 +59,8 @@ def plot_lsl_data():
         if resolved_streams:
             print(f"Successfully connected to {stream_name}!")
             inlet = StreamInlet(resolved_streams[0])           # Create an inlet to receive data from the stream
+            last_data_time = time.time()  # Initialize last data time
+            stream_active = True  # Set stream active flag
             break
         else:
             print(f"Failed to connect to {stream_name}.")
@@ -59,7 +76,7 @@ def plot_lsl_data():
     # Initialize data buffer based on the number of channels
     data = np.zeros((num_channels, 2000))  # Buffer to hold the last 2000 samples for each channel
 
-    init_gui()
+    return init_gui()
 
 def init_gui():
     global plots, curves, app, win, timer, status_bar, lsl_label
@@ -74,7 +91,6 @@ def init_gui():
     pg.setConfigOption('foreground', 'k')  # Foreground color
 
     # Create plots for each channel based on num_channels
-    global plots, curves
     plots = []
     curves = []
     colors = ['#D10054', '#007A8C', '#0A6847', '#674188', '#E65C19', '#2E073F' ]  # Different colors for each channel
@@ -104,7 +120,7 @@ def init_gui():
     timer.timeout.connect(update_plots)  # Connect the update function to the timer
     timer.start(10)  # Start the timer with a 10ms interval
 
-    QtWidgets.QApplication.processEvents()  # Process any pending events
+    return app
 
 if __name__ == "__main__":
     plot_lsl_data()
