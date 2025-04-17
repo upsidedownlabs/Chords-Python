@@ -102,10 +102,12 @@ class NPG_Ble:
         while not self.stop_event.is_set():
             if self.last_received_time and (time.time() - self.last_received_time) > self.DATA_TIMEOUT:
                 print("\nData Interrupted")
+                print("Cleanup Completed.")
                 self.running = False
                 break
             if self.client and not self.client.is_connected:
                 print("\nData Interrupted (Bluetooth disconnected)")
+                print("Cleanup Completed.")
                 self.running = False
                 break
             await asyncio.sleep(0.5)
