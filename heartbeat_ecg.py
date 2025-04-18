@@ -7,6 +7,7 @@ import pyqtgraph as pg
 import pylsl
 import neurokit2 as nk
 import sys
+import time
 
 class ECGMonitor(QMainWindow):
     def __init__(self): 
@@ -14,6 +15,9 @@ class ECGMonitor(QMainWindow):
 
         self.setWindowTitle("Real-Time ECG Monitor")  # Set up GUI window
         self.setGeometry(100, 100, 800, 600)
+
+        self.stream_active = True                     # Flag to check if the stream is active
+        self.last_data_time = None                    # Variable to store the last data time
 
         self.plot_widget = PlotWidget(self)           # Create the plotting widget
         self.plot_widget.setBackground('w')           # Set background color to white
@@ -107,6 +111,7 @@ class ECGMonitor(QMainWindow):
     def update_plot(self):
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
         if samples:
+            self.last_data_time = time.time()         # Update last data time
             for sample in samples:
                 # Overwrite the oldest data point in the buffer
                 self.ecg_data[self.current_index] = sample[0]
@@ -120,6 +125,12 @@ class ECGMonitor(QMainWindow):
             self.r_peaks = self.detect_r_peaks(filtered_ecg)
             self.calculate_heart_rate()
             self.plot_r_peaks(filtered_ecg)
+        else:
+            if self.last_data_time and (time.time() - self.last_data_time) > 2:
+                self.stream_active = False           # Set stream active to false
+                print("LSL stream disconnected!")
+                self.timer.stop()                    # Stop the timer
+                self.close()                         # Close the application
 
     def detect_r_peaks(self, ecg_signal):
         r_peaks = nk.ecg_findpeaks(ecg_signal, sampling_rate=self.sampling_rate)
