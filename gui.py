@@ -1,5 +1,5 @@
 import sys
-from pylsl import StreamInlet, resolve_streams, resolve_byprop, LostError
+from pylsl import StreamInlet, resolve_streams, resolve_byprop
 import pyqtgraph as pg  # For real-time plotting
 from pyqtgraph.Qt import QtWidgets, QtCore  # PyQt components for GUI
 import numpy as np
