@@ -5,7 +5,7 @@ import sys
 import argparse
 import threading
 
-class NPG_Ble:
+class Chords_BLE:
     # Class constants
     DEVICE_NAME_PREFIX = "NPG"
     SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
@@ -185,11 +185,11 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    client = NPG_Ble()
+    client = Chords_BLE()
     
     try:
         if args.scan:
-            devices = asyncio.run(NPG_Ble.scan_devices())
+            devices = asyncio.run(Chords_BLE.scan_devices())
             for dev in devices:
                 print(f"DEVICE:{dev.name}|{dev.address}")
         elif args.connect:
