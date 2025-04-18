@@ -9,6 +9,7 @@ import sys
 from scipy.signal import butter, iirnotch, lfilter, lfilter_zi
 from scipy.fft import fft
 import math
+import time
 
 class EEGMonitor(QMainWindow):
     def __init__(self): 
@@ -16,6 +17,9 @@ class EEGMonitor(QMainWindow):
 
         self.setWindowTitle("Real-Time EEG Monitor with FFT and Brainwave Power")
         self.setGeometry(100, 100, 1200, 800)
+
+        self.stream_active = True   # Flag to check if the stream is active
+        self.last_data_time = None  # Variable to store the last data time
 
         # Main layout split into two halves: top for EEG, bottom for FFT and Brainwaves
         self.central_widget = QWidget()
@@ -108,6 +112,7 @@ class EEGMonitor(QMainWindow):
     def update_plot(self):
         samples, _ = self.inlet.pull_chunk(timeout=0.0)
         if samples:
+            self.last_data_time = time.time()     # Store the last data time
             for sample in samples:
                 raw_point = sample[0]
 
@@ -128,6 +133,13 @@ class EEGMonitor(QMainWindow):
             plot_data = np.array(self.eeg_data)
             time_axis = np.linspace(0, 4, len(plot_data))
             self.eeg_curve.setData(time_axis, plot_data)
+
+        else:
+            if self.last_data_time and (time.time() - self.last_data_time) > 2:
+                self.stream_active = False
+                print("LSL stream disconnected!")
+                self.timer.stop()
+                self.close()
 
     def process_fft_and_brainpower(self):
         window = np.hanning(len(self.moving_window))
