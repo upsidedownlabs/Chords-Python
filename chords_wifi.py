@@ -4,7 +4,7 @@ import websocket
 import socket
 from scipy.signal import butter, filtfilt
 
-class NPG_Wifi:
+class Chords_WIFI:
     def __init__(self, stream_name='NPG', channels=3, sampling_rate=250, block_size=13, timeout_sec=1):
         self.stream_name = stream_name
         self.channels = channels
@@ -129,7 +129,7 @@ class NPG_Wifi:
 if __name__ == "__main__":
     client = None
     try:
-        client = NPG_Wifi()
+        client = Chords_WIFI()
         client.connect()
         client.process_data()
     except Exception as e:
