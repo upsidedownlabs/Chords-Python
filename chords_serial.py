@@ -6,7 +6,7 @@ import sys
 import signal
 import threading
 
-class Serial_USB:
+class Chords_USB:
     SYNC_BYTE1 = 0xc7
     SYNC_BYTE2 = 0x7c
     END_BYTE = 0x01
@@ -152,6 +152,6 @@ class Serial_USB:
         self.cleanup()
 
 if __name__ == "__main__":
-    client = Serial_USB()
+    client = Chords_USB()
     client.detect_hardware()
     client.start_streaming()
