@@ -14,6 +14,9 @@ class EOGMonitor(QMainWindow):
         self.setWindowTitle("Real-Time EOG Monitor - Eye Blink Detection")
         self.setGeometry(100, 100, 800, 400)
 
+        self.stream_active = True   # Flag to check if the stream is active
+        self.last_data_time = None  # Variable to store the last data time
+
         # Create layout
         layout = QVBoxLayout()
         central_widget = QWidget()
@@ -99,6 +102,7 @@ class EOGMonitor(QMainWindow):
     def update_plot(self):
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
         if samples:
+            self.last_data_time = time.time()     # Store the last data time
             for sample in samples:
                 # Overwrite the oldest data point in the buffer
                 self.eog_data[self.current_index] = sample[0]
@@ -132,6 +136,12 @@ class EOGMonitor(QMainWindow):
 
             # Update the blink plot with the current blink data
             self.blink_curve.setData(self.time_data, self.blink_data)
+        else:
+            if self.last_data_time and (time.time() - self.last_data_time) > 2:
+                self.stream_active = False
+                print("LSL stream disconnected!")
+                self.timer.stop()
+                self.close()
 
     def detect_blinks(self, filtered_eog):
         mean_signal = np.mean(filtered_eog)
