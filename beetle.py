@@ -2,6 +2,7 @@ import pygame
 import pylsl
 import numpy as np
 import time
+import sys
 from pylsl import StreamInlet, resolve_streams, resolve_byprop
 from scipy.signal import iirnotch, butter, lfilter
 import math
@@ -12,8 +13,13 @@ print("Searching for available LSL streams...")
 streams = resolve_streams()
 available_streams = [s.name() for s in streams]
 
+last_data_time = None
+stream_active = True
+inlet = None  # Initialize inlet variable
+
 if not available_streams:
     print("No LSL streams found!")
+    sys.exit(1)
 
 for stream_name in available_streams:
     print(f"Trying to connect to {stream_name}...")
@@ -28,6 +34,8 @@ for stream_name in available_streams:
 
 if inlet is None:
     print("Could not connect to any stream.")
+    sys.exit(1)
+
 sampling_rate = int(inlet.info().nominal_srate())
 print(f"Sampling rate: {sampling_rate} Hz")
 
@@ -70,6 +78,11 @@ def show_message(message, duration=3):
         screen.blit(text, text_rect)
         pygame.display.update()
 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
 # Apply filters
 def apply_filters(eeg_point):
     filtered = lfilter(b_notch, a_notch, [eeg_point])
@@ -97,7 +110,7 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Beetle Game')
 
 def calibrate():
-    global focus_threshold
+    global focus_threshold, last_data_time
     calibration_data = []
     
     font = pygame.font.SysFont("Arial", 36, bold=True)
@@ -119,8 +132,19 @@ def calibrate():
         
         sample, _ = inlet.pull_sample(timeout=0.1)
         if sample:
+            last_data_time = time.time()
             filtered_sample = apply_filters(sample[0])
             calibration_data.append(filtered_sample)
+        else:
+            if last_data_time and (time.time() - last_data_time) > 2:
+                show_message("Connection lost! Exiting...", 2)
+                pygame.quit()
+                sys.exit(1)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
     if len(calibration_data) >= buffer_size:        # Ensure enough data was collected
         eeg_data = np.array(calibration_data)
@@ -170,8 +194,14 @@ while running:
 
         sample, _ = inlet.pull_sample(timeout=0.1)
         if sample:
+            last_data_time = time.time()
             filtered_sample = apply_filters(sample[0])
             buffer.append(filtered_sample)
+        else:
+            if last_data_time and (time.time() - last_data_time) > 2:
+                show_message("Connection lost! Exiting...", 2)
+                running = False
+                break
 
         current_time = time.time()
 
