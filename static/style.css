@@ -165,6 +165,21 @@ body {
     color: #666;
 }
 
+/* Footer adjustments */
+.footer-text {
+    margin-top: 15px;
+}
+
+/* Footer */
+.footer-text {
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+    margin-top: 20px;
+    width: 100%;
+}
+
+
 /* Disconnect button styles - matching 3-in-1 button dimensions */
 .disconnect-button {
     width: 90%;
@@ -317,11 +332,6 @@ body {
 
 .app-buttons button {
     height: 70px;
-}
-
-/* Footer adjustments */
-.footer-text {
-    margin-top: 15px;
 }
 
 /* BLE Popup */
@@ -546,15 +556,6 @@ body {
     font-weight: bold;
 }
 
-/* Footer */
-.footer-text {
-    text-align: center;
-    font-size: 13px;
-    color: #666;
-    margin-top: 20px;
-    width: 100%;
-}
-
 .heart {
     color: #a855f7;
     font-size: 1.2em;
@@ -687,5 +688,208 @@ body {
         width: 60px;
         height: 60px;
         font-size: 20px;
+    }
+}
+
+.top-controls {
+    width: 100%;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center; /* Center the main content */
+    align-items: center;
+    position: relative; /* For absolute positioning of CSV button */
+}
+
+.protocol-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.csv-recording-box {
+    display: flex;
+    width: 300px;
+    height: 60px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    position: absolute;
+    right: 0; /* Stick to the right edge */
+}
+
+.protocol-buttons-combined {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.protocol-button-group {
+    position: relative;
+    display: inline-flex;
+    background: #f0f0f0;
+    border-radius: 35px;
+    padding: 3px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+}
+
+.protocol-buttons-combined button {
+    width: 60px;
+    height: 60px;
+    border: none;
+    background: #536878;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+#connect_button {
+    width: 100px;
+    height: 60px;
+    border: none;
+    border-radius: 35px;
+    background: #4CAF50;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    .top-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .csv-recording-box {
+        position: static;
+        width: 100%;
+        max-width: 300px;
+        margin-top: 15px;
+    }
+    
+}
+
+.csv-recording-box {
+    display: flex;
+    width: 280px;
+    height: 70px;
+    background: #fffffe;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    border: 2px solid #ddd;
+    overflow: hidden;
+    position: absolute;
+    right: 0;
+    transition: all 0.3s;
+}
+
+.csv-recording-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    border-color: #000000;
+}
+
+.csv-filename-container {
+    flex: 1;
+    padding: 8px 12px;
+    border-right: 1px solid #e1e5eb;
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+}
+
+.csv-filename-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 17px;
+    color: #334155;
+    outline: none;
+    font-weight: bold;
+    padding: 6px 0;
+}
+
+.csv-filename-input::placeholder {
+    color: #98bfde;
+}
+
+.csv-button-container {
+    width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+}
+
+.csv-record-btn {
+    width: 100%;
+    padding: 10px 8px;
+    background: linear-gradient(to bottom, #5ecef0, #9bdaed);
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd; /* Add subtle border */
+}
+
+.csv-record-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.csv-record-btn.recording {
+    background: #4CAF50;
+    color: white;
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+    border-color: #3e8e41; /* Darker green border */
+}
+
+.csv-record-btn.recording:hover {
+    background: #45a049; /* Slightly darker green on hover */
+    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* Add a subtle pulse animation when recording is on*/
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.csv-record-btn.recording {
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@media (max-width: 768px) {
+    .csv-recording-box {
+        position: static;
+        width: 100%;
+        max-width: 320px;
+        margin-top: 15px;
+    }
+    
+    .csv-record-btn {
+        padding: 8px 6px;
+        font-size: 13px;
     }
 }

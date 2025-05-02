@@ -13,37 +13,44 @@
             <h1>Chords-Python</h1>
         </div>
 
-        <div class="protocol-buttons-combined" id="protocolButtonsContainer">
-            <div class="protocol-button-group" id="protocolButtonsGroup">
-                <button id="usb_button_combined" onclick="connectUSB()">
-                    <i class="fa fa-usb"></i>
-                    <span class="protocol-tooltip">USB Connection</span>
-                </button>
-                <button id="wifi_button_combined" onclick="connectWiFi()">
-                    <i class="fa fa-wifi"></i>
-                    <span class="protocol-tooltip">WiFi Connection</span>
-                </button>
-                <button id="ble_button_combined" onclick="showBLEPopup()">
-                    <i class="fa fa-bluetooth"></i>
-                    <span class="protocol-tooltip">Bluetooth Connection</span>
-                </button>
+        <div class="top-controls">
+            <div class="protocol-container">
+                <div class="protocol-buttons-combined" id="protocolButtonsContainer">
+                    <div class="protocol-button-group" id="protocolButtonsGroup">
+                        <button id="usb_button_combined" onclick="connectUSB()">
+                            <i class="fa fa-usb"></i>
+                            <span class="protocol-tooltip">USB Connection</span>
+                        </button>
+                        <button id="wifi_button_combined" onclick="connectWiFi()">
+                            <i class="fa fa-wifi"></i>
+                            <span class="protocol-tooltip">WiFi Connection</span>
+                        </button>
+                        <button id="ble_button_combined" onclick="showBLEPopup()">
+                            <i class="fa fa-bluetooth"></i>
+                            <span class="protocol-tooltip">Bluetooth Connection</span>
+                        </button>
+                    </div>
+                    <button id="connect_button" onclick="connectDefault()">Connect</button>
+                </div>
+                <div class="disconnect-button" id="disconnectButtonContainer" style="display: none;">
+                    <button id="disconnect_button" onclick="disconnectAll()">
+                        <i class="fa fa-times"></i>
+                        <span>Disconnect</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="csv-recording-box" id="csvRecordingBox">
+                <div class="csv-filename-container">
+                    <input type="text" id="csvFilenameInput" class="csv-filename-input" value="ChordsPy.csv" placeholder="Filename.csv">
+                </div>
+                <div class="csv-button-container">
+                    <button class="csv-record-btn" id="csvRecordBtn" onclick="toggleCSVRecording()">Save as CSV</button>
+                </div>
             </div>
         </div>
 
-        <div class="disconnect-button" id="disconnectButtonContainer" style="display: none;">
-            <button id="disconnect_button" onclick="disconnectAll()">
-                <i class="fa fa-times"></i>
-                <span>Disconnect</span>
-            </button>
-        </div>
-
         <div id="connectionStatus"></div>
-
-        <div class="csv-toggle">
-            <label>
-                <input type="checkbox" id="csvToggle"> Enable CSV Logging
-            </label>
-        </div>
 
         <div class="app-buttons">
             <div class="app-row">
@@ -133,11 +140,34 @@
             });
         });
 
-        function setCSVToggleState(enabled) {
-            const csvToggle = document.getElementById('csvToggle');
-            csvToggle.disabled = !enabled;
-            csvToggle.parentElement.style.opacity = enabled ? '1' : '0.6';
-            csvToggle.parentElement.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        // function setCSVToggleState(enabled) {
+        //     const csvToggle = document.getElementById('csvToggle');
+        //     csvToggle.disabled = !enabled;
+        //     csvToggle.parentElement.style.opacity = enabled ? '1' : '0.6';
+        //     csvToggle.parentElement.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        // }
+
+        function toggleCSVRecording() {
+            const recordBtn = document.getElementById('csvRecordBtn');
+            const isRecording = recordBtn.classList.contains('recording');
+            const filenameInput = document.getElementById('csvFilenameInput');
+            
+            if (isRecording) {
+                // Stop recording
+                recordBtn.classList.remove('recording');
+                recordBtn.textContent = 'Save as CSV';
+                // Add your stop recording logic here
+            } else {
+                // Start recording
+                if (filenameInput.value.trim() === '') {
+                    alert('Please enter a valid filename');
+                    return;
+                }
+                
+                recordBtn.classList.add('recording');
+                recordBtn.textContent = 'Stop Recording';
+                // Add your start recording logic here
+            }
         }
 
         function disableAllAppButtons() {
@@ -517,6 +547,11 @@
             disconnectBtn.disabled = true;
             statusDiv.textContent = 'Disconnecting and cleaning up...';
             statusDiv.className = 'scanning-status';
+            const recordBtn = document.getElementById('csvRecordBtn');
+            if (recordBtn.classList.contains('recording')) {
+                recordBtn.classList.remove('recording');
+                recordBtn.textContent = 'Save as CSV';
+            }
             
             try {
                 // Stop all running applications
