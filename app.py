@@ -6,6 +6,9 @@ import webbrowser
 from pylsl import resolve_streams
 import time
 from chords_ble import Chords_BLE
+import subprocess
+import os
+import sys
 
 app = Flask(__name__)
 connection_manager = None
@@ -13,6 +16,7 @@ ble_devices = []
 active_connection = None
 lsl_stream_active = False
 csv_logging_enabled = False  # Global CSV logging state
+running_apps = {}            # Dictionary to keep track of running applications
 
 @app.route('/set_csv', methods=['POST'])
 def set_csv():
@@ -109,8 +113,85 @@ def connect_wifi():
 
 def connect_ble(address):
     global active_connection, lsl_stream_active, csv_logging_enabled
+    lsl_stream_active = False
+    Thread(target=check_lsl_stream).start()  # Add this line
     active_connection = Connection(csv_logging=csv_logging_enabled)
     active_connection.connect_ble(address)  # No duplicate device selection
+
+@app.route('/run_application', methods=['POST'])
+def run_application():
+    global lsl_stream_active, running_apps
+    
+    if not lsl_stream_active:
+        return jsonify({'status': 'error', 'message': 'LSL stream is not active. Please connect first.'})
+    
+    app_name = request.form.get('app_name')
+    if not app_name:
+        return jsonify({'status': 'error', 'message': 'No application specified'})
+    
+    if app_name in running_apps:
+        return jsonify({'status': 'error', 'message': f'{app_name} is already running'})
+    
+    app_mapping = {
+        'ECG with Heart Rate': 'heartbeat_ecg.py',
+        'EMG with Envelope': 'emgenvelope.py',
+        'EOG with Blinks': 'eog.py',
+        'EEG with FFT': 'ffteeg.py',
+        'EEG Tug of War' : 'game.py',
+        'EEG Beetle Game': 'beetle.py',
+        'EOG Keystroke Emulator': 'keystroke.py',
+        'GUI Visualization': 'gui.py',
+        'CSV Plotter': 'csvplotter.py'
+    }
+    
+    script_name = app_mapping.get(app_name)
+    if not script_name:
+        return jsonify({'status': 'error', 'message': 'Invalid application name'})
+    
+    if not os.path.exists(script_name):
+        return jsonify({'status': 'error', 'message': f'Script {script_name} not found'})
+    
+    try:
+        process = subprocess.Popen([sys.executable, script_name])
+        running_apps[app_name] = process
+        return jsonify({'status': 'success', 'message': f'{app_name} started successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/stop_application', methods=['POST'])
+def stop_application():
+    global running_apps
+    
+    app_name = request.form.get('app_name')
+    if not app_name:
+        return jsonify({'status': 'error', 'message': 'No application specified'})
+    
+    if app_name not in running_apps:
+        return jsonify({'status': 'error', 'message': f'{app_name} is not running'})
+    
+    try:
+        running_apps[app_name].terminate()
+        del running_apps[app_name]
+        return jsonify({'status': 'success', 'message': f'{app_name} stopped successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/check_app_status', methods=['GET'])
+def check_app_status():
+    global running_apps
+    
+    app_name = request.args.get('app_name')
+    if not app_name:
+        return jsonify({'status': 'error', 'message': 'No application specified'})
+    
+    if app_name in running_apps:
+        if running_apps[app_name].poll() is None:
+            return jsonify({'status': 'running', 'message': f'{app_name} is running'})
+        else:
+            del running_apps[app_name]
+            return jsonify({'status': 'stopped', 'message': f'{app_name} has stopped'})
+    else:
+        return jsonify({'status': 'stopped', 'message': f'{app_name} is not running'})
 
 if __name__ == "__main__":
     app.run(debug=True)

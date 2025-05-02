@@ -4,34 +4,39 @@ body {
     background-color: #f4f4f4;
     margin: 0;
     padding: 0;
-}
-
-/* Main container alignment */
-.container {
-    text-align: center;
-    padding: 20px;
-}
-
-/* Layout for top control buttons */
-.controls-container {
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     justify-content: center;
-    gap: 20px;
-    margin-bottom: 20px;
+    align-items: center;
 }
 
-/* Styling for each set of control buttons */
-.controls {
+/* Main container */
+.container {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    width: 95%;
+    height: 95vh;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
 }
 
-/* Gradient animated heading */
+/* Header section */
+.header {
+    width: 100%;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
 .header h1 {
     font-size: 48px;
     font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
     background: linear-gradient(90deg, #ec4899, #a855f7, #3b82f6, #ec4899);
     background-size: 300%;
     -webkit-background-clip: text;
@@ -40,268 +45,524 @@ body {
     animation: scroll-gradient 5s linear infinite;
 }
 
-/* Keyframes for scrolling the gradient */
-@keyframes scroll-gradient {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 100% 50%; }
+/* Protocol buttons section */
+.protocol-section {
+    width: 100%;
+    margin: 10px 0;
+    flex-shrink: 0;
 }
 
-/* Heart icon styling */
-.heart {
-    color: #a855f7;
-    font-size: 1.2em;
+.protocol-button-group {
+    position: relative;
+    display: inline-flex;
+    background: #f0f0f0;
+    border-radius: 35px;
+    padding: 5px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
 }
 
-/* Button styling in controls */
-.controls button {
-    padding: 15px 30px;
-    margin: 10px;
-    font-size: 18px;
-    cursor: pointer;
+.protocol-buttons-combined button {
+    width: 80px;
+    height: 80px;
     border: none;
-    border-radius: 10px;
-    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
-    color: #fffffe;
-    transition: all 0.3s ease;
-    width: 250px;
-}
-
-/* Style for active buttons */
-.controls button.running {
-    background: rgb(105, 206, 105);
-    cursor: not-allowed;
-}
-
-/* Disabled button style */
-.controls button:disabled:not(.running) {
-    background: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
-    opacity: 1;
-    cursor: not-allowed;
-}
-
-/* Layout for app buttons section */
-.app-buttons {
-    margin-top: 20px;
-}
-
-/* Button rows with spacing */
-.row {
+    background:  #536878;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 0 -2px;
+    position: relative;
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
+    align-items: center;
+}
+
+/* Status message section */
+.status-section {
+    width: 100%;
+    margin: 10px 0;
+    min-height: 20px;
+    flex-shrink: 0;
+}
+
+/* CSV toggle section */
+.csv-section {
+    width: 100%;
+    margin: 10px 0 15px 0;
+    flex-shrink: 0;
+}
+
+.csv-toggle label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #555;
+    font-size: 16px;
+}
+
+/* CSV toggle disabled state */
+.csv-toggle label[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.csv-toggle input[disabled] {
+    cursor: not-allowed;
+}
+
+/* App buttons section */
+.apps-section {
+    width: 100%;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.app-buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.app-row {
+    display: flex;
+    justify-content: center;
     gap: 15px;
 }
 
 /* Individual app button styling */
 .app-buttons button {
-    white-space: nowrap;
-    text-overflow: ellipsis;  
-    width: 200px;
+    flex: 1;
+    min-width: 180px;
+    max-width: 220px;
     height: 80px;
-    margin: 10px;
     font-size: 17px; /* Larger font size */
-    font-weight: medium;
-    border-radius: 10px; /* Rounded edges */
-    border: none;
-    color: #333; /* Font color */
+    font-weight: bold;
+    border-radius: 10px;
+    border: 2px solid #ddd;
+    color: #333;
     cursor: pointer;
-    background-color: #fffffe;
+    background:  #fffffe;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transition: all 0.3s;
 }
 
-/* Running app button appearance */
-.app-buttons button.running {
-    background-color: rgb(105, 206, 105);
-    color: white;
-    cursor: not-allowed;
+/* Footer section */
+.footer-section {
+    width: 100%;
+    margin-top: 10px;
+    flex-shrink: 0;
 }
 
-/* Disabled app button style */
-.app-buttons button:disabled:not(.running) {
+.footer-text {
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+}
+
+/* Disconnect button styles - matching 3-in-1 button dimensions */
+.disconnect-button {
+    width: 90%;
+    margin: 10px 0;
+    text-align: center;
+}
+
+#disconnect_button {
+    width: 244px; /* Matches total width of 3 protocol buttons (80px each with -2px margins) */
+    height: 80px; /* Same height as protocol buttons */
+    border: none;
+    border-radius: 35px; /* Same rounded corners */
+    background: rgb(186, 15, 15);
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Same shadow */
+    margin: 0 auto;
+    padding: 0 20px; /* Add some padding for text */
+}
+
+#disconnect_button:hover {
+    transform: scale(1.05); /* Same hover effect */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25); /* Same hover shadow */
+    background: #f83636;
+}
+
+#disconnect_button i {
+    font-size: 24px;
+}
+
+/* Responsive adjustments to maintain exact matching */
+@media (max-width: 900px) {
+    #disconnect_button {
+        width: 214px;
+        height: 70px;
+        font-size: 16px;
+    }
+    
+    #disconnect_button i {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 600px) {
+    #disconnect_button {
+        width: 184px;
+        height: 60px;
+        font-size: 14px;
+    }
+    
+    #disconnect_button i {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 400px) {
+    #disconnect_button {
+        width: 154px;
+        height: 50px;
+        font-size: 13px;
+    }
+    
+    #disconnect_button i {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 900px) {
+    .app-buttons button {
+        min-width: 150px;
+        height: 70px;
+        font-size: 14px;
+    }
+    
+    .protocol-buttons-combined button {
+        width: 70px;
+        height: 70px;
+        font-size: 24px;
+    }
+    
+    .header h1 {
+        font-size: 36px;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        height: 98vh;
+        padding: 10px;
+    }
+    
+    .app-row {
+        flex-wrap: wrap;
+    }
+    
+    .app-buttons button {
+        min-width: 120px;
+        height: 60px;
+        font-size: 12px;
+    }
+    
+    .protocol-buttons-combined button {
+        width: 60px;
+        height: 60px;
+        font-size: 20px;
+    }
+    
+    .header h1 {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        height: 98vh;
+        padding: 10px;
+    }
+    
+    .app-buttons button {
+        min-width: 100px;
+        height: 50px;
+        font-size: 11px;
+    }
+    
+    .protocol-buttons-combined button {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+    }
+    
+    .header h1 {
+        font-size: 24px;
+    }
+}
+
+.csv-toggle {
+    margin-bottom: 15px;
+}
+
+.app-buttons {
+    margin: 15px 0;
+}
+
+.app-buttons button {
+    height: 70px;
+}
+
+/* Footer adjustments */
+.footer-text {
+    margin-top: 15px;
+}
+
+/* BLE Popup */
+#bleDevicePopup {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.header h1 {
+    font-size: 48px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
+    background: linear-gradient(90deg, #ec4899, #a855f7, #3b82f6, #ec4899);
+    background-size: 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: scroll-gradient 5s linear infinite;
+}
+
+/* Connection buttons */
+.connection-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.connection-buttons button {
+    width: 70px;
+    height: 70px;
+    border: none;
+    border-radius: 50%;
+    background:  #536878;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.connection-buttons button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.connection-buttons button.running {
+    background: #4CAF50;
+    box-shadow: 0 0 0 3px white;
+}
+
+.connection-buttons button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* Generic popup box */
-.popup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.2);
-    z-index: 1000;
-    width: 400px;
-    max-width: 90%;
+/* CSV toggle */
+.csv-toggle {
+    margin-bottom: 25px;
+    width: 100%;
 }
 
-/* Popup title */
-.popup h3 {
-    margin-top: 0;
-    color: #a855f7;
-    text-align: center;
+.csv-toggle label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #555;
+    font-size: 16px;
 }
 
-/* Popups initially hidden */
-#csvConfirmationPopup,
-#npgDevicePopup {
-    animation: none; /* Disable fade-out */
-    visibility: visible;
-    opacity: 1;
-    display: none;
+/* App buttons */
+.app-buttons {
+    margin: 20px 0;
+    width: 100%;
 }
 
-/* Fade out other popups */
-.popup:not(#csvConfirmationPopup):not(#npgDevicePopup) {
-    animation: fade-out 2s forwards;
-}
-
-/* Higher z-index for priority popups */
-#csvConfirmationPopup,
-#npgDevicePopup {
-    z-index: 1001; /* Higher than other popups */
-}
-
-/* Popup content text */
-.popup p {
-    font-size: 18px;
-    margin-bottom: 20px;
-    color: #333;
-    text-align: center;
-}
-
-/* Container for popup buttons */
-.popup-buttons {
+.app-row {
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin-top: 20px;
+    margin-bottom: 15px;
 }
 
-/* Common popup button style */
-.popup-button {
-    padding: 10px 25px;
+/* App buttons */
+.app-buttons button {
+    flex: 1;
+    min-width: 180px;
+    max-width: 220px;
+    height: 80px;
+    margin: 0;
     font-size: 16px;
+    font-weight: bold; /* Made text bold */
+    border-radius: 10px;
+    border: 2px solid #ddd; /* Added border */
+    color: #333;
+    cursor: pointer;
+    background: linear-gradient(to bottom, #ffffff, #f1f1f1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Stronger shadow */
+    transition: all 0.3s;
+}
+
+.app-buttons button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25); /* Enhanced hover effect */
+    border-color: #000000; 
+}
+
+.app-buttons button.running {
+    background: #4CAF50;
+    color: white;
+    border-color: #3e8e41; /* Darker green border */
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.app-buttons button:disabled:not(.running) {
+    background: linear-gradient(to bottom, #f9f9f9, #e9e9e9);
+    color: #999;
+    border-color: #eee;
+    cursor: not-allowed;
+}
+
+.protocol-button-group {
+    position: relative;
+    display: inline-flex;
+    background: #f0f0f0;
+    border-radius: 35px;
+    padding: 5px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+}
+
+.protocol-buttons-combined button {
+    width: 80px;
+    height: 80px;
     border: none;
-    border-radius: 8px;
+    background:  #536878;
+    color: white;
+    font-size: 28px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
+    margin: 0 -2px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Yes and No buttons */
-.yes-button {
-    background: linear-gradient(to right, #3b82f6, #a855f7);
+.protocol-buttons-combined button:first-child {
+    border-top-left-radius: 35px;
+    border-bottom-left-radius: 35px;
+}
+
+.protocol-buttons-combined button:last-child {
+    border-top-right-radius: 35px;
+    border-bottom-right-radius: 35px;
+}
+
+.protocol-buttons-combined button:hover {
+    transform: scale(1.05);
+    z-index: 2;
+}
+
+.protocol-buttons-combined button.running {
+    background: #4CAF50;
+    box-shadow: 0 0 0 3px white;
+}
+
+.protocol-buttons-combined button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.protocol-tooltip {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
     color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+    white-space: nowrap;
 }
 
-.no-button {
-    background: linear-gradient(to right, #ec4899, #a855f7);
-    color: white;
+.protocol-buttons-combined button:hover .protocol-tooltip {
+    opacity: 1;
+    visibility: visible;
+    bottom: -40px;
 }
 
-/* Scrollable list of NPG devices */
-#npgDeviceList {
-    max-height: 300px;
-    overflow-y: auto;
-    margin: 15px 0;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 10px;
-}
-
-/* Each device item style */
-.npg-device-item {
-    padding: 12px;
-    margin: 8px 0;
-    background: #f8f9fa;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.npg-device-item:hover {
-    background: #e9ecef;
-}
-
-.npg-device-item.selected {
-    background: #a855f7;
-    color: white;
-}
-
-/* Status display in popup */
-#npgPopupStatus {
-    margin: 10px 0;
-    min-height: 24px;
-    font-weight: bold;
+/* Status message */
+#connectionStatus {
+    margin: 10px 0 20px;
+    min-height: 20px;
+    font-size: 14px;
+    color: #000000;
+    width: 100%;
     text-align: center;
-    padding: 8px;
-    border-radius: 6px;
-}
-
-/* Status color styles */
-.scanning-status {
-    background: #dbeafe;
-    color: #1d4ed8;
 }
 
 .connected-status {
-    background: #dcfce7;
-    color: #047857;
+    color: #4CAF50;
+    font-weight: bold;
 }
 
 .error-status {
-    background: #fee2e2;
-    color: #b91c1c;
+    color: #f44336;
+    font-weight: bold;
 }
 
-/* Button row for NPG popup */
-.npg-popup-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+.scanning-status {
+    color: #FF9800;
+    font-weight: bold;
+}
+
+/* Footer */
+.footer-text {
+    text-align: center;
+    font-size: 13px;
+    color: #666;
     margin-top: 20px;
+    width: 100%;
 }
 
-/* NPG popup buttons */
-.npg-popup-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
+.heart {
+    color: #a855f7;
+    font-size: 1.2em;
 }
 
-.npg-connect-btn {
-    background: #10b981;
-    color: white;
-}
-
-.npg-connect-btn:disabled {
-    background: #a7f3d0;
-    cursor: not-allowed;
-}
-
-.npg-cancel-btn {
-    background: #f1f1f1;
-}
-
-.npg-scan-btn {
-    background: #3b82f6;
-    color: white;
-}
-
-.npg-scan-btn:disabled {
-    background: #93c5fd;
-    cursor: not-allowed;
-}
-
-/* NPG Device Popup Styles */
-#npgDevicePopup {
+/* BLE Popup styles */
+#bleDevicePopup {
+    display: none;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -311,30 +572,120 @@ body {
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
     z-index: 1000;
-    width: 400px;
-    max-width: 90%;
-    display: none;
-}
-#npgDevicePopup h3 {
-    margin-top: 0;
-    color: #a855f7;
-    text-align: center;
+    width: 80%;
+    max-width: 500px;
 }
 
-/* Bottom fixed text label */
-.bottom-text {
+#bleDevicePopup h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+#blePopupStatus {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+#bleDeviceList {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.ble-device-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #f9f9f9;
+}
+
+.ble-device-item:hover {
+    background-color: #eee;
+}
+
+.ble-device-item.selected {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.ble-popup-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ble-popup-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.ble-connect-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+.ble-cancel-btn {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Popup message */
+.popup {
     position: fixed;
-    bottom: 1px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    text-align: center;
-    font-size: 13px;
-    color: #666;
+    background-color: #333;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+    opacity: 1;
 }
 
-/* Animation for fading out popups */
-@keyframes fade-out {
-    0% { opacity: 1; }
-    80% { opacity: 0.8; }
-    100% { opacity: 0.6; visibility: hidden; }
+.fade-out {
+    animation: fadeOut 3s forwards;
+}
+
+/* Animations */
+@keyframes scroll-gradient {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@media (max-width: 600px) {
+    .header h1 {
+        font-size: 36px;
+    }
+    
+    .connection-buttons button {
+        width: 60px;
+        height: 60px;
+        font-size: 20px;
+    }
+    
+    .app-buttons button {
+        min-width: 140px;
+        height: 70px;
+        font-size: 14px;
+    }
+    
+    .protocol-buttons-combined button {
+        width: 60px;
+        height: 60px;
+        font-size: 20px;
+    }
 }
