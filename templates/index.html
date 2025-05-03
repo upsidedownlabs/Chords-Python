@@ -15,24 +15,26 @@
 
         <div class="top-controls">
             <div class="protocol-container">
-                <div class="protocol-buttons-combined" id="protocolButtonsContainer">
-                    <div class="protocol-button-group" id="protocolButtonsGroup">
-                        <button id="usb_button_combined" onclick="connectUSB()">
+                <div class="protocol-buttons-combined">
+                    <div class="protocol-connect-group">
+                        <button id="usb_button" class="protocol-btn usb-btn" onclick="connectUSB()">
                             <i class="fa fa-usb"></i>
                             <span class="protocol-tooltip">USB Connection</span>
                         </button>
-                        <button id="wifi_button_combined" onclick="connectWiFi()">
+                        <button id="wifi_button" class="protocol-btn wifi-btn" onclick="connectWiFi()">
                             <i class="fa fa-wifi"></i>
                             <span class="protocol-tooltip">WiFi Connection</span>
                         </button>
-                        <button id="ble_button_combined" onclick="showBLEPopup()">
+                        <button id="ble_button" class="protocol-btn ble-btn" onclick="showBLEPopup()">
                             <i class="fa fa-bluetooth"></i>
                             <span class="protocol-tooltip">Bluetooth Connection</span>
                         </button>
+                        <button id="connect_button" class="connect-btn" onclick="connectDefault()">
+                            Connect
+                        </button>
                     </div>
-                    <button id="connect_button" onclick="connectDefault()">Connect</button>
                 </div>
-                <div class="disconnect-button" id="disconnectButtonContainer" style="display: none;">
+                <div class="disconnect-button" style="display: none;">
                     <button id="disconnect_button" onclick="disconnectAll()">
                         <i class="fa fa-times"></i>
                         <span>Disconnect</span>
@@ -40,12 +42,12 @@
                 </div>
             </div>
             
-            <div class="csv-recording-box" id="csvRecordingBox">
+            <div class="csv-recording-box">
                 <div class="csv-filename-container">
                     <input type="text" id="csvFilenameInput" class="csv-filename-input" value="ChordsPy.csv" placeholder="Filename.csv">
                 </div>
                 <div class="csv-button-container">
-                    <button class="csv-record-btn" id="csvRecordBtn" onclick="toggleCSVRecording()">Save as CSV</button>
+                    <button class="csv-record-btn" id="csvRecordBtn" onclick="toggleCSVRecording()">Record as CSV</button>
                 </div>
             </div>
         </div>
@@ -54,34 +56,34 @@
 
         <div class="app-buttons">
             <div class="app-row">
-                <button class="app-button" data-app-name="ECG with Heart Rate" disabled>
+                <button class="app-button" app-name="ECG with Heart Rate" disabled>
                     ECG with Heart Rate
                 </button>
-                <button class="app-button" data-app-name="EMG with Envelope" disabled>
+                <button class="app-button" app-name="EMG with Envelope" disabled>
                     EMG with Envelope
                 </button>
-                <button class="app-button" data-app-name="EOG with Blinks" disabled>
+                <button class="app-button" app-name="EOG with Blinks" disabled>
                     EOG with Blinks
                 </button>
-                <button class="app-button" data-app-name="EEG with FFT" disabled>
+                <button class="app-button" app-name="EEG with FFT" disabled>
                     EEG with FFT
                 </button>
             </div>
             
             <div class="app-row">
-                <button class="app-button" data-app-name="EEG Tug of War" disabled>
+                <button class="app-button" app-name="EEG Tug of War" disabled>
                     EEG Tug of War
                 </button>
-                <button class="app-button" data-app-name="EEG Beetle Game" disabled>
+                <button class="app-button" app-name="EEG Beetle Game" disabled>
                     EEG Beetle Game
                 </button>
-                <button class="app-button" data-app-name="EOG Keystroke Emulator" disabled>
+                <button class="app-button" app-name="EOG Keystroke Emulator" disabled>
                     EOG Keystroke Emulator
                 </button>
-                <button class="app-button" data-app-name="GUI Visualization" disabled>
+                <button class="app-button" app-name="GUI Visualization" disabled>
                     GUI Visualization
                 </button>
-                <button class="app-button" data-app-name="CSV Plotter" disabled>
+                <button class="app-button" app-name="CSV Plotter" disabled>
                     CSV Plotter
                 </button>
             </div>
@@ -119,7 +121,7 @@
                 button.addEventListener('click', function() {
                     if (this.disabled) return;
                     
-                    const appName = this.getAttribute('data-app-name');
+                    const appName = this.getAttribute('app-name');
                     if (this.classList.contains('running')) {
                         stopApp(appName);
                     } else {
@@ -458,7 +460,7 @@
         async function runApp(appName) {
             if (!isConnected) return;
             
-            const button = document.querySelector(`.app-button[data-app-name="${appName}"]`);
+            const button = document.querySelector(`.app-button[app-name="${appName}"]`);
             button.disabled = true;
             
             try {
@@ -487,7 +489,7 @@
         }
 
         async function stopApp(appName) {
-            const button = document.querySelector(`.app-button[data-app-name="${appName}"]`);
+            const button = document.querySelector(`.app-button[app-name="${appName}"]`);
             button.disabled = true;
             
             try {
@@ -522,7 +524,7 @@
                 const response = await fetch(`/check_app_status?app_name=${encodeURIComponent(appName)}`);
                 const data = await response.json();
                 
-                const button = document.querySelector(`.app-button[data-app-name="${appName}"]`);
+                const button = document.querySelector(`.app-button[app-name="${appName}"]`);
                 
                 if (data.status === 'running') {
                     button.classList.add('running');
@@ -557,7 +559,7 @@
                 // Stop all running applications
                 const runningApps = [];
                 document.querySelectorAll('.app-button.running').forEach(button => {
-                    runningApps.push(button.getAttribute('data-app-name'));
+                    runningApps.push(button.getAttribute('app-name'));
                 });
                 
                 // Send stop commands for all running apps
