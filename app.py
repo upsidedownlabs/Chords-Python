@@ -1,197 +1,132 @@
 from flask import Flask, render_template, request, jsonify
-import asyncio
 from connection import Connection
-from threading import Thread
-import webbrowser
-from pylsl import resolve_streams
-import time
-from chords_ble import Chords_BLE
-import subprocess
-import os
-import sys
+import threading
+import asyncio
+import logging
+from bleak import BleakScanner
+from flask import Response
+import queue
+import threading
 
+console_queue = queue.Queue()
 app = Flask(__name__)
-connection_manager = None
-ble_devices = []
-active_connection = None
-lsl_stream_active = False
-csv_logging_enabled = False  # Global CSV logging state
-running_apps = {}            # Dictionary to keep track of running applications
+logging.basicConfig(level=logging.INFO)
 
-@app.route('/set_csv', methods=['POST'])
-def set_csv():
-    global csv_logging_enabled
-    data = request.get_json()
-    csv_logging_enabled = data.get('enabled', False)
-    return jsonify({'status': 'success', 'csv_logging': csv_logging_enabled})
+# Global variables
+connection_manager = None
+connection_thread = None
+ble_devices = []
+
+def run_async(coro):
+    def wrapper(*args, **kwargs):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(coro(*args, **kwargs))
+        finally:
+            loop.close()
+    return wrapper
 
 @app.route('/')
 def index():
-    colors_list = ['#a855f7', '#93c5fd', '#a7f3d0', '#10b981', '#b91c1c', '#1d4ed8']
-    return render_template('index.html', colors=colors_list)
+    return render_template('index.html')
 
-def check_lsl_stream():
-    global lsl_stream_active
-    while True:
-        streams = resolve_streams()
-        if any(s.name() == "BioAmpDataStream" for s in streams):
-            lsl_stream_active = True
-            break
-        time.sleep(0.5)
-
-@app.route('/connect', methods=['POST'])
-def connect():
-    global active_connection, lsl_stream_active
-    protocol = request.form.get('protocol')
-    
-    if active_connection:
-        return jsonify({'status': 'error', 'message': 'A connection is already active'})
-    
-    lsl_stream_active = False
-    Thread(target=check_lsl_stream).start()
-    
-    if protocol == 'usb':
-        thread = Thread(target=connect_usb)
-        thread.start()
-        return jsonify({'status': 'connecting', 'message': 'Connecting via USB...'})
-    
-    elif protocol == 'wifi':
-        thread = Thread(target=connect_wifi)
-        thread.start()
-        return jsonify({'status': 'connecting', 'message': 'Connecting via WiFi...'})
-    
-    elif protocol == 'ble':
-        return jsonify({'status': 'scanning', 'message': 'Scanning for BLE devices...'})
-    
-    return jsonify({'status': 'error', 'message': 'Invalid protocol'})
-
-@app.route('/check_connection', methods=['GET'])
-def check_connection():
-    global lsl_stream_active
-    if lsl_stream_active:
-        return jsonify({'status': 'success', 'message': 'Connection established! LSL stream started.'})
-    return jsonify({'status': 'connecting', 'message': 'Connecting...'})
-
-@app.route('/scan_ble', methods=['GET'])
-def scan_ble():
+@app.route('/scan_ble')
+@run_async
+async def scan_ble_devices():
     global ble_devices
     try:
-        ble_scanner = Chords_BLE()
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        devices = loop.run_until_complete(ble_scanner.scan_devices())
-        loop.close()
-        
-        if not devices:
-            return jsonify({'status': 'error', 'message': 'No BLE devices found'})
-        
-        ble_devices = devices
-        devices_list = [{'name': device.name, 'address': device.address} for device in devices]
-        return jsonify({'status': 'success', 'devices': devices_list})
+        devices = await BleakScanner.discover(timeout=5)
+        ble_devices = [{'name': d.name or 'Unknown', 'address': d.address} 
+                      for d in devices if d.name and d.name.startswith(('NPG', 'npg'))]
+        return jsonify({'status': 'success', 'devices': ble_devices})
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+        logging.error(f"BLE scan error: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/connect_ble', methods=['POST'])
-def connect_ble_device():
-    device_address = request.form.get('address')
-    if not device_address:
-        return jsonify({'status': 'error', 'message': 'No device address provided'})
-    
-    thread = Thread(target=connect_ble, args=(device_address,))
-    thread.start()
-    return jsonify({'status': 'connecting', 'message': f'Connecting to BLE device {device_address}...'})
+@app.route('/check_stream')
+def check_stream():
+    if connection_manager and connection_manager.lsl_connection:
+        return jsonify({'connected': True})
+    return jsonify({'connected': False})
 
-def connect_usb():
-    global active_connection, lsl_stream_active, csv_logging_enabled
-    active_connection = Connection(csv_logging=csv_logging_enabled)
-    active_connection.connect_usb()
+def post_console_message(message):
+    if connection_manager:
+        if "LSL stream started" in message:
+            connection_manager.stream_active = True
+        elif "Connection error" in message or "disconnected" in message:
+            connection_manager.stream_active = False
+    console_queue.put(message)
 
-def connect_wifi():
-    global active_connection, lsl_stream_active, csv_logging_enabled
-    active_connection = Connection(csv_logging=csv_logging_enabled)
-    active_connection.connect_wifi()
+@app.route('/console_updates')
+def console_updates():
+    def event_stream():
+        while True:
+            message = console_queue.get()
+            yield f"data: {message}\n\n"
+    
+    return Response(event_stream(), mimetype="text/event-stream")
 
-def connect_ble(address):
-    global active_connection, lsl_stream_active, csv_logging_enabled
-    lsl_stream_active = False
-    Thread(target=check_lsl_stream).start()  # Add this line
-    active_connection = Connection(csv_logging=csv_logging_enabled)
-    active_connection.connect_ble(address)  # No duplicate device selection
+@app.route('/connect', methods=['POST'])
+def connect_device():
+    global connection_manager, connection_thread, stream_active
+    
+    data = request.get_json()
+    protocol = data.get('protocol')
+    device_address = data.get('device_address')
+    csv_logging = data.get('csv_logging', False)
+    
+    # Reset stream status
+    stream_active = False
+    
+    # Clean up any existing connection
+    if connection_manager:
+        connection_manager.cleanup()
+        if connection_thread and connection_thread.is_alive():
+            connection_thread.join()
+    
+    # Create new connection
+    connection_manager = Connection(csv_logging=csv_logging)
+    
+    def run_connection():
+        try:
+            if protocol == 'usb':
+                success = connection_manager.connect_usb()
+            elif protocol == 'wifi':
+                success = connection_manager.connect_wifi()
+            elif protocol == 'ble':
+                if not device_address:
+                    logging.error("No BLE device address provided")
+                    return
+                
+                # For BLE, we need to run in an event loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                success = connection_manager.connect_ble(device_address)
+            
+            if success:
+                post_console_message("LSL stream started")
+            else:
+                post_console_message("Connection failed")
+        except Exception as e:
+            logging.error(f"Connection error: {str(e)}")
+            post_console_message(f"Connection error: {str(e)}")
+    
+    # Start connection in a separate thread
+    connection_thread = threading.Thread(target=run_connection, daemon=True)
+    connection_thread.start()
+    
+    return jsonify({'status': 'connecting', 'protocol': protocol})
 
-@app.route('/run_application', methods=['POST'])
-def run_application():
-    global lsl_stream_active, running_apps
-    
-    if not lsl_stream_active:
-        return jsonify({'status': 'error', 'message': 'LSL stream is not active. Please connect first.'})
-    
-    app_name = request.form.get('app_name')
-    if not app_name:
-        return jsonify({'status': 'error', 'message': 'No application specified'})
-    
-    if app_name in running_apps:
-        return jsonify({'status': 'error', 'message': f'{app_name} is already running'})
-    
-    app_mapping = {
-        'ECG with Heart Rate': 'heartbeat_ecg.py',
-        'EMG with Envelope': 'emgenvelope.py',
-        'EOG with Blinks': 'eog.py',
-        'EEG with FFT': 'ffteeg.py',
-        'EEG Tug of War' : 'game.py',
-        'EEG Beetle Game': 'beetle.py',
-        'EOG Keystroke Emulator': 'keystroke.py',
-        'GUI Visualization': 'gui.py',
-        'CSV Plotter': 'csvplotter.py'
-    }
-    
-    script_name = app_mapping.get(app_name)
-    if not script_name:
-        return jsonify({'status': 'error', 'message': 'Invalid application name'})
-    
-    if not os.path.exists(script_name):
-        return jsonify({'status': 'error', 'message': f'Script {script_name} not found'})
-    
-    try:
-        process = subprocess.Popen([sys.executable, script_name])
-        running_apps[app_name] = process
-        return jsonify({'status': 'success', 'message': f'{app_name} started successfully'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
-
-@app.route('/stop_application', methods=['POST'])
-def stop_application():
-    global running_apps
-    
-    app_name = request.form.get('app_name')
-    if not app_name:
-        return jsonify({'status': 'error', 'message': 'No application specified'})
-    
-    if app_name not in running_apps:
-        return jsonify({'status': 'error', 'message': f'{app_name} is not running'})
-    
-    try:
-        running_apps[app_name].terminate()
-        del running_apps[app_name]
-        return jsonify({'status': 'success', 'message': f'{app_name} stopped successfully'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
-
-@app.route('/check_app_status', methods=['GET'])
-def check_app_status():
-    global running_apps
-    
-    app_name = request.args.get('app_name')
-    if not app_name:
-        return jsonify({'status': 'error', 'message': 'No application specified'})
-    
-    if app_name in running_apps:
-        if running_apps[app_name].poll() is None:
-            return jsonify({'status': 'running', 'message': f'{app_name} is running'})
-        else:
-            del running_apps[app_name]
-            return jsonify({'status': 'stopped', 'message': f'{app_name} has stopped'})
-    else:
-        return jsonify({'status': 'stopped', 'message': f'{app_name} is not running'})
+@app.route('/disconnect', methods=['POST'])
+def disconnect_device():
+    global connection_manager
+    if connection_manager:
+        connection_manager.cleanup()
+        connection_manager.stream_active = False
+        post_console_message("disconnected")
+        return jsonify({'status': 'disconnected'})
+    return jsonify({'status': 'no active connection'})
 
 if __name__ == "__main__":
     app.run(debug=True)

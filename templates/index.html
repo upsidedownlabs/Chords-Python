@@ -1,763 +1,560 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chords Python</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50 flex flex-col min-h-screen">
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
     <!-- Header -->
-    <header class="bg-gray-900 text-white sticky top-0 z-50 shadow-lg">
+    <header class="bg-gray-900 dark:bg-gray-800 text-white sticky top-0 z-50">
         <div class="max-w-full px-8 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <span class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                    Chords Python
-                </span>
-            </div>
-            <div class="flex space-x-4">
+            <span class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                Chords Python
+            </span>
+            <div class="flex space-x-4 items-center">
+                <button id="theme-toggle" class="text-white hover:text-cyan-400 transition-colors">
+                    <i class="fas fa-moon text-xl"></i>
+                </button>
                 <button id="github-btn" class="text-white hover:text-cyan-400 transition-colors">
-                    <i class="fab fa-github text-2xl"></i>
+                    <i class="fab fa-github text-xl"></i>
                 </button>
                 <button id="info-btn" class="text-white hover:text-cyan-400 transition-colors">
-                    <i class="fas fa-info-circle text-2xl"></i>
+                    <i class="fas fa-info-circle text-xl"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 max-w-full px-8 py-6">
-        <!-- Combined Section -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <div class="flex flex-col md:flex-row gap-6">
-                <!-- Connectivity Section -->
-                <div class="flex-1">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-700">Connectivity</h2>
-                    <div class="flex flex-col gap-4">
-                        <div class="flex flex-wrap gap-2">
-                            <button class="connection-btn px-4 py-2 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors basis-[calc(33%-0.5rem)] grow text-gray-700">
-                                <i class="fas fa-wifi"></i> WiFi
-                            </button>
-                            <button class="connection-btn px-4 py-2 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors basis-[calc(33%-0.5rem)] grow text-gray-700">
-                                <i class="fab fa-bluetooth"></i> Bluetooth
-                            </button>
-                            <button class="connection-btn px-4 py-2 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors basis-[calc(33%-0.5rem)] grow text-gray-700">
-                                <i class="fas fa-microchip"></i> Serial
-                            </button>
-                        </div>
-                        <button id="connect-btn" class="w-full py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold">
-                            Connect Device
-                        </button>
-                    </div>
-                </div>
+    <!-- Connectivity + Recording (Sticky Section) -->
+    <section class="px-8 py-4 sticky top-14 z-40 bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
+        <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <div class="flex gap-2 flex-wrap">
+                <button data-protocol="wifi" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200">
+                    <i class="fas fa-wifi text-lg"></i>
+                    <span class="text-sm font-medium">WiFi</span>
+                </button>
+                <button data-protocol="ble" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200">
+                    <i class="fab fa-bluetooth text-lg"></i>
+                    <span class="text-sm font-medium">Bluetooth</span>
+                </button>
+                <button data-protocol="usb" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200">
+                    <i class="fas fa-microchip text-lg"></i>
+                    <span class="text-sm font-medium">Serial</span>
+                </button>
+            </div>
+            <button id="connect-btn" class="h-12 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
+                Connect Device
+            </button>
+            <button id="disconnect-btn" class="h-12 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold px-6 hidden">
+                Disconnect
+            </button>
+          
+            <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
+          
+            <input type="text" id="filename" value="recording" 
+                   class="flex-1 h-12 px-4 border-r-0 rounded-l-lg focus:outline-none focus:ring-0 bg-gray-100 border border-gray-110 dark:bg-gray-800 dark:border-gray-700 dark:text-white" 
+                   placeholder="Enter recording name">
+            <span class="h-12 px-4 bg-gray-200 text-gray-500 rounded-r-lg dark:bg-gray-700 dark:text-gray-400 inline-flex items-center justify-center text-base">
+                .csv
+            </span>
+          
+            <button id="record-btn" class="h-12 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
+                Start Recording
+            </button>
+        </div>
+        <div id="connection-status" class="mt-2 text-sm text-gray-600 dark:text-gray-400 hidden">
+            <span id="status-icon" class="mr-2"></span>
+            <span id="status-text">Connecting...</span>
+        </div>
+    </section>
 
-                <!-- Vertical Separator -->
-                <div class="hidden md:block w-px bg-gray-200 mx-4 my-4"></div>
-
-                <!-- Recording Section -->
-                <div class="flex-1">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-700">CSV Recording</h2>
-                    <div class="flex flex-col gap-4">
-                        <input type="text" id="filename" value="recording_2023-11-15.csv" 
-                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-lg"
-                               placeholder="Enter recording name">
-                        <button id="record-btn" class="w-full py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold">
-                            Start Recording
-                        </button>
-                    </div>
+    <!-- BLE Device Selection Modal -->
+    <div id="ble-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Select Bluetooth Device</h3>
+                <button id="close-ble-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-2 max-h-96 overflow-y-auto" id="ble-devices-list">
+                <div class="flex items-center justify-center py-4">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
+                    <span>Scanning for devices...</span>
                 </div>
             </div>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="rescan-ble" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                    <i class="fas fa-sync-alt mr-2"></i>Rescan
+                </button>
+            </div>
         </div>
+    </div>
 
+    <!-- Main Scrollable Application Area -->
+    <main class="flex-1 overflow-y-auto px-8 py-6">
         <!-- Applications Section -->
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">Applications</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <!-- Application Cards -->
-                <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                    <img src="https://via.placeholder.com/400x200.png?text=ECG+Viewer" 
-                         alt="ECG Viewer" 
-                         class="w-full h-32 object-cover rounded-t-lg">
-                    <div class="p-3">
-                        <h3 class="font-semibold text-base mb-1">ECG Viewer</h3>
-                        <p class="text-gray-600 text-sm">Real-time electrocardiogram visualization</p>
-                    </div>
-                </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Applications</h2>
+                <select class="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:ring-cyan-500 focus:outline-none dark:bg-gray-700">
+                    <option value="">All</option>
+                    <option value="ECG">ECG</option>
+                    <option value="EMG">EMG</option>
+                    <option value="EOG">EOG</option>
+                    <option value="EEG">EEG</option>
+                    <option value="Tools">Tools</option>
+                </select>
+            </div>
 
-                <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                    <img src="https://via.placeholder.com/400x200.png?text=PPG+Analyzer" 
-                         alt="PPG Analyzer" 
-                         class="w-full h-32 object-cover rounded-t-lg">
-                    <div class="p-3">
-                        <h3 class="font-semibold text-base mb-1">PPG Analyzer</h3>
-                        <p class="text-gray-600 text-sm">Photoplethysmogram signal processing</p>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                    <img src="https://via.placeholder.com/400x200.png?text=EMG+Monitor" 
-                         alt="EMG Monitor" 
-                         class="w-full h-32 object-cover rounded-t-lg">
-                    <div class="p-3">
-                        <h3 class="font-semibold text-base mb-1">EMG Monitor</h3>
-                        <p class="text-gray-600 text-sm">Electromyography monitoring</p>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                    <img src="https://via.placeholder.com/400x200.png?text=EDA+Chart" 
-                         alt="EDA Chart" 
-                         class="w-full h-32 object-cover rounded-t-lg">
-                    <div class="p-3">
-                        <h3 class="font-semibold text-base mb-1">EDA Chart</h3>
-                        <p class="text-gray-600 text-sm">Electrodermal activity tracking</p>
-                    </div>
-                </div>
-
-                <!-- Add more cards as needed -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="app-grid">
             </div>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white sticky bottom-0 z-50">
+    <footer class="bg-gray-900 dark:bg-gray-800 text-white sticky bottom-0 z-50">
         <div class="max-w-full px-8 py-3 text-center">
             Made with ❤️ at Upside Down Labs
         </div>
     </footer>
-
     <script>
-        // Connection type selection
-        const connectionBtns = document.querySelectorAll('.connection-btn');
-        let selectedConnection = null;
+        const apps = [
+            { title: 'ECG with Heart Rate', icon: 'fa-heartbeat', color: 'cyan' },
+            { title: 'EMG with Envelope', icon: 'fa-wave-square', color: 'red' },
+            { title: 'EOG with Blinks', icon: 'fa-chart-line', color: 'purple' },
+            { title: 'EEG with FFT', icon: 'fa-hand-holding-water', color: 'green' },
+            { title: 'EEG Tug of War game', icon: 'fa-brain', color: 'yellow' },
+            { title: 'EEG Beetle Game', icon: 'fa-eye', color: 'pink' },
+            { title: 'EOG Keystroke Emualtor', icon: 'fa-lungs', color: 'blue' },
+            { title: 'GUI Visualization', icon: 'fa-heart-pulse', color: 'orange' },
+            { title: 'CSV Plotter', icon: 'fa-thermometer-half', color: 'teal' },
+        ];
 
+        const appGrid = document.getElementById('app-grid');
+        apps.forEach(app => {
+            const card = document.createElement('div');
+            card.className = 'bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition duration-300 dark:border-gray-700';
+            card.innerHTML = `
+                <div class="p-4">
+                    <div class="w-full h-32 bg-${app.color}-100 dark:bg-${app.color}-900 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Sample description for ${app.title}</p>
+                </div>
+            `;
+            appGrid.appendChild(card);
+        });
+
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = themeToggle.querySelector('i');
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            themeIcon.className = isDark ? 'fas fa-sun text-xl' : 'fas fa-moon text-xl';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            themeIcon.className = 'fas fa-sun text-xl';
+        } else {
+            document.documentElement.classList.remove('dark');
+            themeIcon.className = 'fas fa-moon text-xl';
+        }
+
+        // Connection management
+        const connectionBtns = document.querySelectorAll('.connection-btn');
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const recordBtn = document.getElementById('record-btn');
+        const filenameInput = document.getElementById('filename');
+        const statusDiv = document.getElementById('connection-status');
+        const statusText = document.getElementById('status-text');
+        const statusIcon = document.getElementById('status-icon');
+        const bleModal = document.getElementById('ble-modal');
+        const bleDevicesList = document.getElementById('ble-devices-list');
+        const closeBleModal = document.getElementById('close-ble-modal');
+        const rescanBle = document.getElementById('rescan-ble');
+
+        let selectedProtocol = null;
+        let selectedBleDevice = null;
+        let isConnected = false;
+        let eventSource = null;
+
+        // Handle protocol selection
         connectionBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                connectionBtns.forEach(b => {
-                    b.classList.remove('bg-cyan-500', 'text-white');
-                    b.classList.add('text-gray-700');
-                });
+                connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
                 btn.classList.add('bg-cyan-500', 'text-white');
-                btn.classList.remove('text-gray-700');
-                selectedConnection = btn.textContent.trim();
+                selectedProtocol = btn.dataset.protocol;
+                
+                // For BLE, show device selection modal
+                if (selectedProtocol === 'ble') {
+                    showBleDeviceModal();
+                }
             });
         });
 
-        let selectedDevice = null;
-        let connectionCheckInterval = null;
-        let appStatusCheckIntervals = {};
-        let isConnected = false;
-        
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initially disable all app buttons
-            disableAllAppButtons();
+        // Show BLE device selection modal
+        function showBleDeviceModal() {
+            bleModal.classList.remove('hidden');
+            scanBleDevices();
+        }
+
+        // Scan for BLE devices
+        function scanBleDevices() {
+            bleDevicesList.innerHTML = `
+                <div class="flex items-center justify-center py-4">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
+                    <span>Scanning for devices...</span>
+                </div>
+            `;
             
-            // Set up application button event listeners
-            document.querySelectorAll('.app-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    if (this.disabled) return;
-                    
-                    const appName = this.getAttribute('app-name');
-                    if (this.classList.contains('running')) {
-                        stopApp(appName);
-                    } else {
-                        runApp(appName);
+            fetch('/scan_ble')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success' && data.devices.length > 0) {
+                        renderBleDevices(data.devices);
+                    } else {
+                        bleDevicesList.innerHTML = `
+                            <div class="text-center py-4 text-gray-500">
+                                ${data.message || 'No NPG devices found. Make sure your device is powered on and in range.'}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('BLE scan error:', error);
+                    bleDevicesList.innerHTML = `
+                        <div class="text-center py-4 text-red-500">
+                            Error scanning for devices. Please try again.
+                        </div>
+                    `;
                 });
-            });
-            
-            // Initialize CSV toggle
-            document.getElementById('csvToggle').addEventListener('change', function() {
-                fetch('/set_csv', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ enabled: this.checked })
-                });
-            });
-        });
-
-        function toggleCSVRecording() {
-            const recordBtn = document.getElementById('csvRecordBtn');
-            const isRecording = recordBtn.classList.contains('recording');
-            const filenameInput = document.getElementById('csvFilenameInput');
-            
-            if (isRecording) {
-                // Stop recording
-                recordBtn.classList.remove('recording');
-                recordBtn.textContent = 'Save as CSV';
-                // Add your stop recording logic here
-            } else {
-                // Start recording
-                if (filenameInput.value.trim() === '') {
-                    alert('Please enter a valid filename');
-                    return;
-                }
-                
-                recordBtn.classList.add('recording');
-                recordBtn.textContent = 'Stop Recording';
-                // Add your start recording logic here
-            }
         }
 
-        function disableAllAppButtons() {
-            document.querySelectorAll('.app-button').forEach(button => {
-                button.disabled = true;
-            });
-        }
-
-        function enableAllAppButtons() {
-            document.querySelectorAll('.app-button').forEach(button => {
-                button.disabled = false;
-            });
-        }
-
-        function showBLEPopup() {
-            document.getElementById('bleDevicePopup').style.display = 'block';
-            document.getElementById('blePopupStatus').textContent = 'Ready to scan devices';
-            document.getElementById('bleDeviceList').innerHTML = '<p>Click "Scan Devices" to begin</p>';
-            document.getElementById('bleConnectBtn').disabled = true;
-            selectedDevice = null;
-        }
-        
-        function hideBLEPopup() {
-            document.getElementById('bleDevicePopup').style.display = 'none';
-            if (connectionCheckInterval) {
-                clearInterval(connectionCheckInterval);
-                connectionCheckInterval = null;
-            }
-        }
-        
-        async function scanBLEDevices() {
-            const statusDiv = document.getElementById('blePopupStatus');
-            const deviceList = document.getElementById('bleDeviceList');
-            const scanBtn = document.getElementById('scanDevicesBtn');
+        // Render BLE devices list
+        function renderBleDevices(devices) {
+            bleDevicesList.innerHTML = '';
             
-            scanBtn.disabled = true;
-            statusDiv.textContent = 'Scanning for BLE devices...';
-            statusDiv.className = 'scanning-status';
-            deviceList.innerHTML = '<p>Searching for BLE devices...</p>';
-            
-            try {
-                const response = await fetch('/scan_ble');
-                const data = await response.json();
-                
-                if (data.status === 'success' && data.devices && data.devices.length > 0) {
-                    deviceList.innerHTML = '';
-                    
-                    data.devices.forEach(device => {
-                        const div = document.createElement('div');
-                        div.className = 'ble-device-item';
-                        div.textContent = `${device.name || 'Unknown'} (${device.address})`;
-                        div.dataset.address = device.address;
-                        
-                        div.addEventListener('click', () => {
-                            document.querySelectorAll('.ble-device-item').forEach(item => {
-                                item.classList.remove('selected');
-                            });
-                            div.classList.add('selected');
-                            selectedDevice = device.address;
-                            document.getElementById('bleConnectBtn').disabled = false;
-                        });
-                        
-                        deviceList.appendChild(div);
-                    });
-                    
-                    statusDiv.textContent = `Found ${data.devices.length} device(s) - select one to connect`;
-                    statusDiv.className = '';
-                } else {
-                    deviceList.innerHTML = '<p>No BLE devices found</p>';
-                    statusDiv.textContent = data.message || 'No devices found';
-                    statusDiv.className = 'error-status';
-                }
-            } catch (error) {
-                console.error('Scan error:', error);
-                deviceList.innerHTML = '<p>Scan failed</p>';
-                statusDiv.textContent = 'Scan failed - please try again';
-                statusDiv.className = 'error-status';
-            } finally {
-                scanBtn.disabled = false;
-            }
-        }
-        
-        async function connectToBLEDevice() {
-            if (!selectedDevice) {
-                alert('No BLE device selected');
+            if (devices.length === 0) {
+                bleDevicesList.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        No NPG devices found.
+                    </div>
+                `;
                 return;
             }
             
-            const statusDiv = document.getElementById('blePopupStatus');
-            const connectBtn = document.getElementById('bleConnectBtn');
-            const scanBtn = document.getElementById('scanDevicesBtn');
-            const mainStatusDiv = document.getElementById('connectionStatus');
-            const disconnectButton = document.querySelector('.disconnect-button');
-            const protocolGroup = document.querySelector('.protocol-connect-group');
-            
-            // Set initial state
-            connectBtn.disabled = true;
-            scanBtn.disabled = true;
-            statusDiv.textContent = 'Starting BLE connection...';
-            statusDiv.className = 'scanning-status';
-            mainStatusDiv.textContent = 'Connecting to BLE device...';
-            mainStatusDiv.className = 'scanning-status';
-            
-            // Set timeout for BLE connection
-            const connectionTimeout = setTimeout(() => {
-                statusDiv.textContent = 'BLE connection timed out (30 seconds)';
-                statusDiv.className = 'error-status';
-                mainStatusDiv.textContent = 'BLE connection timed out';
-                mainStatusDiv.className = 'error-status';
-                connectBtn.disabled = false;
-                scanBtn.disabled = false;
-                if (connectionCheckInterval) clearInterval(connectionCheckInterval);
-            }, 30000);
-
-            try {
-                // Start BLE connection
-                const formData = new FormData();
-                formData.append('address', selectedDevice);
+            devices.forEach(device => {
+                const deviceElement = document.createElement('div');
+                deviceElement.className = 'p-3 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center';
+                deviceElement.innerHTML = `
+                    <i class="fab fa-bluetooth-b text-blue-500 mr-3 text-lg"></i>
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-800 dark:text-gray-200">${device.name}</div>
+                        <div class="text-xs text-gray-500">${device.address}</div>
+                    </div>
+                    ${selectedBleDevice?.address === device.address ? 
+                        '<i class="fas fa-check text-green-500 ml-2"></i>' : ''}
+                `;
                 
-                const response = await fetch('/connect_ble', {
+                deviceElement.addEventListener('click', () => {
+                    selectedBleDevice = device;
+                    bleModal.classList.add('hidden');
+                    showStatus(`${device.name} selected`, 'fa-bluetooth-b', 'text-blue-500');
+                });
+                
+                bleDevicesList.appendChild(deviceElement);
+            });
+        }
+
+        // Close BLE modal
+        closeBleModal.addEventListener('click', () => {
+            bleModal.classList.add('hidden');
+            connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
+            selectedProtocol = null;
+            selectedBleDevice = null;
+        });
+
+        // Rescan BLE devices
+        rescanBle.addEventListener('click', scanBleDevices);
+
+        // Handle connect button
+        connectBtn.addEventListener('click', () => {
+            if (!selectedProtocol) {
+                alert('Please select a protocol before connecting.');
+                return;
+            }
+
+            let postData = { protocol: selectedProtocol };
+            if (selectedProtocol === 'ble' && selectedBleDevice) {
+                postData.device_address = selectedBleDevice;
+            }
+
+            // Show loading state
+            connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Connecting...';
+            connectBtn.disabled = true;
+            connectionBtns.forEach(btn => btn.disabled = true); // Disable all protocol buttons
+
+            fetch('/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Start polling until LSL stream is active
+                const pollInterval = setInterval(() => {
+                    fetch('/check_stream')
+                        .then(res => res.json())
+                        .then(streamStatus => {
+                            if (streamStatus.status === 'connected') {
+                                clearInterval(pollInterval);
+                                isConnected = true;
+
+                                // Update button to Disconnect
+                                connectBtn.textContent = 'Disconnect';
+                                connectBtn.disabled = false;
+
+                                connectBtn.removeEventListener('click', connectHandler); // Prevent duplicate handlers
+                                connectBtn.addEventListener('click', disconnectHandler);
+                            }
+                        });
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Connection error:', error);
+                connectBtn.innerHTML = 'Connect';
+                connectBtn.disabled = false;
+                connectionBtns.forEach(btn => btn.disabled = false);
+            });
+        });
+
+        const connectHandler = () => connectBtn.click(); // keep for reassigning after disconnect
+
+        const disconnectHandler = () => {
+            fetch('/disconnect', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'disconnected') {
+                        isConnected = false;
+
+                        connectBtn.textContent = 'Connect';
+                        connectBtn.removeEventListener('click', disconnectHandler);
+                        connectBtn.addEventListener('click', connectHandler);
+
+                        // Re-enable protocol selection
+                        connectionBtns.forEach(btn => btn.disabled = false);
+                    }
+                });
+        };
+
+        connectBtn.addEventListener('click', connectHandler);
+
+        // Set up Server-Sent Events listener for console updates
+        function setupConsoleListener() {
+            if (eventSource) eventSource.close();
+            
+            eventSource = new EventSource('/console_updates');
+            
+            eventSource.onmessage = function(event) {
+                const message = event.data;
+                console.log('Console update:', message);
+                
+                if (message.includes('LSL stream started')) {
+                    handleConnectionSuccess();
+                } else if (message.includes('Connection error')) {
+                    showStatus('Connection failed', 'fa-times-circle', 'text-red-500');
+                    connectBtn.disabled = false;
+                    if (eventSource) {
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                }
+            };
+            
+            eventSource.onerror = function() {
+                console.log('Console updates connection error');
+            };
+        }
+
+        function handleConnectionSuccess() {
+            isConnected = true;
+            connectBtn.classList.add('hidden');
+            disconnectBtn.classList.remove('hidden');
+            showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
+            connectBtn.disabled = false;
+            
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        }
+
+        disconnectBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/disconnect', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
                 });
                 
                 const data = await response.json();
                 
-                if (data.status !== 'connecting') {
-                    throw new Error(data.message || 'Failed to initiate BLE connection');
+                if (data.status === 'disconnected') {
+                    isConnected = false;
+                    connectBtn.classList.remove('hidden');
+                    disconnectBtn.classList.add('hidden');
+                    connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
+                    selectedProtocol = null;
+                    selectedBleDevice = null;
+                    statusDiv.classList.add('hidden');
+                    
+                    if (eventSource) {
+                        eventSource.close();
+                        eventSource = null;
+                    }
                 }
-
-                // Check connection status periodically
-                connectionCheckInterval = setInterval(async () => {
-                    try {
-                        const statusResponse = await fetch('/check_connection');
-                        const statusData = await statusResponse.json();
-                        
-                        // Update both status displays
-                        updateStatusMessage(statusData.message);
-                        statusDiv.textContent = statusData.message;
-                        
-                        if (statusData.status === 'success') {
-                            // Successful connection
-                            clearTimeout(connectionTimeout);
-                            clearInterval(connectionCheckInterval);
-                            isConnected = true;
-                            
-                            // Update UI
-                            statusDiv.className = 'connected-status';
-                            mainStatusDiv.textContent = 'BLE connection established! LSL stream started.';
-                            mainStatusDiv.className = 'connected-status';
-                            disconnectButton.style.display = 'block';
-                            protocolGroup.style.display = 'none';
-                            enableAllAppButtons();
-                            
-                            // Close BLE popup after short delay
-                            setTimeout(() => {
-                                hideBLEPopup();
-                            }, 1500);
-                            
-                        } else if (statusData.status === 'error') {
-                            // Connection failed
-                            throw new Error(statusData.message);
-                        }
-                    } catch (error) {
-                        console.error('BLE connection check error:', error);
-                        statusDiv.textContent = `Error: ${error.message}`;
-                        statusDiv.className = 'error-status';
-                        mainStatusDiv.textContent = `BLE connection failed: ${error.message}`;
-                        mainStatusDiv.className = 'error-status';
-                        connectBtn.disabled = false;
-                        scanBtn.disabled = false;
-                        clearTimeout(connectionTimeout);
-                        clearInterval(connectionCheckInterval);
-                    }
-                }, 1000);
-                
             } catch (error) {
-                console.error('BLE connection error:', error);
-                statusDiv.textContent = `BLE connection failed: ${error.message}`;
-                statusDiv.className = 'error-status';
-                mainStatusDiv.textContent = `BLE connection failed: ${error.message}`;
-                mainStatusDiv.className = 'error-status';
-                connectBtn.disabled = false;
-                scanBtn.disabled = false;
-                clearTimeout(connectionTimeout);
-                if (connectionCheckInterval) clearInterval(connectionCheckInterval);
+                console.error('Disconnection error:', error);
             }
-        }
+        });
 
-        // Update the toggleCSVRecording function
-        async function toggleCSVRecording() {
-            const recordBtn = document.getElementById('csvRecordBtn');
-            const isRecording = recordBtn.classList.contains('recording');
-            const filenameInput = document.getElementById('csvFilenameInput');
-            
-            try {
-                if (isRecording) {
-                    // Stop recording
-                    const response = await fetch('/set_csv', {
+        recordBtn.addEventListener('click', async () => {
+            if (recordBtn.textContent === 'Start Recording') {
+                const filename = filenameInput.value.trim() || 'recording';
+                
+                try {
+                    const response = await fetch('/start_recording', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ enabled: false })
-                    });
-                    
-                    recordBtn.classList.remove('recording');
-                    recordBtn.textContent = 'Record as CSV';
-                    
-                    // Offer to download the CSV
-                    const download = confirm('Recording stopped. Would you like to download the CSV file?');
-                    if (download) {
-                        window.open('/download_csv', '_blank');
-                    }
-                } else {
-                    // Start recording
-                    if (filenameInput.value.trim() === '') {
-                        alert('Please enter a valid filename');
-                        return;
-                    }
-                    
-                    const response = await fetch('/set_csv', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            enabled: true,
-                            filename: filenameInput.value 
+                        body: JSON.stringify({
+                            filename: filename
                         })
                     });
                     
                     const data = await response.json();
-                    if (data.status === 'success') {
-                        recordBtn.classList.add('recording');
+                    
+                    if (data.status === 'recording_started') {
+                        filenameInput.disabled = true;
                         recordBtn.textContent = 'Stop Recording';
-                    } else {
-                        alert('Failed to start recording: ' + (data.message || 'Unknown error'));
+                        recordBtn.classList.replace('bg-red-500', 'bg-green-500');
+                        recordBtn.classList.replace('hover:bg-red-600', 'hover:bg-green-600');
                     }
+                } catch (error) {
+                    console.error('Recording error:', error);
                 }
-            } catch (error) {
-                console.error('CSV recording error:', error);
-                alert('Error toggling CSV recording');
+            } else {
+                try {
+                    const response = await fetch('/stop_recording', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'recording_stopped') {
+                        filenameInput.disabled = false;
+                        recordBtn.textContent = 'Start Recording';
+                        recordBtn.classList.replace('bg-green-500', 'bg-red-500');
+                        recordBtn.classList.replace('hover:bg-green-600', 'hover:bg-red-600');
+                    }
+                } catch (error) {
+                    console.error('Stop recording error:', error);
+                }
             }
+        });
+
+        function showStatus(text, icon, colorClass) {
+            statusText.textContent = text;
+            statusIcon.innerHTML = `<i class="fas ${icon} ${colorClass}"></i>`;
+            statusDiv.classList.remove('hidden');
         }
 
-        // Update the runApp function to better handle UI states
-        async function runApp(appName) {
-            if (!isConnected) {
-                alert('Please connect first');
-                return;
-            }
-            
-            const button = document.querySelector(`.app-button[app-name="${appName}"]`);
-            button.disabled = true;
-            
-            try {
-                const response = await fetch('/run_application', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `app_name=${encodeURIComponent(appName)}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    button.classList.add('running');
-                    startAppStatusCheck(appName);
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to run application');
-            } finally {
-                button.disabled = false;
-            }
+        function showAlert(message) {
+            alert(message);
         }
 
-        // Add this function to properly initialize the UI
-        function initializeUI() {
-            // Check connection status on page load
-            fetch('/check_connection')
+        function checkStreamStatus() {
+            fetch('/check_stream')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        isConnected = true;
-                        updateStatusMessage(data.message);
-                        document.querySelector('.disconnect-button').style.display = 'block';
-                        document.querySelector('.protocol-connect-group').style.display = 'none';
-                        enableAllAppButtons();
+                    if (data.connected) {
+                        // If connected, update the frontend
+                        updateConnectionStatus('Stream Started', 'fa-check-circle', 'text-green-500');
                         
-                        // Check for running apps
-                        document.querySelectorAll('.app-button').forEach(button => {
-                            const appName = button.getAttribute('app-name');
-                            checkAppStatusOnLoad(appName);
-                        });
+                        // Update the button state
+                        if (!isConnected) {
+                            isConnected = true;
+                            connectBtn.classList.add('hidden');
+                            disconnectBtn.classList.remove('hidden');
+                        }
+                    } else {
+                        // If not connected, update the frontend
+                        updateConnectionStatus('Stream Not Started', 'fa-times-circle', 'text-red-500');
+                        
+                        // Update the button state
+                        if (isConnected) {
+                            isConnected = false;
+                            connectBtn.classList.remove('hidden');
+                            disconnectBtn.classList.add('hidden');
+                        }
                     }
                 })
-                .catch(console.error);
-            
-            // Initialize CSV filename with timestamp
-            const now = new Date();
-            const timestamp = now.toISOString().replace(/[:.]/g, '-').split('T').join('_').slice(0, -5);
-            document.getElementById('csvFilenameInput').value = `ChordsPy_${timestamp}.csv`;
-        }
-
-        // Add this function to check app status on page load
-        async function checkAppStatusOnLoad(appName) {
-            try {
-                const response = await fetch(`/check_app_status?app_name=${encodeURIComponent(appName)}`);
-                const data = await response.json();
-                
-                const button = document.querySelector(`.app-button[app-name="${appName}"]`);
-                
-                if (data.status === 'running') {
-                    button.classList.add('running');
-                    startAppStatusCheck(appName);
-                }
-            } catch (error) {
-                console.error(`Error checking status for ${appName}:`, error);
-            }
-        }
-
-        async function connectWiFi() {
-            const statusDiv = document.getElementById('connectionStatus');
-            const wifiButton = document.getElementById('wifi_button');
-            const disconnectButton = document.querySelector('.disconnect-button');
-            const protocolGroup = document.querySelector('.protocol-connect-group');
-            
-            // Reset UI state
-            wifiButton.disabled = true;
-            statusDiv.textContent = 'Initializing WiFi connection...';
-            statusDiv.className = 'scanning-status';
-            disableAllAppButtons();
-            
-            // Set a timeout for the connection attempt
-            const connectionTimeout = setTimeout(() => {
-                statusDiv.textContent = 'WiFi connection timed out (30 seconds)';
-                statusDiv.className = 'error-status';
-                wifiButton.disabled = false;
-                if (connectionCheckInterval) clearInterval(connectionCheckInterval);
-            }, 30000);
-
-            try {
-                // Start the connection process
-                const response = await fetch('/connect', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'protocol=wifi'
+                .catch(error => {
+                    console.error('Error fetching stream status:', error);
                 });
-                
-                const data = await response.json();
-                
-                if (data.status !== 'connecting') {
-                    throw new Error(data.message || 'Failed to initiate WiFi connection');
-                }
-
-                // Check connection status periodically
-                connectionCheckInterval = setInterval(async () => {
-                    try {
-                        const statusResponse = await fetch('/check_connection');
-                        const statusData = await statusResponse.json();
-                        
-                        updateStatusMessage(statusData.message);
-                        
-                        if (statusData.status === 'success') {
-                            // Successful connection
-                            clearTimeout(connectionTimeout);
-                            clearInterval(connectionCheckInterval);
-                            isConnected = true;
-                            
-                            // Update UI
-                            disconnectButton.style.display = 'block';
-                            protocolGroup.style.display = 'none';
-                            enableAllAppButtons();
-                            
-                            // Check CSV status
-                            const csvResponse = await fetch('/get_csv_status');
-                            const csvData = await csvResponse.json();
-                            const recordBtn = document.getElementById('csvRecordBtn');
-                            if (csvData.enabled) {
-                                recordBtn.classList.add('recording');
-                                recordBtn.textContent = 'Stop Recording';
-                            }
-                        } else if (statusData.status === 'error') {
-                            // Connection failed
-                            clearTimeout(connectionTimeout);
-                            clearInterval(connectionCheckInterval);
-                            throw new Error(statusData.message);
-                        }
-                    } catch (error) {
-                        console.error('Connection check error:', error);
-                        statusDiv.textContent = `Error: ${error.message}`;
-                        statusDiv.className = 'error-status';
-                        wifiButton.disabled = false;
-                        clearTimeout(connectionTimeout);
-                        clearInterval(connectionCheckInterval);
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('WiFi connection error:', error);
-                statusDiv.textContent = `WiFi connection failed: ${error.message}`;
-                statusDiv.className = 'error-status';
-                wifiButton.disabled = false;
-                clearTimeout(connectionTimeout);
-                if (connectionCheckInterval) clearInterval(connectionCheckInterval);
-            }
         }
 
-        async function stopApp(appName) {
-            const button = document.querySelector(`.app-button[app-name="${appName}"]`);
-            button.disabled = true;
+        // Function to update the connection status on the frontend
+        function updateConnectionStatus(message, icon, colorClass) {
+            const statusText = document.getElementById('status-text');
+            const statusIcon = document.getElementById('status-icon');
+            const statusDiv = document.getElementById('connection-status');
             
-            try {
-                const response = await fetch('/stop_application', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `app_name=${encodeURIComponent(appName)}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    button.classList.remove('running');
-                    stopAppStatusCheck(appName);
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to stop application');
-            } finally {
-                button.disabled = false;
-            }
+            statusText.textContent = message;
+            statusIcon.innerHTML = `<i class="fas ${icon} ${colorClass}"></i>`;
+            statusDiv.classList.remove('hidden');
         }
 
-        function startAppStatusCheck(appName) {
-            stopAppStatusCheck(appName); // Clear any existing interval
-            
-            appStatusCheckIntervals[appName] = setInterval(async () => {
-                const response = await fetch(`/check_app_status?app_name=${encodeURIComponent(appName)}`);
-                const data = await response.json();
-                
-                const button = document.querySelector(`.app-button[app-name="${appName}"]`);
-                
-                if (data.status === 'running') {
-                    button.classList.add('running');
-                } else {
-                    button.classList.remove('running');
-                    stopAppStatusCheck(appName);
-                }
-            }, 1000);
-        }
+        // Call the checkStreamStatus function every 1 second
+        setInterval(checkStreamStatus, 1000);
 
-        function stopAppStatusCheck(appName) {
-            if (appStatusCheckIntervals[appName]) {
-                clearInterval(appStatusCheckIntervals[appName]);
-                delete appStatusCheckIntervals[appName];
-            }
-        }
-        
-        async function disconnectAll() {
-            const statusDiv = document.getElementById('connectionStatus');
-            const disconnectBtn = document.getElementById('disconnect_button');
-            
-            disconnectBtn.disabled = true;
-            statusDiv.textContent = 'Disconnecting and cleaning up...';
-            statusDiv.className = 'scanning-status';
-            const recordBtn = document.getElementById('csvRecordBtn');
-            if (recordBtn.classList.contains('recording')) {
-                recordBtn.classList.remove('recording');
-                recordBtn.textContent = 'Save as CSV';
-            }
-            
-            try {
-                // Stop all running applications
-                const runningApps = [];
-                document.querySelectorAll('.app-button.running').forEach(button => {
-                    runningApps.push(button.getAttribute('app-name'));
-                });
-                
-                // Send stop commands for all running apps
-                await Promise.all(runningApps.map(async (appName) => {
-                    try {
-                        await fetch('/stop_application', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `app_name=${encodeURIComponent(appName)}`
-                        });
-                    } catch (error) {
-                        console.error(`Error stopping app ${appName}:`, error);
-                    }
-                }));
-                
-                // Disconnect all active connections
-                try {
-                    await fetch('/disconnect', {
-                        method: 'POST'
-                    });
-                } catch (error) {
-                    console.error('Error sending disconnect command:', error);
-                }
-                
-                // Clear all intervals
-                if (connectionCheckInterval) {
-                    clearInterval(connectionCheckInterval);
-                    connectionCheckInterval = null;
-                }
-                
-                for (const appName in appStatusCheckIntervals) {
-                    clearInterval(appStatusCheckIntervals[appName]);
-                    delete appStatusCheckIntervals[appName];
-                }
-                
-                // Refresh the page after a brief delay
-                statusDiv.textContent = 'Cleanup complete - refreshing page...';
-                statusDiv.className = '';
-                
-                setTimeout(() => {
-                    window.location.reload(true); // true forces a hard refresh from server
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Disconnection error:', error);
-                statusDiv.textContent = 'Disconnection failed - refreshing anyway';
-                statusDiv.className = 'error-status';
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 1000);
-            }
-}
-        
-        function updateStatusMessage(message) {
-            const statusDiv = document.getElementById('connectionStatus');
-            statusDiv.textContent = message;
-            
-            if (message.includes('established') || message.includes('success')) {
-                statusDiv.className = 'connected-status';
-            } else if (message.includes('Error') || message.includes('Failed')) {
-                statusDiv.className = 'error-status';
-            } else {
-                statusDiv.className = 'scanning-status';
-            }
-        }
+        // Call it initially when the page loads
+        checkStreamStatus();
 
-        document.addEventListener('DOMContentLoaded', initializeUI);
+        document.getElementById('github-btn').addEventListener('click', () => {
+            window.open('https://github.com/upsidedownlabs/Chords-Python', '_blank');
+        });
+
+        document.getElementById('info-btn').addEventListener('click', () => {
+            alert('Chords Python - Biopotential Data Acquisition System\nVersion 2.1.0');
+        });
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {darkMode: 'class'}
     </script>
 </body>
 </html>
