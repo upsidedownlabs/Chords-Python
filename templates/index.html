@@ -47,13 +47,16 @@
             <button id="connect-btn" class="h-12 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
                 Connect Device
             </button>
+            <button id="connecting-btn" class="h-12 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+                <i class="fas fa-spinner fa-spin mr-2"></i> Connecting...
+            </button>
             <button id="disconnect-btn" class="h-12 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold px-6 hidden">
                 Disconnect
             </button>
           
             <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
           
-            <input type="text" id="filename" value="recording" 
+            <input type="text" id="filename" value="ChordsPy" 
                    class="flex-1 h-12 px-4 border-r-0 rounded-l-lg focus:outline-none focus:ring-0 bg-gray-100 border border-gray-110 dark:bg-gray-800 dark:border-gray-700 dark:text-white" 
                    placeholder="Enter recording name">
             <span class="h-12 px-4 bg-gray-200 text-gray-500 rounded-r-lg dark:bg-gray-700 dark:text-gray-400 inline-flex items-center justify-center text-base">
@@ -175,6 +178,7 @@
         // Connection management
         const connectionBtns = document.querySelectorAll('.connection-btn');
         const connectBtn = document.getElementById('connect-btn');
+        const connectingBtn = document.getElementById('connecting-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
         const recordBtn = document.getElementById('record-btn');
         const filenameInput = document.getElementById('filename');
@@ -190,6 +194,7 @@
         let selectedBleDevice = null;
         let isConnected = false;
         let eventSource = null;
+        let isScanning = false;
 
         // Handle protocol selection
         connectionBtns.forEach(btn => {
@@ -201,6 +206,8 @@
                 // For BLE, show device selection modal
                 if (selectedProtocol === 'ble') {
                     showBleDeviceModal();
+                } else {
+                    connectBtn.disabled = false;   // For other protocols, enable connect button immediately
                 }
             });
         });
@@ -213,6 +220,9 @@
 
         // Scan for BLE devices
         function scanBleDevices() {
+            if (isScanning) return;
+            
+            isScanning = true;
             bleDevicesList.innerHTML = `
                 <div class="flex items-center justify-center py-4">
                     <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
@@ -228,6 +238,7 @@
                     return response.json();
                 })
                 .then(data => {
+                    isScanning = false;
                     if (data.status === 'success' && data.devices.length > 0) {
                         renderBleDevices(data.devices);
                     } else {
@@ -239,6 +250,7 @@
                     }
                 })
                 .catch(error => {
+                    isScanning = false;
                     console.error('BLE scan error:', error);
                     bleDevicesList.innerHTML = `
                         <div class="text-center py-4 text-red-500">
@@ -277,7 +289,7 @@
                 deviceElement.addEventListener('click', () => {
                     selectedBleDevice = device;
                     bleModal.classList.add('hidden');
-                    showStatus(`${device.name} selected`, 'fa-bluetooth-b', 'text-blue-500');
+                    connectBtn.disabled = false; // Enable connect button after selection
                 });
                 
                 bleDevicesList.appendChild(deviceElement);
@@ -290,201 +302,160 @@
             connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
             selectedProtocol = null;
             selectedBleDevice = null;
+            connectBtn.disabled = true;
         });
 
         // Rescan BLE devices
         rescanBle.addEventListener('click', scanBleDevices);
 
         // Handle connect button
-        connectBtn.addEventListener('click', () => {
+        connectBtn.addEventListener('click', async () => {
             if (!selectedProtocol) {
-                alert('Please select a protocol before connecting.');
+                showAlert('Please select a protocol before connecting.');
                 return;
             }
 
-            let postData = { protocol: selectedProtocol };
-            if (selectedProtocol === 'ble' && selectedBleDevice) {
-                postData.device_address = selectedBleDevice;
+            // For BLE, ensure a device is selected
+            if (selectedProtocol === 'ble' && !selectedBleDevice) {
+                showAlert('Please select a BLE device before connecting.');
+                return;
             }
 
-            // Show loading state
-            connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Connecting...';
-            connectBtn.disabled = true;
-            connectionBtns.forEach(btn => btn.disabled = true); // Disable all protocol buttons
+            // Transition to connecting state
+            connectBtn.classList.add('hidden');
+            connectingBtn.classList.remove('hidden');
+            connectionBtns.forEach(btn => btn.disabled = true);
 
-            fetch('/connect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(postData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Start polling until LSL stream is active
-                const pollInterval = setInterval(() => {
-                    fetch('/check_stream')
-                        .then(res => res.json())
-                        .then(streamStatus => {
-                            if (streamStatus.status === 'connected') {
-                                clearInterval(pollInterval);
-                                isConnected = true;
+            try {
+                let postData = { protocol: selectedProtocol };
+                if (selectedProtocol === 'ble' && selectedBleDevice) {
+                    postData.device_address = selectedBleDevice.address;
+                }
 
-                                // Update button to Disconnect
-                                connectBtn.textContent = 'Disconnect';
-                                connectBtn.disabled = false;
+                showStatus('Connecting...', 'fa-spinner fa-spin', 'text-blue-500');
 
-                                connectBtn.removeEventListener('click', connectHandler); // Prevent duplicate handlers
-                                connectBtn.addEventListener('click', disconnectHandler);
-                            }
-                        });
-                }, 1000);
-            })
-            .catch(error => {
+                const response = await fetch('/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(postData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'connecting') {
+                    // Start polling connection status
+                    await pollConnectionStatus();
+                } else {
+                    throw new Error(data.message || 'Connection failed');
+                }
+            } catch (error) {
                 console.error('Connection error:', error);
-                connectBtn.innerHTML = 'Connect';
+                showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+                // Return to connect state
+                connectingBtn.classList.add('hidden');
+                connectBtn.classList.remove('hidden');
                 connectBtn.disabled = false;
                 connectionBtns.forEach(btn => btn.disabled = false);
-            });
+            }
         });
 
-        const connectHandler = () => connectBtn.click(); // keep for reassigning after disconnect
-
-        const disconnectHandler = () => {
-            fetch('/disconnect', { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'disconnected') {
-                        isConnected = false;
-
-                        connectBtn.textContent = 'Connect';
-                        connectBtn.removeEventListener('click', disconnectHandler);
-                        connectBtn.addEventListener('click', connectHandler);
-
-                        // Re-enable protocol selection
-                        connectionBtns.forEach(btn => btn.disabled = false);
-                    }
-                });
-        };
-
-        connectBtn.addEventListener('click', connectHandler);
-
-        // Set up Server-Sent Events listener for console updates
-        function setupConsoleListener() {
-            if (eventSource) eventSource.close();
+        // Poll connection status
+        async function pollConnectionStatus() {
+            let attempts = 0;
+            const maxAttempts = 30; // 30 seconds timeout
             
-            eventSource = new EventSource('/console_updates');
-            
-            eventSource.onmessage = function(event) {
-                const message = event.data;
-                console.log('Console update:', message);
+            const checkStatus = async () => {
+                attempts++;
                 
-                if (message.includes('LSL stream started')) {
-                    handleConnectionSuccess();
-                } else if (message.includes('Connection error')) {
-                    showStatus('Connection failed', 'fa-times-circle', 'text-red-500');
-                    connectBtn.disabled = false;
-                    if (eventSource) {
-                        eventSource.close();
-                        eventSource = null;
+                try {
+                    const response = await fetch('/check_connection');
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'connected') {
+                        handleConnectionSuccess();
+                        return true;
+                    } else if (attempts >= maxAttempts) {
+                        throw new Error('Connection timeout');
+                    } else {
+                        // Continue polling
+                        return new Promise(resolve => {
+                            setTimeout(async () => {
+                                const result = await checkStatus();
+                                resolve(result);
+                            }, 1000);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Connection polling error:', error);
+                    showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+                    // Return to connect state
+                    connectingBtn.classList.add('hidden');
+                    connectBtn.classList.remove('hidden');
+                    connectBtn.disabled = false;
+                    connectionBtns.forEach(btn => btn.disabled = false);
+                    return false;
                 }
             };
             
-            eventSource.onerror = function() {
-                console.log('Console updates connection error');
-            };
+            return await checkStatus();
         }
 
         function handleConnectionSuccess() {
             isConnected = true;
-            connectBtn.classList.add('hidden');
+            // Transition to disconnect state
+            connectingBtn.classList.add('hidden');
             disconnectBtn.classList.remove('hidden');
-            showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
-            connectBtn.disabled = false;
             
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-            }
+            showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
+            
         }
 
+        // Handle disconnect button
         disconnectBtn.addEventListener('click', async () => {
             try {
-                const response = await fetch('/disconnect', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
+                // Show connecting state during disconnection
+                disconnectBtn.classList.add('hidden');
+                connectingBtn.classList.remove('hidden');
+                showStatus('Disconnecting...', 'fa-spinner fa-spin', 'text-blue-500');
                 
+                const response = await fetch('/disconnect', { method: 'POST' });
                 const data = await response.json();
                 
                 if (data.status === 'disconnected') {
                     isConnected = false;
+                    // Return to connect state
+                    connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
-                    disconnectBtn.classList.add('hidden');
-                    connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
+                    
+                    // Reset UI
+                    connectionBtns.forEach(btn => {
+                        btn.disabled = false;
+                        btn.classList.remove('bg-cyan-500', 'text-white');
+                    });
+                    
+                    statusDiv.classList.add('hidden');
                     selectedProtocol = null;
                     selectedBleDevice = null;
-                    statusDiv.classList.add('hidden');
-                    
-                    if (eventSource) {
-                        eventSource.close();
-                        eventSource = null;
-                    }
                 }
             } catch (error) {
                 console.error('Disconnection error:', error);
+                showStatus('Disconnection failed', 'fa-times-circle', 'text-red-500');
+                // Return to disconnect state if disconnection failed
+                connectingBtn.classList.add('hidden');
+                disconnectBtn.classList.remove('hidden');
             }
         });
 
-        recordBtn.addEventListener('click', async () => {
-            if (recordBtn.textContent === 'Start Recording') {
-                const filename = filenameInput.value.trim() || 'recording';
-                
-                try {
-                    const response = await fetch('/start_recording', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            filename: filename
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.status === 'recording_started') {
-                        filenameInput.disabled = true;
-                        recordBtn.textContent = 'Stop Recording';
-                        recordBtn.classList.replace('bg-red-500', 'bg-green-500');
-                        recordBtn.classList.replace('hover:bg-red-600', 'hover:bg-green-600');
-                    }
-                } catch (error) {
-                    console.error('Recording error:', error);
-                }
-            } else {
-                try {
-                    const response = await fetch('/stop_recording', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.status === 'recording_stopped') {
-                        filenameInput.disabled = false;
-                        recordBtn.textContent = 'Start Recording';
-                        recordBtn.classList.replace('bg-green-500', 'bg-red-500');
-                        recordBtn.classList.replace('hover:bg-green-600', 'hover:bg-red-600');
-                    }
-                } catch (error) {
-                    console.error('Stop recording error:', error);
-                }
-            }
-        });
+        // Initial setup
+        connectBtn.disabled = true; // Disable connect button until protocol is selected
 
         function showStatus(text, icon, colorClass) {
             statusText.textContent = text;
@@ -502,40 +473,25 @@
                 .then(data => {
                     if (data.connected) {
                         // If connected, update the frontend
-                        updateConnectionStatus('Stream Started', 'fa-check-circle', 'text-green-500');
-                        
-                        // Update the button state
                         if (!isConnected) {
                             isConnected = true;
                             connectBtn.classList.add('hidden');
+                            connectingBtn.classList.add('hidden');
                             disconnectBtn.classList.remove('hidden');
                         }
                     } else {
                         // If not connected, update the frontend
-                        updateConnectionStatus('Stream Not Started', 'fa-times-circle', 'text-red-500');
-                        
-                        // Update the button state
                         if (isConnected) {
                             isConnected = false;
-                            connectBtn.classList.remove('hidden');
                             disconnectBtn.classList.add('hidden');
+                            connectingBtn.classList.add('hidden');
+                            connectBtn.classList.remove('hidden');
                         }
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching stream status:', error);
                 });
-        }
-
-        // Function to update the connection status on the frontend
-        function updateConnectionStatus(message, icon, colorClass) {
-            const statusText = document.getElementById('status-text');
-            const statusIcon = document.getElementById('status-icon');
-            const statusDiv = document.getElementById('connection-status');
-            
-            statusText.textContent = message;
-            statusIcon.innerHTML = `<i class="fas ${icon} ${colorClass}"></i>`;
-            statusDiv.classList.remove('hidden');
         }
 
         // Call the checkStreamStatus function every 1 second

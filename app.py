@@ -7,6 +7,7 @@ from bleak import BleakScanner
 from flask import Response
 import queue
 import threading
+import time
 
 console_queue = queue.Queue()
 app = Flask(__name__)
@@ -16,6 +17,7 @@ logging.basicConfig(level=logging.INFO)
 connection_manager = None
 connection_thread = None
 ble_devices = []
+stream_active = False
 
 def run_async(coro):
     def wrapper(*args, **kwargs):
@@ -46,16 +48,22 @@ async def scan_ble_devices():
 
 @app.route('/check_stream')
 def check_stream():
-    if connection_manager and connection_manager.lsl_connection:
+    if connection_manager and connection_manager.stream_active:
         return jsonify({'connected': True})
     return jsonify({'connected': False})
 
+@app.route('/check_connection')
+def check_connection():
+    if connection_manager and connection_manager.stream_active:
+        return jsonify({'status': 'connected'})
+    return jsonify({'status': 'connecting'})
+
 def post_console_message(message):
-    if connection_manager:
-        if "LSL stream started" in message:
-            connection_manager.stream_active = True
-        elif "Connection error" in message or "disconnected" in message:
-            connection_manager.stream_active = False
+    global stream_active
+    if "LSL stream started" in message:
+        stream_active = True
+    elif "disconnected" in message:
+        stream_active = False
     console_queue.put(message)
 
 @app.route('/console_updates')
@@ -120,10 +128,10 @@ def connect_device():
 
 @app.route('/disconnect', methods=['POST'])
 def disconnect_device():
-    global connection_manager
+    global connection_manager, stream_active
     if connection_manager:
         connection_manager.cleanup()
-        connection_manager.stream_active = False
+        stream_active = False
         post_console_message("disconnected")
         return jsonify({'status': 'disconnected'})
     return jsonify({'status': 'no active connection'})

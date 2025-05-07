@@ -26,6 +26,7 @@ class Connection:
         self.csv_writer = None
         self.sample_counter = 0
         self.num_channels = 0
+        self.stream_active = False
 
     async def get_ble_device(self):
         devices = await Chords_BLE.scan_devices()
@@ -51,6 +52,8 @@ class Connection:
         info = StreamInfo(self.stream_name, self.stream_type, num_channels, sampling_rate, self.stream_format, self.stream_id)
         self.lsl_connection = StreamOutlet(info)
         print(f"LSL stream started: {num_channels} channels at {sampling_rate}Hz")
+        self.stream_active = True
+        print("Flag is set to True")
         self.num_channels = num_channels
 
     def setup_csv(self):
