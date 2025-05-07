@@ -127,30 +127,39 @@
     </footer>
     <script>
         const apps = [
-            { title: 'ECG with Heart Rate', icon: 'fa-heartbeat', color: 'cyan' },
-            { title: 'EMG with Envelope', icon: 'fa-wave-square', color: 'red' },
-            { title: 'EOG with Blinks', icon: 'fa-chart-line', color: 'purple' },
-            { title: 'EEG with FFT', icon: 'fa-hand-holding-water', color: 'green' },
-            { title: 'EEG Tug of War game', icon: 'fa-brain', color: 'yellow' },
-            { title: 'EEG Beetle Game', icon: 'fa-eye', color: 'pink' },
-            { title: 'EOG Keystroke Emualtor', icon: 'fa-lungs', color: 'blue' },
-            { title: 'GUI Visualization', icon: 'fa-heart-pulse', color: 'orange' },
-            { title: 'CSV Plotter', icon: 'fa-thermometer-half', color: 'teal' },
+            { title: 'ECG with Heart Rate', icon: 'fa-heartbeat', color: 'cyan', script: 'heartbeat_ecg' },
+            { title: 'EMG with Envelope', icon: 'fa-wave-square', color: 'red', script: 'emgenvelope' },
+            { title: 'EOG with Blinks', icon: 'fa-eye', color: 'purple', script: 'eog' },
+            { title: 'EEG with FFT', icon: 'fa-brain', color: 'green', script: 'ffteeg' },
+            { title: 'EEG Tug of War game', icon: 'fa-gamepad', color: 'yellow', script: 'game' },
+            { title: 'EEG Beetle Game', icon: 'fa-bug', color: 'pink', script: 'beetle' },
+            { title: 'EOG Keystroke Emulator', icon: 'fa-keyboard', color: 'blue', script: 'keystroke' },
+            { title: 'GUI Visualization', icon: 'fa-chart-bar', color: 'orange', script: 'gui' },
+            { title: 'CSV Plotter', icon: 'fa-chart-line', color: 'teal', script: 'csvplotter' },
         ];
 
         const appGrid = document.getElementById('app-grid');
         apps.forEach(app => {
             const card = document.createElement('div');
-            card.className = 'bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition duration-300 dark:border-gray-700';
+            card.className = 'bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition duration-300 dark:border-gray-700 cursor-pointer';
             card.innerHTML = `
                 <div class="p-4">
                     <div class="w-full h-32 bg-${app.color}-100 dark:bg-${app.color}-900 rounded-lg flex items-center justify-center mb-4">
                         <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
                     </div>
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Sample description for ${app.title}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Click to launch ${app.title}</p>
                 </div>
             `;
+            
+            card.addEventListener('click', () => {
+                if (!isConnected) {
+                    showAlert('Please start LSL Stream first by any protocol (USB/WIFI/BLE)');
+                    return;
+                }
+                launchApplication(app.script);
+            });
+            
             appGrid.appendChild(card);
         });
 
@@ -460,6 +469,25 @@
             
             // Start console updates
             startConsoleUpdates();
+        }
+
+        function launchApplication(appName) {
+            fetch('/launch_app', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ app: appName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // showStatus(`Launched ${appName} application`, 'fa-check-circle', 'text-green-500');
+                } else {
+                    showAlert(`Failed to launch ${appName}: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                showAlert(`Error launching ${appName}: ${error.message}`);
+            });
         }
 
         // Handle disconnect button

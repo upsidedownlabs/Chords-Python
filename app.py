@@ -76,6 +76,30 @@ def console_updates():
     
     return Response(event_stream(), mimetype="text/event-stream")
 
+@app.route('/launch_app', methods=['POST'])
+def launch_application():
+    if not connection_manager or not connection_manager.stream_active:
+        return jsonify({'status': 'error', 'message': 'No active stream'}), 400
+    
+    data = request.get_json()
+    app_name = data.get('app')
+    
+    if not app_name:
+        return jsonify({'status': 'error', 'message': 'No application specified'}), 400
+    
+    try:
+        # Here we'll use subprocess to launch the application script
+        import subprocess
+        import sys
+        
+        python_exec = sys.executable       # Determine the correct Python executable
+        subprocess.Popen([python_exec, f"{app_name}.py"])   # Launch the application script in a separate process
+        
+        return jsonify({'status': 'success', 'message': f'Launched {app_name}'})
+    except Exception as e:
+        logging.error(f"Error launching {app_name}: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/connect', methods=['POST'])
 def connect_device():
     global connection_manager, connection_thread, stream_active
