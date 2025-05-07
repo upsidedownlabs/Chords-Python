@@ -10,7 +10,7 @@ import csv
 from datetime import datetime
 
 class Connection:
-    def __init__(self, csv_logging=False):
+    def __init__(self):
         self.ble_connection = None
         self.wifi_connection = None
         self.lsl_connection = None
@@ -21,12 +21,12 @@ class Connection:
         self.last_sample = None
         self.ble_samples_received = 0
         self.ble_start_time = time.time()
-        self.csv_logging = csv_logging
         self.csv_file = None
         self.csv_writer = None
         self.sample_counter = 0
         self.num_channels = 0
         self.stream_active = False
+        self.recording_active = False
 
     async def get_ble_device(self):
         devices = await Chords_BLE.scan_devices()
@@ -53,13 +53,12 @@ class Connection:
         self.lsl_connection = StreamOutlet(info)
         print(f"LSL stream started: {num_channels} channels at {sampling_rate}Hz")
         self.stream_active = True
-        print("Flag is set to True")
         self.num_channels = num_channels
 
-    def setup_csv(self):
-        if not self.csv_logging or self.csv_file:
-            return  # Already set up or logging disabled
-            
+    def start_csv_recording(self):
+        if self.recording_active:
+            return False
+        
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"ChordsPy_{timestamp}.csv"
@@ -67,13 +66,32 @@ class Connection:
             headers = ['Counter'] + [f'Channel{i+1}' for i in range(self.num_channels)]
             self.csv_writer = csv.writer(self.csv_file)
             self.csv_writer.writerow(headers)
-            print(f"CSV logging started: {filename}")
+            self.recording_active = True
+            self.sample_counter = 0
+            print(f"CSV recording started: {filename}")
+            return True
         except Exception as e:
-            print(f"Error setting up CSV logging: {str(e)}")
-            self.csv_logging = False
+            print(f"Error starting CSV recording: {str(e)}")
+            return False
+
+    def stop_csv_recording(self):
+        if not self.recording_active:
+            return False
+        
+        try:
+            if self.csv_file:
+                self.csv_file.close()
+                self.csv_file = None
+                self.csv_writer = None
+            self.recording_active = False
+            print("CSV recording stopped")
+            return True
+        except Exception as e:
+            print(f"Error stopping CSV recording: {str(e)}")
+            return False
 
     def log_to_csv(self, sample_data):
-        if not self.csv_logging or not self.csv_writer:
+        if not self.recording_active or not self.csv_writer:
             return
             
         try:
@@ -82,7 +100,7 @@ class Connection:
             self.csv_writer.writerow(row)
         except Exception as e:
             print(f"Error writing to CSV: {str(e)}")
-            self.csv_logging = False
+            self.stop_csv_recording()
 
     def connect_ble(self, device_address=None):
         self.ble_connection = Chords_BLE()
@@ -92,7 +110,6 @@ class Connection:
             if len(data) == self.ble_connection.NEW_PACKET_LEN:
                 if not self.lsl_connection:
                     self.setup_lsl(num_channels=3, sampling_rate=500)
-                    self.setup_csv()
                 
                 original_notification_handler(sender, data)
                 
@@ -109,7 +126,8 @@ class Connection:
                 
                         if self.lsl_connection:             # Push to LSL
                             self.lsl_connection.push_sample(channels)
-                        self.log_to_csv(channels)           # Log to CSV
+                        if self.recording_active:
+                            self.log_to_csv(channels)
             
         self.ble_connection.notification_handler = notification_handler
             
@@ -125,8 +143,10 @@ class Connection:
                 self.ble_connection.connect(selected_device.address)
             
             print("BLE connection established. Waiting for data...")
+            return True
         except Exception as e:
             print(f"BLE connection failed: {str(e)}")
+            return False
 
     def connect_usb(self):
         serial_connection = Chords_USB()
@@ -135,7 +155,6 @@ class Connection:
             sampling_rate = serial_connection.supported_boards[serial_connection.board]["sampling_rate"]
             
             self.setup_lsl(self.num_channels, sampling_rate)
-            self.setup_csv()
             
             original_read_data = serial_connection.read_data
             def wrapped_read_data():
@@ -143,10 +162,13 @@ class Connection:
                 if hasattr(serial_connection, 'data') and self.lsl_connection:
                     sample = serial_connection.data[:, -1]
                     self.lsl_connection.push_sample(sample)
-                    self.log_to_csv(sample.tolist())
+                    if self.recording_active:
+                        self.log_to_csv(sample.tolist())
             
             serial_connection.read_data = wrapped_read_data
             serial_connection.start_streaming()
+            return True
+        return False
 
     def connect_wifi(self):
         self.wifi_connection = Chords_WIFI()
@@ -157,8 +179,6 @@ class Connection:
 
         if not self.lsl_connection:
             self.setup_lsl(self.num_channels, sampling_rate)
-            if self.csv_logging:
-                self.setup_csv()
         
         try:
             print("\nConnected! (Press Ctrl+C to stop)")
@@ -179,28 +199,35 @@ class Connection:
                         
                         if self.lsl_connection:                   # Push to LSL
                             self.lsl_connection.push_sample(channel_data)
-                        if self.csv_logging and self.csv_writer:  # Only log if CSV is set up
+                        if self.recording_active:
                             self.log_to_csv(channel_data)
                     
         except KeyboardInterrupt:
             self.wifi_connection.disconnect()
             print("\nDisconnected")
         finally:
-            if self.csv_file:
-                self.csv_file.close()
+            self.stop_csv_recording()
+
+    def cleanup(self):
+        self.stop_csv_recording()
+        self.stream_active = False
+        if self.ble_connection:
+            self.ble_connection.disconnect()
+        if self.wifi_connection:
+            self.wifi_connection.disconnect()
+        if self.lsl_connection:
+            self.lsl_connection = None
 
     def __del__(self):
-        if self.csv_file:
-            self.csv_file.close()
+        self.cleanup()
 
 def main():
     parser = argparse.ArgumentParser(description='Connect to device')
     parser.add_argument('--protocol', choices=['usb', 'wifi', 'ble'], required=True, help='Connection protocol')
     parser.add_argument('--ble-address', help='Direct BLE device address')
-    parser.add_argument('--csv', action='store_true', help='Enable CSV logging')
     args = parser.parse_args()
 
-    manager = Connection(csv_logging=args.csv)
+    manager = Connection()
 
     try:
         if args.protocol == 'usb':

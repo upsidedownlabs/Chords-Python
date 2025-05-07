@@ -82,7 +82,6 @@ def connect_device():
     data = request.get_json()
     protocol = data.get('protocol')
     device_address = data.get('device_address')
-    csv_logging = data.get('csv_logging', False)
     
     # Reset stream status
     stream_active = False
@@ -94,7 +93,7 @@ def connect_device():
             connection_thread.join()
     
     # Create new connection
-    connection_manager = Connection(csv_logging=csv_logging)
+    connection_manager = Connection()
     
     def run_connection():
         try:
@@ -135,6 +134,28 @@ def disconnect_device():
         post_console_message("disconnected")
         return jsonify({'status': 'disconnected'})
     return jsonify({'status': 'no active connection'})
+
+@app.route('/start_recording', methods=['POST'])
+def start_recording():
+    global connection_manager
+    if connection_manager and connection_manager.stream_active:
+        try:
+            connection_manager.start_csv_recording()
+            return jsonify({'status': 'recording_started'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+    return jsonify({'status': 'error', 'message': 'No active stream'}), 400
+
+@app.route('/stop_recording', methods=['POST'])
+def stop_recording():
+    global connection_manager
+    if connection_manager:
+        try:
+            connection_manager.stop_csv_recording()
+            return jsonify({'status': 'recording_stopped'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+    return jsonify({'status': 'error', 'message': 'No active connection'}), 400
 
 if __name__ == "__main__":
     app.run(debug=True)
