@@ -55,13 +55,17 @@ class Connection:
         self.stream_active = True
         self.num_channels = num_channels
 
-    def start_csv_recording(self):
+    def start_csv_recording(self, filename=None):
         if self.recording_active:
             return False
         
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"ChordsPy_{timestamp}.csv"
+            if not filename:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"ChordsPy_{timestamp}.csv"
+            elif not filename.endswith('.csv'):
+                filename += '.csv'
+                
             self.csv_file = open(filename, 'w', newline='')
             headers = ['Counter'] + [f'Channel{i+1}' for i in range(self.num_channels)]
             self.csv_writer = csv.writer(self.csv_file)

@@ -8,6 +8,7 @@ from flask import Response
 import queue
 import threading
 import time
+from datetime import datetime
 
 console_queue = queue.Queue()
 app = Flask(__name__)
@@ -138,22 +139,36 @@ def disconnect_device():
 @app.route('/start_recording', methods=['POST'])
 def start_recording():
     global connection_manager
-    if connection_manager and connection_manager.stream_active:
-        try:
-            connection_manager.start_csv_recording()
+    if not connection_manager:
+        return jsonify({'status': 'error', 'message': 'No active connection'}), 400
+    
+    data = request.get_json()
+    filename = data.get('filename')
+    
+    # If filename is empty or None, let connection_manager use default
+    if filename == "":
+        filename = None
+    
+    try:
+        if connection_manager.start_csv_recording(filename):
+            post_console_message(f"Recording started: {filename or 'default filename'}")
             return jsonify({'status': 'recording_started'})
-        except Exception as e:
-            return jsonify({'status': 'error', 'message': str(e)}), 500
-    return jsonify({'status': 'error', 'message': 'No active stream'}), 400
+        return jsonify({'status': 'error', 'message': 'Failed to start recording'}), 500
+    except Exception as e:
+        logging.error(f"Recording error: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/stop_recording', methods=['POST'])
 def stop_recording():
     global connection_manager
     if connection_manager:
         try:
-            connection_manager.stop_csv_recording()
-            return jsonify({'status': 'recording_stopped'})
+            if connection_manager.stop_csv_recording():
+                post_console_message("Recording stopped")
+                return jsonify({'status': 'recording_stopped'})
+            return jsonify({'status': 'error', 'message': 'Failed to stop recording'}), 500
         except Exception as e:
+            logging.error(f"Stop recording error: {str(e)}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
     return jsonify({'status': 'error', 'message': 'No active connection'}), 400
 

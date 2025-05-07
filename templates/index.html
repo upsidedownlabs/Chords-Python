@@ -56,7 +56,7 @@
           
             <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
           
-            <input type="text" id="filename" value="ChordsPy" 
+            <input type="text" id="filename" 
                    class="flex-1 h-12 px-4 border-r-0 rounded-l-lg focus:outline-none focus:ring-0 bg-gray-100 border border-gray-110 dark:bg-gray-800 dark:border-gray-700 dark:text-white" 
                    placeholder="Enter recording name">
             <span class="h-12 px-4 bg-gray-200 text-gray-500 rounded-r-lg dark:bg-gray-700 dark:text-gray-400 inline-flex items-center justify-center text-base">
@@ -66,6 +66,8 @@
             <button id="record-btn" class="h-12 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
                 Start Recording
             </button>
+            <div id="recording-status" class="flex items-center hidden">
+            </div>
         </div>
         <div id="connection-status" class="mt-2 text-sm text-gray-600 dark:text-gray-400 hidden">
             <span id="status-icon" class="mr-2"></span>
@@ -182,6 +184,7 @@
         const disconnectBtn = document.getElementById('disconnect-btn');
         const recordBtn = document.getElementById('record-btn');
         const filenameInput = document.getElementById('filename');
+        const recordingStatus = document.getElementById('recording-status');
         const statusDiv = document.getElementById('connection-status');
         const statusText = document.getElementById('status-text');
         const statusIcon = document.getElementById('status-icon');
@@ -193,8 +196,47 @@
         let selectedProtocol = null;
         let selectedBleDevice = null;
         let isConnected = false;
+        let isRecording = false;
         let eventSource = null;
         let isScanning = false;
+
+        // Function to generate timestamp for filename
+        function getTimestamp() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+        }
+
+        // Initialize filename with default value
+        function initializeFilename() {
+            const defaultName = `ChordsPy_${getTimestamp()}`;
+            filenameInput.value = defaultName;
+            filenameInput.placeholder = defaultName;
+        }
+
+        // Sanitize filename input - replace spaces and dots with underscores
+        function sanitizeFilename(filename) {
+            // Remove leading/trailing whitespace
+            filename = filename.trim();
+            // Replace spaces and dots with underscores
+            filename = filename.replace(/[\s.]+/g, '_');
+            return filename;
+        }
+
+        // Handle filename input changes
+        filenameInput.addEventListener('input', function() {
+            // Only sanitize for display (don't modify the actual value)
+            const cursorPos = this.selectionStart;
+            const displayValue = sanitizeFilename(this.value);
+            this.value = displayValue;
+            // Restore cursor position after display update
+            this.setSelectionRange(cursorPos, cursorPos);
+        });
 
         // Handle protocol selection
         connectionBtns.forEach(btn => {
@@ -416,6 +458,8 @@
             
             showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
             
+            // Start console updates
+            startConsoleUpdates();
         }
 
         // Handle disconnect button
@@ -444,18 +488,108 @@
                     statusDiv.classList.add('hidden');
                     selectedProtocol = null;
                     selectedBleDevice = null;
+                    
+                    // Stop recording if active
+                    if (isRecording) {
+                        toggleRecording();
+                    }
+                    
+                    // Stop console updates
+                    if (eventSource) {
+                        eventSource.close();
+                        eventSource = null;
+                    }
                 }
             } catch (error) {
                 console.error('Disconnection error:', error);
-                showStatus('Disconnection failed', 'fa-times-circle', 'text-red-500');
                 // Return to disconnect state if disconnection failed
                 connectingBtn.classList.add('hidden');
                 disconnectBtn.classList.remove('hidden');
             }
         });
 
+        // Start console updates via SSE
+        function startConsoleUpdates() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            eventSource = new EventSource('/console_updates');
+            
+            eventSource.onmessage = function(e) {
+                console.log('Console update:', e.data);
+            };
+            
+            eventSource.onerror = function() {
+                console.error('EventSource failed');
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+            };
+        }
+
+        // Handle record button
+        recordBtn.addEventListener('click', toggleRecording);
+
+        // In the toggleRecording function
+        function toggleRecording() {
+            if (!isConnected) {
+                showAlert('Please Start a stream before recording.');
+                return;
+            }
+
+            // Get the filename (already sanitized in the display)
+            let filename = filenameInput.value.trim();
+            
+            // If empty, use default (pass null to let server generate default)
+            if (filename === '') {
+                filename = null;
+            }
+
+            if (isRecording) {
+                // Stop recording
+                fetch('/stop_recording', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'recording_stopped') {
+                            isRecording = false;
+                            recordBtn.innerHTML = 'Start Recording';
+                            recordBtn.classList.remove('bg-gray-500');
+                            recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                            recordingStatus.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error stopping recording:', error);
+                    });
+            } else {
+                // Start recording - send the filename (or null for default)
+                fetch('/start_recording', { 
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', },
+                    body: JSON.stringify({ filename: filename })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'recording_started') {
+                            isRecording = true;
+                            recordBtn.innerHTML = 'Stop Recording';
+                            recordBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                            recordBtn.classList.add('bg-gray-500');
+                            recordingStatus.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error starting recording:', error);
+                        showAlert('Failed to start recording: ' + error.message);
+                    });
+            }
+        }
+
         // Initial setup
         connectBtn.disabled = true; // Disable connect button until protocol is selected
+        initializeFilename(); // Set default filename with timestamp
 
         function showStatus(text, icon, colorClass) {
             statusText.textContent = text;
@@ -478,6 +612,7 @@
                             connectBtn.classList.add('hidden');
                             connectingBtn.classList.add('hidden');
                             disconnectBtn.classList.remove('hidden');
+                            startConsoleUpdates();
                         }
                     } else {
                         // If not connected, update the frontend
@@ -486,6 +621,17 @@
                             disconnectBtn.classList.add('hidden');
                             connectingBtn.classList.add('hidden');
                             connectBtn.classList.remove('hidden');
+                            
+                            // Stop recording if active
+                            if (isRecording) {
+                                toggleRecording();
+                            }
+                            
+                            // Stop console updates
+                            if (eventSource) {
+                                eventSource.close();
+                                eventSource = null;
+                            }
                         }
                     }
                 })
