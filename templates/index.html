@@ -154,11 +154,26 @@
                 </div>
             `;
             
-            card.addEventListener('click', () => {
+            card.addEventListener('click', async () => {
                 if (!isConnected) {
                     showAlert('Please start LSL Stream first by any protocol (USB/WIFI/BLE)');
                     return;
                 }
+                
+                // First checking if app is already running
+                try {
+                    const response = await fetch(`/check_app_status/${app.script}`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'running') {
+                        showAlert(`${app.title} is already running!`);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error checking app status:', error);
+                }
+                
+                // If not running, launch the app
                 launchApplication(app.script);
             });
             
@@ -523,7 +538,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // showStatus(`Launched ${appName} application`, 'fa-check-circle', 'text-green-500');
+                } else if (data.code === 'ALREADY_RUNNING') {
+                    showAlert(data.message);
                 } else {
                     showAlert(`Failed to launch ${appName}: ${data.message}`);
                 }

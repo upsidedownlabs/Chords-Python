@@ -19,6 +19,7 @@ connection_manager = None
 connection_thread = None
 ble_devices = []
 stream_active = False
+running_apps = {}  # Dictionary to track running apps
 
 def run_async(coro):
     def wrapper(*args, **kwargs):
@@ -87,18 +88,32 @@ def launch_application():
     if not app_name:
         return jsonify({'status': 'error', 'message': 'No application specified'}), 400
     
+    # Check if app is already running
+    if app_name in running_apps and running_apps[app_name].poll() is None:
+        return jsonify({'status': 'error', 'message': f'{app_name} is already running','code': 'ALREADY_RUNNING'}), 400
+    
     try:
-        # Here we'll use subprocess to launch the application script
         import subprocess
         import sys
         
-        python_exec = sys.executable       # Determine the correct Python executable
-        subprocess.Popen([python_exec, f"{app_name}.py"])   # Launch the application script in a separate process
+        python_exec = sys.executable
+        process = subprocess.Popen([python_exec, f"{app_name}.py"])
+        running_apps[app_name] = process
         
         return jsonify({'status': 'success', 'message': f'Launched {app_name}'})
     except Exception as e:
         logging.error(f"Error launching {app_name}: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/check_app_status/<app_name>')
+def check_app_status(app_name):
+    if app_name in running_apps:
+        if running_apps[app_name].poll() is None:  # Still running
+            return jsonify({'status': 'running'})
+        else:  # Process has terminated
+            del running_apps[app_name]
+            return jsonify({'status': 'not_running'})
+    return jsonify({'status': 'not_running'})
 
 @app.route('/connect', methods=['POST'])
 def connect_device():
