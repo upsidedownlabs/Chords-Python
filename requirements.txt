@@ -16,3 +16,4 @@ PyAutoGUI==0.9.54
 Flask==3.1.0
 psutil==6.1.1
 websocket-client==1.8.0
+PyYAML==6.0.2

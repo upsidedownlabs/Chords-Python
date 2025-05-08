@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from connection import Connection
 import threading
 import asyncio
@@ -6,6 +6,8 @@ import logging
 from bleak import BleakScanner
 from flask import Response
 import queue
+import yaml
+from pathlib import Path
 
 console_queue = queue.Queue()
 app = Flask(__name__)
@@ -31,6 +33,24 @@ def run_async(coro):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/get_apps_config')
+def get_apps_config():
+    try:
+        # Try to load from config/apps.yaml first
+        config_path = Path('config') / 'apps.yaml'
+        if config_path.exists():
+            with open(config_path, 'r') as file:
+                config = yaml.safe_load(file)
+                return jsonify(config)
+        
+        # Fallback to built-in apps if YAML doesn't exist
+        return jsonify
+    
+    except Exception as e:
+        logging.error(f"Error loading apps config: {str(e)}")
+        # Minimal fallback if everything fails
+        return jsonify
 
 @app.route('/scan_ble')
 @run_async

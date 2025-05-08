@@ -141,57 +141,190 @@
         }
     </script>
     <script>
-        const apps = [
-            { title: 'ECG with Heart Rate', icon: 'fa-heartbeat', color: 'cyan', script: 'heartbeat_ecg' },
-            { title: 'EMG with Envelope', icon: 'fa-wave-square', color: 'red', script: 'emgenvelope' },
-            { title: 'EOG with Blinks', icon: 'fa-eye', color: 'purple', script: 'eog' },
-            { title: 'EEG with FFT', icon: 'fa-brain', color: 'green', script: 'ffteeg' },
-            { title: 'EEG Tug of War game', icon: 'fa-gamepad', color: 'yellow', script: 'game' },
-            { title: 'EEG Beetle Game', icon: 'fa-bug', color: 'pink', script: 'beetle' },
-            { title: 'EOG Keystroke Emulator', icon: 'fa-keyboard', color: 'blue', script: 'keystroke' },
-            { title: 'GUI Visualization', icon: 'fa-chart-bar', color: 'orange', script: 'gui' },
-            { title: 'CSV Plotter', icon: 'fa-chart-line', color: 'teal', script: 'csvplotter' },
-        ];
-
-        const appGrid = document.getElementById('app-grid');
-        apps.forEach(app => {
-            const card = document.createElement('div');
-            card.className = 'bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition duration-300 dark:border-gray-700 cursor-pointer';
-            card.innerHTML = `
-                <div class="p-4">
-                    <div class="w-full h-32 bg-${app.color}-100 dark:bg-${app.color}-900 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
+        async function loadApps() {
+            try {
+                const appGrid = document.getElementById('app-grid');
+                appGrid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-12">
+                        <i class="fas fa-circle-notch fa-spin text-cyan-500 text-4xl mb-4"></i>
+                        <p class="text-gray-600 dark:text-gray-400">Loading applications...</p>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Click to launch ${app.title}</p>
-                </div>
-            `;
-            
-            card.addEventListener('click', async () => {
-                if (!isConnected) {
-                    showAlert('Please start LSL Stream first by any protocol (USB/WIFI/BLE)');
-                    return;
-                }
+                `;
+                const response = await fetch('/get_apps_config');
                 
-                // First checking if app is already running
-                try {
-                    const response = await fetch(`/check_app_status/${app.script}`);
-                    const data = await response.json();
-                    
-                    if (data.status === 'running') {
-                        showAlert(`${app.title} is already running!`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const config = await response.json();
+                
+                if (!config?.apps || !Array.isArray(config.apps)) {
+                    throw new Error('Invalid apps configuration format');
+                }
+
+                return config.apps;
+            } catch (error) {
+                console.error('Error loading apps config:', error);
+                
+                // Show error state to user
+                const appGrid = document.getElementById('app-grid');
+                appGrid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+                            Failed to load applications
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-400 max-w-md">
+                            Could not load application configuration. Please try refreshing the page.
+                        </p>
+                        <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i> Refresh
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize the application with proper error handling
+        async function initializeApplication() {
+            try {
+                const apps = await loadApps();
+                renderApps(apps);
+                setupCategoryFilter(apps);
+            } catch (error) {
+                console.error('Application initialization failed:', error);
+            }
+        }
+
+        // Render apps to the grid with improved card design
+        function renderApps(apps) {
+            const appGrid = document.getElementById('app-grid');
+            
+            if (!apps || apps.length === 0) {
+                appGrid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-12">
+                        <i class="fas fa-folder-open text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-600 dark:text-gray-400">No applications available</p>
+                    </div>
+                `;
+                return;
+            }
+
+            appGrid.innerHTML = '';
+            
+            apps.forEach(app => {
+                const card = document.createElement('div');
+                card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 cursor-pointer overflow-hidden`;
+                
+                card.innerHTML = `
+                    <div class="relative h-full flex flex-col">
+                        <div class="w-full h-32 bg-${app.color}-100 dark:bg-${app.color}-900 rounded-t-lg flex items-center justify-center transition-all duration-300 group-hover:opacity-90">
+                            <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
+                        </div>
+                        <div class="p-4 flex-1 flex flex-col">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
+                        </div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', async () => {
+                    if (!isConnected) {
+                        showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
                         return;
                     }
-                } catch (error) {
-                    console.error('Error checking app status:', error);
+                    
+                    // Add loading state to the clicked card
+                    const originalContent = card.innerHTML;
+                    card.innerHTML = `
+                        <div class="h-full flex items-center justify-center p-4">
+                            <i class="fas fa-circle-notch fa-spin text-${app.color}-500 text-xl mr-2"></i>
+                            <span>Launching ${app.title}...</span>
+                        </div>
+                    `;
+                    
+                    try {
+                        const response = await fetch(`/check_app_status/${app.script}`);
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to check app status');
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.status === 'running') {
+                            showAlert(`${app.title} is already running!`);
+                            card.innerHTML = originalContent;
+                            return;
+                        }
+                        
+                        await launchApplication(app.script);
+                        card.innerHTML = originalContent;
+                    } catch (error) {
+                        console.error('Error launching app:', error);
+                        showAlert(`Failed to launch ${app.title}: ${error.message}`);
+                        card.innerHTML = originalContent;
+                    }
+                });
+                
+                appGrid.appendChild(card);
+            });
+        }
+
+        // Set up category filter with fixed options
+        function setupCategoryFilter(apps) {
+            const categorySelect = document.querySelector('select');
+            
+            const fixedCategories = ['All', 'ECG', 'EMG', 'EOG', 'EEG', 'Tools']; // Fixed filter options
+            categorySelect.innerHTML = '';        // Clear existing options
+            
+            // Add fixed options
+            fixedCategories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                
+                // Disable option if no apps exist for this category (except 'All')
+                if (category !== 'All') {
+                    const hasApps = apps.some(app => app.category === category);
+                    option.disabled = !hasApps;
+                    if (!hasApps) {
+                        option.textContent += ' (0)';
+                    }
                 }
                 
-                // If not running, launch the app
-                launchApplication(app.script);
+                categorySelect.appendChild(option);
             });
+
+            // Add event listener for filtering
+            categorySelect.addEventListener('change', (e) => {
+                const selectedCategory = e.target.value;
+                filterAppsByCategory(selectedCategory, apps);
+            });
+        }
+
+        // Filter apps by category with smooth transition
+        function filterAppsByCategory(category, allApps) {
+            const appGrid = document.getElementById('app-grid');
             
-            appGrid.appendChild(card);
-        });
+            // Add fade-out effect
+            appGrid.style.opacity = '0.5';
+            appGrid.style.transition = 'opacity 0.3s ease';
+            
+            setTimeout(() => {
+                const filteredApps = category === 'All' ? 
+                    allApps : 
+                    allApps.filter(app => app.category === category);
+                
+                renderApps(filteredApps);
+                
+                // Add fade-in effect
+                appGrid.style.opacity = '0';
+                setTimeout(() => {
+                    appGrid.style.opacity = '1';
+                }, 10);
+            }, 300);
+        }
 
         // Theme toggle
         const themeToggle = document.getElementById('theme-toggle');
@@ -270,7 +403,6 @@
                     }
                 } else {
                     btn.classList.remove('cursor-not-allowed');
-                    // Restore hover effects
                     btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
                     btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700');
                 }
@@ -769,6 +901,10 @@
         // Call it initially when the page loads
         checkStreamStatus();
 
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+        initializeApplication();
+        
         document.getElementById('github-btn').addEventListener('click', () => {
             window.open('https://github.com/upsidedownlabs/Chords-Python', '_blank');
         });
@@ -776,6 +912,7 @@
         document.getElementById('info-btn').addEventListener('click', () => {
             alert('Chords Python - Biopotential Data Acquisition System\nVersion 2.1.0');
         });
+    });
     </script>
 </body>
 </html>
