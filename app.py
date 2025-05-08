@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify
 from connection import Connection
 import threading
 import asyncio
@@ -37,19 +37,15 @@ def index():
 @app.route('/get_apps_config')
 def get_apps_config():
     try:
-        # Try to load from config/apps.yaml first
         config_path = Path('config') / 'apps.yaml'
         if config_path.exists():
             with open(config_path, 'r') as file:
                 config = yaml.safe_load(file)
                 return jsonify(config)
-        
-        # Fallback to built-in apps if YAML doesn't exist
         return jsonify
     
     except Exception as e:
         logging.error(f"Error loading apps config: {str(e)}")
-        # Minimal fallback if everything fails
         return jsonify
 
 @app.route('/scan_ble')
