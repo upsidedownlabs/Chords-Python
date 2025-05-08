@@ -460,7 +460,7 @@
         // Poll connection status
         async function pollConnectionStatus() {
             let attempts = 0;
-            const maxAttempts = 30; // 30 seconds timeout
+            const maxAttempts = 5; // 5 seconds timeout
             
             const checkStatus = async () => {
                 attempts++;
@@ -489,7 +489,7 @@
                     }
                 } catch (error) {
                     console.error('Connection polling error:', error);
-                    showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+                    showStatus(`Connection failed: Try again`, 'fa-times-circle', 'text-red-500');
                     // Return to connect state
                     connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
@@ -587,7 +587,11 @@
                     
                     // Stop recording if active
                     if (isRecording) {
-                        toggleRecording();
+                        isRecording = false; // Force set to false since we're disconnecting
+                        recordBtn.innerHTML = 'Start Recording';
+                        recordBtn.classList.remove('bg-gray-500');
+                        recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                        recordingStatus.classList.add('hidden');
                     }
                     
                     // Stop console updates
@@ -601,6 +605,7 @@
                 // Return to disconnect state if disconnection failed
                 connectingBtn.classList.add('hidden');
                 disconnectBtn.classList.remove('hidden');
+                showStatus(`Disconnection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
             }
         });
 
@@ -723,9 +728,13 @@
                             // Re-enable protocol buttons
                             setProtocolButtonsDisabled(false);
                             
-                            // Stop recording if active
+                            // Stop recording if active and update button
                             if (isRecording) {
-                                toggleRecording();
+                                isRecording = false;
+                                recordBtn.innerHTML = 'Start Recording';
+                                recordBtn.classList.remove('bg-gray-500');
+                                recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                                recordingStatus.classList.add('hidden');
                             }
                             
                             // Stop console updates
