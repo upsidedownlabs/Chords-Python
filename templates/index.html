@@ -127,6 +127,19 @@
             Made with ❤️ at Upside Down Labs
         </div>
     </footer>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    cursor: {
+                        'not-allowed': 'not-allowed',
+                    }
+                }
+            }
+        }
+    </script>
     <script>
         const apps = [
             { title: 'ECG with Heart Rate', icon: 'fa-heartbeat', color: 'cyan', script: 'heartbeat_ecg' },
@@ -763,19 +776,6 @@
         document.getElementById('info-btn').addEventListener('click', () => {
             alert('Chords Python - Biopotential Data Acquisition System\nVersion 2.1.0');
         });
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    cursor: {
-                        'not-allowed': 'not-allowed',
-                    }
-                }
-            }
-        }
     </script>
 </body>
 </html>

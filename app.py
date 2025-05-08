@@ -6,9 +6,6 @@ import logging
 from bleak import BleakScanner
 from flask import Response
 import queue
-import threading
-import time
-from datetime import datetime
 
 console_queue = queue.Queue()
 app = Flask(__name__)
