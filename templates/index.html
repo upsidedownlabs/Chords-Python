@@ -31,15 +31,15 @@
     <section class="px-8 py-4 sticky top-14 z-40 bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
         <div class="flex flex-col md:flex-row md:items-center gap-4">
             <div class="flex gap-2 flex-wrap">
-                <button data-protocol="wifi" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200">
+                <button data-protocol="wifi" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-wifi text-lg"></i>
                     <span class="text-sm font-medium">WiFi</span>
                 </button>
-                <button data-protocol="ble" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200">
+                <button data-protocol="ble" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fab fa-bluetooth text-lg"></i>
                     <span class="text-sm font-medium">Bluetooth</span>
                 </button>
-                <button data-protocol="usb" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200">
+                <button data-protocol="usb" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-microchip text-lg"></i>
                     <span class="text-sm font-medium">Serial</span>
                 </button>
@@ -56,12 +56,14 @@
           
             <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
           
-            <input type="text" id="filename" 
-                   class="flex-1 h-12 px-4 border-r-0 rounded-l-lg focus:outline-none focus:ring-0 bg-gray-100 border border-gray-110 dark:bg-gray-800 dark:border-gray-700 dark:text-white" 
-                   placeholder="Enter recording name">
-            <span class="h-12 px-4 bg-gray-200 text-gray-500 rounded-r-lg dark:bg-gray-700 dark:text-gray-400 inline-flex items-center justify-center text-base">
-                .csv
-            </span>
+            <div class="flex flex-1">
+                <input type="text" id="filename"
+                    class="flex-1 h-10 px-4 rounded-l-lg focus:outline-none focus:ring-1  border border-gray-600  dark:text-white dark:bg-gray-800" 
+                    placeholder="Enter recording name">
+                <span class="h-10 px-4 bg-gray-100 border border-l-0 border-gray-800 text-gray-500 rounded-r-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 inline-flex items-center justify-center text-sm">
+                    .csv
+                </span>
+            </div>
           
             <button id="record-btn" class="h-12 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
                 Start Recording
@@ -219,6 +221,32 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+        }
+
+        function setProtocolButtonsDisabled(disabled) {
+            connectionBtns.forEach(btn => {
+                btn.disabled = disabled;
+                // Add/remove cursor-not-allowed class based on disabled state
+                if (disabled) {
+                    btn.classList.add('cursor-not-allowed');
+                    // Only keep the connected protocol button highlighted
+                    if (btn.dataset.protocol !== selectedProtocol) {
+                        btn.classList.remove('bg-cyan-500', 'text-white');
+                        // Set to original colors (dark mode aware)
+                        btn.classList.add('text-gray-700', 'dark:text-gray-200');
+                        btn.classList.remove('hover:bg-cyan-500', 'hover:text-white');
+                    } else {
+                        // Make connected protocol button darker
+                        btn.classList.remove('bg-cyan-500');
+                        btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700');
+                    }
+                } else {
+                    btn.classList.remove('cursor-not-allowed');
+                    // Restore hover effects
+                    btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
+                    btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700');
+                }
+            });
         }
 
         // Initialize filename with default value
@@ -465,6 +493,21 @@
             connectingBtn.classList.add('hidden');
             disconnectBtn.classList.remove('hidden');
             
+            // Highlight the connected protocol and disable others
+            connectionBtns.forEach(btn => {
+                if (btn.dataset.protocol === selectedProtocol) {
+                    // Connected protocol - make it darker
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-500');
+                    btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
+                    btn.classList.add('text-white');
+                } else {
+                    // Other protocols - disable and make less prominent
+                    btn.classList.remove('bg-cyan-500', 'text-white', 'hover:bg-cyan-500', 'hover:text-white');
+                    btn.classList.add('cursor-not-allowed', 'text-gray-400', 'dark:text-gray-500');
+                }
+                btn.disabled = true;
+            });
+            
             showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
             
             // Start console updates
@@ -507,10 +550,19 @@
                     connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
                     
-                    // Reset UI
+                    // Reset all protocol buttons
                     connectionBtns.forEach(btn => {
                         btn.disabled = false;
-                        btn.classList.remove('bg-cyan-500', 'text-white');
+                        btn.classList.remove(
+                            'bg-cyan-500', 'bg-cyan-600', 'dark:bg-cyan-700', 
+                            'text-white', 'cursor-not-allowed', 'cursor-default',
+                            'text-gray-400', 'dark:text-gray-500'
+                        );
+                        btn.classList.add(
+                            'hover:bg-cyan-500', 'hover:text-white',
+                            'text-gray-700', 'dark:text-gray-200',
+                            'cursor-pointer'
+                        );
                     });
                     
                     statusDiv.classList.add('hidden');
@@ -640,6 +692,8 @@
                             connectBtn.classList.add('hidden');
                             connectingBtn.classList.add('hidden');
                             disconnectBtn.classList.remove('hidden');
+                            // Disable all protocol buttons
+                            setProtocolButtonsDisabled(true);
                             startConsoleUpdates();
                         }
                     } else {
@@ -649,6 +703,9 @@
                             disconnectBtn.classList.add('hidden');
                             connectingBtn.classList.add('hidden');
                             connectBtn.classList.remove('hidden');
+                            
+                            // Re-enable protocol buttons
+                            setProtocolButtonsDisabled(false);
                             
                             // Stop recording if active
                             if (isRecording) {
@@ -684,7 +741,16 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {darkMode: 'class'}
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    cursor: {
+                        'not-allowed': 'not-allowed',
+                    }
+                }
+            }
+        }
     </script>
 </body>
 </html>
