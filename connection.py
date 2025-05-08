@@ -8,11 +8,13 @@ import sys
 import asyncio
 import csv
 from datetime import datetime
+import threading
 
 class Connection:
     def __init__(self):
         self.ble_connection = None
         self.wifi_connection = None
+        self.usb_connection = None
         self.lsl_connection = None
         self.stream_name = "BioAmpDataStream"
         self.stream_type = "EXG"
@@ -153,24 +155,28 @@ class Connection:
             return False
 
     def connect_usb(self):
-        serial_connection = Chords_USB()
-        if serial_connection.detect_hardware():
-            self.num_channels = serial_connection.num_channels
-            sampling_rate = serial_connection.supported_boards[serial_connection.board]["sampling_rate"]
+        self.usb_connection = Chords_USB()
+        if self.usb_connection.detect_hardware():
+            self.num_channels = self.usb_connection.num_channels
+            sampling_rate = self.usb_connection.supported_boards[self.usb_connection.board]["sampling_rate"]
             
             self.setup_lsl(self.num_channels, sampling_rate)
             
-            original_read_data = serial_connection.read_data
+            original_read_data = self.usb_connection.read_data
             def wrapped_read_data():
                 original_read_data()
-                if hasattr(serial_connection, 'data') and self.lsl_connection:
-                    sample = serial_connection.data[:, -1]
+                if hasattr(self.usb_connection, 'data') and self.lsl_connection:
+                    sample = self.usb_connection.data[:, -1]
                     self.lsl_connection.push_sample(sample)
                     if self.recording_active:
                         self.log_to_csv(sample.tolist())
             
-            serial_connection.read_data = wrapped_read_data
-            serial_connection.start_streaming()
+            self.usb_connection.read_data = wrapped_read_data
+            
+            # Start streaming in a separate thread
+            self.usb_thread = threading.Thread(target=self.usb_connection.start_streaming)
+            self.usb_thread.daemon = True
+            self.usb_thread.start()
             return True
         return False
 
@@ -214,13 +220,42 @@ class Connection:
 
     def cleanup(self):
         self.stop_csv_recording()
-        self.stream_active = False
-        if self.ble_connection:
-            self.ble_connection.disconnect()
-        if self.wifi_connection:
-            self.wifi_connection.disconnect()
+
         if self.lsl_connection:
             self.lsl_connection = None
+            print("LSL stream stopped")
+        
+        if self.usb_connection:
+            try:
+                self.usb_connection.cleanup()
+                print("USB connection closed")
+                if hasattr(self, 'usb_thread') and self.usb_thread.is_alive():
+                    self.usb_thread.join(timeout=1)  # Wait for thread to finish
+            except Exception as e:
+                print(f"Error closing USB connection: {str(e)}")
+            finally:
+                self.usb_connection = None
+        
+        if self.ble_connection:
+            try:
+                self.ble_connection.disconnect()
+                print("BLE connection closed")
+            except Exception as e:
+                print(f"Error closing BLE connection: {str(e)}")
+            finally:
+                self.ble_connection = None
+        
+        if self.wifi_connection:
+            try:
+                self.wifi_connection.disconnect()
+                print("WiFi connection closed")
+            except Exception as e:
+                print(f"Error closing WiFi connection: {str(e)}")
+            finally:
+                self.wifi_connection = None
+        
+        self.stream_active = False
+        self.recording_active = False
 
     def __del__(self):
         self.cleanup()

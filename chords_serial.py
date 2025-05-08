@@ -123,30 +123,29 @@ class Chords_USB:
                     else:
                         del self.buffer[:sync_index + 1]
         except serial.SerialException:
-            print("Serial device disconnected!")
             self.cleanup()
 
     def start_streaming(self):
         self.send_command('START')
+        self.streaming_active = True
         try:
-            while True:
+            while self.streaming_active:
                 self.read_data()
         except KeyboardInterrupt:
             print("KeyboardInterrupt received.")
             self.cleanup()
 
+    def stop_streaming(self):
+        self.streaming_active = False
+        self.send_command('STOP')
+        
     def cleanup(self):
+        self.stop_streaming()
         try:
             if self.ser and self.ser.is_open:
-                self.send_command('STOP')
-                time.sleep(1)
                 self.ser.close()
-                print("Serial port closed.")
         except Exception as e:
             print(f"Error during cleanup: {e}")
-
-        print("Cleanup Completed.")
-        sys.exit(0)
 
     def signal_handler(self, sig, frame):
         self.cleanup()
