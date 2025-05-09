@@ -31,27 +31,30 @@
     <section class="px-8 py-4 sticky top-14 z-40 bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
         <div class="flex flex-col md:flex-row md:items-center gap-4">
             <div class="flex gap-2 flex-wrap">
-                <button data-protocol="wifi" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                <button data-protocol="wifi" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-wifi text-lg"></i>
                     <span class="text-sm font-medium">WiFi</span>
                 </button>
-                <button data-protocol="ble" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                <button data-protocol="ble" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fab fa-bluetooth text-lg"></i>
                     <span class="text-sm font-medium">Bluetooth</span>
                 </button>
-                <button data-protocol="usb" class="connection-btn h-12 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                <button data-protocol="usb" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-microchip text-lg"></i>
                     <span class="text-sm font-medium">Serial</span>
                 </button>
             </div>
-            <button id="connect-btn" class="h-12 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
+            <button id="connect-btn" class="h-10 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
                 Connect Device
             </button>
-            <button id="connecting-btn" class="h-12 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+            <button id="connecting-btn" class="h-10 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
                 <i class="fas fa-spinner fa-spin mr-2"></i> Connecting...
             </button>
-            <button id="disconnect-btn" class="h-12 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold px-6 hidden">
+            <button id="disconnect-btn" class="h-10 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold px-6 hidden">
                 Disconnect
+            </button>
+            <button id="disconnecting-btn" class="h-10 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+                <i class="fas fa-spinner fa-spin mr-2"></i> Disconnecting...
             </button>
           
             <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
@@ -65,7 +68,7 @@
                 </span>
             </div>
           
-            <button id="record-btn" class="h-12 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
+            <button id="record-btn" class="h-10 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
                 Start Recording
             </button>
             <div id="recording-status" class="flex items-center hidden">
@@ -354,6 +357,7 @@
         const connectBtn = document.getElementById('connect-btn');
         const connectingBtn = document.getElementById('connecting-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
+        const disconnectingBtn = document.getElementById('disconnecting-btn');
         const recordBtn = document.getElementById('record-btn');
         const filenameInput = document.getElementById('filename');
         const recordingStatus = document.getElementById('recording-status');
@@ -699,7 +703,7 @@
             try {
                 // Show connecting state during disconnection
                 disconnectBtn.classList.add('hidden');
-                connectingBtn.classList.remove('hidden');
+                disconnectingBtn.classList.remove('hidden');
                 showStatus('Disconnecting...', 'fa-spinner fa-spin', 'text-blue-500');
                 
                 const response = await fetch('/disconnect', { method: 'POST' });
@@ -708,7 +712,7 @@
                 if (data.status === 'disconnected') {
                     isConnected = false;
                     // Return to connect state
-                    connectingBtn.classList.add('hidden');
+                    disconnectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
                     
                     // Reset all protocol buttons
@@ -748,7 +752,7 @@
             } catch (error) {
                 console.error('Disconnection error:', error);
                 // Return to disconnect state if disconnection failed
-                connectingBtn.classList.add('hidden');
+                disconnectingBtn.classList.add('hidden');
                 disconnectBtn.classList.remove('hidden');
                 showStatus(`Disconnection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
             }
@@ -867,6 +871,7 @@
                         if (isConnected) {
                             isConnected = false;
                             disconnectBtn.classList.add('hidden');
+                            disconnectingBtn.classList.add('hidden');
                             connectingBtn.classList.add('hidden');
                             connectBtn.classList.remove('hidden');
                             
