@@ -1,401 +1,148 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chords-Python Applications</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Chords Python</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Chords-Python Applications</h1>
-            <p class="bottom-text">Designed with <span class="heart">&#10084;</span> at Upside Down Labs</p>
-        </div>
-
-        <!-- Pop-up message -->
-        {% if message %}
-        <div class="popup fade-out">
-            <p>{{ message }}</p>
-        </div>
-        {% endif %}
-        <!-- Container for LSL and NPG stream control buttons -->
-        <div class="controls-container">
-            <div class="controls">
-                <!-- Button to start LSL Stream, disabled if already running or if NPG is running -->
-                <button id="start_lsl_button" 
-                        class="{% if lsl_started %}running{% else %}not-running{% endif %}" 
-                        onclick="showCSVConfirmation()"
-                        {% if lsl_started or npg_started %}disabled{% endif %}>
-                    {% if lsl_started %}LSL Stream Running{% else %}Start LSL Stream{% endif %}
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-gray-900 dark:bg-gray-800 text-white sticky top-0 z-50">
+        <div class="max-w-full px-8 py-3 flex justify-between items-center">
+            <span class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                Chords Python
+            </span>
+            <div class="flex space-x-4 items-center">
+                <button id="theme-toggle" class="text-white hover:text-cyan-400 transition-colors">
+                    <i class="fas fa-moon text-xl"></i>
                 </button>
-            </div>
-            <div class="controls">
-                <!-- Button to start NPG Stream, disabled if already running or if LSL is running -->
-                <button id="start_npg_button" 
-                        class="{% if npg_started %}running{% else %}not-running{% endif %}"
-                        onclick="showNPGPopup()"
-                        {% if lsl_started or npg_started %}disabled{% endif %}>
-                    {% if npg_started %}NPG Stream Running{% else %}Start NPG Stream{% endif %}
+                <button id="github-btn" class="text-white hover:text-cyan-400 transition-colors">
+                    <i class="fab fa-github text-xl"></i>
+                </button>
+                <button id="info-btn" class="text-white hover:text-cyan-400 transition-colors">
+                    <i class="fas fa-info-circle text-xl"></i>
                 </button>
             </div>
         </div>
-        
-        <!-- CSV Confirmation Popup (only for LSL) -->
-        <div id="csvConfirmationPopup" class="popup" style="display: none;">
-            <p>Do you want to save LSL data as CSV?</p>
-            <div class="popup-buttons">
-                <form id="csvForm" method="POST" action="/start_lsl">
-                    <input type="hidden" name="csv" id="csvInput" value="false">
-                    <button type="button" class="popup-button yes-button" onclick="setCSVChoice(true)">YES</button>
-                    <button type="button" class="popup-button no-button" onclick="setCSVChoice(false)">NO</button>
-                </form>
-            </div>
-        </div>            
-        <!-- App buttons (disabled until either one of stream is active) -->
-        <div class="app-buttons {% if not (lsl_started or npg_started) %}disabled-apps{% endif %}">
-            <!-- Row 1: ECG, EMG, EOG, EEG -->
-            <div class="row">
-                <form action="/run_app" method="POST">
-                    <button type="submit" name="app_name" value="heartbeat_ecg" 
-                            class="{% if 'heartbeat_ecg' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        ECG with Heart Rate
-                    </button>
-                    <button type="submit" name="app_name" value="emgenvelope" 
-                            class="{% if 'emgenvelope' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        EMG with Envelope
-                    </button>
-                    <button type="submit" name="app_name" value="eog" 
-                            class="{% if 'eog' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        EOG with Blinks
-                    </button>
-                    <button type="submit" name="app_name" value="ffteeg" 
-                            class="{% if 'ffteeg' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        EEG with FFT
-                    </button>
-                </form>
-            </div>
+    </header>
 
-            <!-- Row 2: Tug of War Game,EEG Beetle Game, GUI, Keystroke, CSVPlotter -->
-            <div class="row">
-                <form action="/run_app" method="POST">
-                    <button type="submit" name="app_name" value="game" 
-                            class="{% if 'game' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        EEG Tug of War Game
-                    </button>
-                    <button type="submit" name="app_name" value="beetle" 
-                            class="{% if 'beetle' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        EEG Beetle Game
-                    </button>
-                    <button type="submit" name="app_name" value="gui" 
-                            class="{% if 'gui' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        GUI of Channels
-                    </button>
-                    <button type="submit" name="app_name" value="keystroke" 
-                            class="{% if 'keystroke' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        EOG Keystroke Emulator
-                    </button>
-                    <button type="submit" name="app_name" value="csvplotter" 
-                            class="{% if 'csvplotter' in running_apps %}running{% else %}not-running{% endif %}" 
-                            {% if not (lsl_started or npg_started) %}disabled{% endif %}>
-                        CSV Plotter
-                    </button>
-                </form>
+    <!-- Connectivity + Recording (Sticky Section) -->
+    <section class="px-8 py-4 sticky top-14 z-40 bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
+        <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <div class="flex gap-2 flex-wrap">
+                <button data-protocol="wifi" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                    <i class="fas fa-wifi text-lg"></i>
+                    <span class="text-sm font-medium">WiFi</span>
+                </button>
+                <button data-protocol="ble" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                    <i class="fab fa-bluetooth text-lg"></i>
+                    <span class="text-sm font-medium">Bluetooth</span>
+                </button>
+                <button data-protocol="usb" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                    <i class="fas fa-microchip text-lg"></i>
+                    <span class="text-sm font-medium">Serial</span>
+                </button>
+            </div>
+            <button id="connect-btn" class="h-10 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
+                Connect Device
+            </button>
+            <button id="connecting-btn" class="h-10 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+                <i class="fas fa-spinner fa-spin mr-2"></i> Connecting...
+            </button>
+            <button id="disconnect-btn" class="h-10 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold px-6 hidden">
+                Disconnect
+            </button>
+            <button id="disconnecting-btn" class="h-10 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+                <i class="fas fa-spinner fa-spin mr-2"></i> Disconnecting...
+            </button>
+          
+            <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
+          
+            <div class="flex flex-1">
+                <input type="text" id="filename"
+                    class="flex-1 h-10 px-4 rounded-l-lg focus:outline-none focus:ring-1  border border-gray-600  dark:text-white dark:bg-gray-800" 
+                    placeholder="Enter recording name">
+                <span class="h-10 px-4 bg-gray-100 border border-l-0 border-gray-800 text-gray-500 rounded-r-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 inline-flex items-center justify-center text-sm">
+                    .csv
+                </span>
+            </div>
+          
+            <button id="record-btn" class="h-10 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
+                Start Recording
+            </button>
+            <div id="recording-status" class="flex items-center hidden">
+            </div>
+        </div>
+        <div id="connection-status" class="fixed bottom-[3rem] right-1 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 text-sm hidden z-50 border border-gray-200 dark:border-gray-700 min-w-[200px] flex items-center">
+            <span id="status-icon" class="mr-2"></span>
+            <span id="status-text" class="text-gray-700 dark:text-gray-300">Connecting...</span>
+        </div>
+    </section>
+
+    <!-- BLE Device Selection Modal -->
+    <div id="ble-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Select Bluetooth Device</h3>
+                <button id="close-ble-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-2 max-h-96 overflow-y-auto" id="ble-devices-list">
+                <div class="flex items-center justify-center py-4">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
+                    <span>Scanning for devices...</span>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="rescan-ble" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                    <i class="fas fa-sync-alt mr-2"></i>Rescan
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- NPG Device Selection Popup -->
-    <div id="npgDevicePopup">
-        <h3>Select NPG Device</h3>
-        <!-- Status message for scanning status or connection updates -->
-        <div id="npgPopupStatus">Ready to scan devices</div>
-        <!-- Device list area where detected devices will be listed -->
-        <div id="npgDeviceList">
-            <p>Click "Scan Devices" to begin</p>
-        </div>
-        <!-- Buttons for scanning, connecting, or canceling the device selection -->
-        <div class="npg-popup-buttons">
-            <button class="npg-popup-btn" id="scanDevicesBtn" onclick="scanNPGDevices()">Scan Devices</button>
-            <button class="npg-popup-btn npg-connect-btn" id="npgConnectBtn" disabled onclick="connectToDevice()">Connect</button>
-            <button class="npg-popup-btn npg-cancel-btn" onclick="hideNPGPopup()">Cancel</button>
-        </div>
-    </div>
+    <!-- Main Scrollable Application Area -->
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+        <!-- Applications Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Applications</h2>
+                <select class="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:ring-cyan-500 focus:outline-none dark:bg-gray-700">
+                    <option value="">All</option>
+                    <option value="ECG">ECG</option>
+                    <option value="EMG">EMG</option>
+                    <option value="EOG">EOG</option>
+                    <option value="EEG">EEG</option>
+                    <option value="Tools">Tools</option>
+                </select>
+            </div>
 
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="app-grid">
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 dark:bg-gray-800 text-white sticky bottom-0 z-50">
+        <div class="max-w-full px-8 py-3 text-center">
+            Made with ❤️ at Upside Down Labs
+        </div>
+    </footer>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        let selectedDevice = null;           // Store the selected device address
-        let connectionCheckInterval = null;  // Used to repeatedly check connection status
-        let eventSource;                     // EventSource for server-sent events for real-time updates
-    
-        // Function to display the NPG device selection popup
-        function showNPGPopup() {
-            document.getElementById('npgDevicePopup').style.display = 'block';
-            document.getElementById('csvConfirmationPopup').style.display = 'none';
-            document.getElementById('npgPopupStatus').textContent = 'Ready to scan devices';
-            document.getElementById('npgDeviceList').innerHTML = '<p>Click "Scan Devices" to begin</p>';
-            document.getElementById('npgConnectBtn').disabled = true;
-            selectedDevice = null;
-        }
-    
-        // Function to hide the NPG popup and stop connection checks
-        function hideNPGPopup() {
-            document.getElementById('npgDevicePopup').style.display = 'none';
-            if (connectionCheckInterval) {
-                clearInterval(connectionCheckInterval);
-                connectionCheckInterval = null;
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    cursor: {
+                        'not-allowed': 'not-allowed',
+                    }
+                }
             }
         }
-    
-        // Function to fetch and list available NPG devices from backend
-        async function scanNPGDevices() {
-            const statusDiv = document.getElementById('npgPopupStatus');
-            const deviceList = document.getElementById('npgDeviceList');
-            const scanBtn = document.getElementById('scanDevicesBtn');
-            
-            // Show scanning status and disable scan button
-            scanBtn.disabled = true;
-            statusDiv.textContent = 'Scanning for devices...';
-            statusDiv.className = 'scanning-status';
-            deviceList.innerHTML = '<p>Searching for NPG devices...</p>';
-            
-            try {
-                const response = await fetch('/scan_devices', { method: 'POST' });
-                const data = await response.json();
-                
-                // If devices are found
-                if (data.status === 'success' && data.devices.length > 0) {
-                    deviceList.innerHTML = '';
-                    
-                    // Display each device to UI and make them selectable
-                    data.devices.forEach(device => {
-                        const div = document.createElement('div');
-                        div.className = 'npg-device-item';
-                        div.textContent = `${device.name || 'Unknown'} (${device.address})`;
-                        div.dataset.address = device.address;
-                        
-                        // Add click event to highlight selected device
-                        div.addEventListener('click', () => {
-                            document.querySelectorAll('.npg-device-item').forEach(item => {
-                                item.classList.remove('selected');
-                            });
-                            div.classList.add('selected');
-                            selectedDevice = device.address;
-                            document.getElementById('npgConnectBtn').disabled = false;
-                        });
-                        
-                        deviceList.appendChild(div);
-                    });
-                    
-                    statusDiv.textContent = `Found ${data.devices.length} device(s) - select one to connect`;
-                    statusDiv.className = '';
-                } else {
-                    deviceList.innerHTML = '<p>No NPG devices found</p>';
-                    statusDiv.textContent = data.message || 'No devices found';
-                    statusDiv.className = 'error-status';
-                }
-            } catch (error) {              // Handle scan error
-                console.error('Scan error:', error);
-                deviceList.innerHTML = '<p>Scan failed</p>';
-                statusDiv.textContent = 'Scan failed - please try again';
-                statusDiv.className = 'error-status';
-            } finally {
-                scanBtn.disabled = false;  // Re-enable scan button
-            }
-        }
-    
-        // Function to connect to the selected NPG device
-        async function connectToDevice() {
-            if (!selectedDevice) return;
-            
-            const statusDiv = document.getElementById('npgPopupStatus');
-            const connectBtn = document.getElementById('npgConnectBtn');
-            const scanBtn = document.getElementById('scanDevicesBtn');
-            
-            // Show connecting state
-            connectBtn.disabled = true;
-            scanBtn.disabled = true;
-            statusDiv.textContent = 'Connecting to device...';
-            statusDiv.className = 'scanning-status';
-            
-            try {
-                const response = await fetch('/connect_device', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `device_address=${encodeURIComponent(selectedDevice)}`
-                });
-                
-                const data = await response.json();
-                
-                // If connection is pending, start checking status
-                if (data.status === 'pending') {
-                    const checkStatus = async () => {
-                        const statusResponse = await fetch('/check_connection');
-                        const statusData = await statusResponse.json();
-                        
-                        // Log connection status for debugging
-                        console.log("Connection status:", statusData);
-                        // Check if connected or if there was an error
-                        if (statusData.connected) {
-                            clearInterval(connectionCheckInterval);
-                            statusDiv.textContent = statusData.message;
-                            statusDiv.className = 'connected-status';
-                            setTimeout(() => {            // Hide popup after 1 second
-                                hideNPGPopup();
-                                window.location.reload(); // Force refresh to sync state
-                            }, 1000);
-                        } else if (statusData.message.includes('Error') || 
-                                statusData.message.includes('Failed')) {
-                            clearInterval(connectionCheckInterval);
-                            statusDiv.textContent = statusData.message;
-                            statusDiv.className = 'error-status';
-                            connectBtn.disabled = false;
-                            scanBtn.disabled = false;
-                        }
-                    };
-                    
-                    // Check every 500ms for faster response
-                    connectionCheckInterval = setInterval(checkStatus, 500);
-                    // Initial immediate check
-                    await checkStatus();
-                } else if (data.status === 'error') {
-                    statusDiv.textContent = data.message;
-                    statusDiv.className = 'error-status';
-                    connectBtn.disabled = false;
-                    scanBtn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Connection error:', error);
-                statusDiv.textContent = 'Connection failed - please try again';
-                statusDiv.className = 'error-status';
-                connectBtn.disabled = false;
-                scanBtn.disabled = false;
-            }
-        }
-    
-        // Function to show the CSV confirmation popup when the LSL button is clicked
-        function showCSVConfirmation() {
-            document.getElementById('csvConfirmationPopup').style.display = 'block';
-            document.getElementById('npgDevicePopup').style.display = 'none';
-        }
-    
-        // Function to set the CSV choice and submit the form. This is called when the user clicks YES or NO in the CSV Popup.
-        function setCSVChoice(saveAsCSV) {
-            document.getElementById('csvInput').value = saveAsCSV ? 'true' : 'false'; 
-            document.getElementById('csvForm').submit();
-            document.getElementById('csvConfirmationPopup').style.display = 'none';
-        }
-    
-        // Function to update the state of app buttons based on running applications. This function is called when the server sends updates about running applications.
-        function updateAppButtons(runningApps) {
-            // Get all app buttons
-            const appButtons = document.querySelectorAll('.app-buttons button[type="submit"]');
-            // Loop through each button and check if the corresponding app is running
-            appButtons.forEach(button => {
-                const appName = button.value;
-                const isRunning = runningApps.includes(appName);
-                
-                if (isRunning) {
-                    button.classList.add('running');
-                    button.classList.remove('not-running');
-                    button.textContent = button.textContent.replace('Start', 'Stop') || `Stop ${appName}`;
-                } else {
-                    button.classList.remove('running');
-                    button.classList.add('not-running');
-                    button.textContent = button.textContent.replace('Stop', 'Start') || `Start ${appName}`;
-                }
-            });
-        }
-    
-        // Function to set up the EventSource for receiving real-time updates from the server. This function is called when the page loads and whenever the connection is re-established.
-        function setupEventSource() {
-            if (eventSource) eventSource.close();
-
-            eventSource = new EventSource('/stream_events');
-            eventSource.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                console.log("SSE Update:", data);
-                
-                // Update LSL button state
-                const lslButton = document.getElementById('start_lsl_button');
-                if (data.lsl_running) {
-                    lslButton.textContent = 'LSL Stream Running';
-                    lslButton.classList.add('running');
-                    lslButton.classList.remove('not-running');
-                    lslButton.disabled = true;
-                } else {
-                    lslButton.textContent = 'Start LSL Stream';
-                    lslButton.classList.remove('running');
-                    lslButton.classList.add('not-running');
-                    lslButton.disabled = data.npg_running;
-                    if (!data.lsl_running && !data.npg_running) {
-                        updateAppButtons([]);
-                    }
-                }
-                
-                // Update NPG button state
-                const npgButton = document.getElementById('start_npg_button');
-                if (data.npg_running) {
-                    npgButton.textContent = 'NPG Stream Running';
-                    npgButton.classList.add('running');
-                    npgButton.classList.remove('not-running');
-                    npgButton.disabled = true;
-                } else {
-                    npgButton.textContent = 'Start NPG Stream';
-                    npgButton.classList.remove('running');
-                    npgButton.classList.add('not-running');
-                    npgButton.disabled = data.lsl_running;
-                    if (!data.npg_running && !data.lsl_running) {
-                        updateAppButtons([]);
-                    }
-                }
-                
-                // Update app buttons when stream stops
-                if ((data.message && data.message.includes('terminated')) || 
-                    (data.message && data.message.includes('disconnected')) ||
-                    (data.message && data.message.includes('interrupted'))) {
-                    updateAppButtons([]);
-                    
-                    // If we're in the NPG popup, update status
-                    if (document.getElementById('npgDevicePopup').style.display === 'block') {
-                        const statusDiv = document.getElementById('npgPopupStatus');
-                        statusDiv.textContent = data.message;
-                        statusDiv.className = 'error-status';
-                        
-                        // Re-enable scan button if connection failed
-                        document.getElementById('scanDevicesBtn').disabled = false;
-                        document.getElementById('npgConnectBtn').disabled = true;
-                    }
-                }
-                
-                // Update running apps list
-                if (data.running_apps && (data.lsl_running || data.npg_running)) {
-                    updateAppButtons(data.running_apps);
-                }
-            };
-        }
-    
-        document.addEventListener('DOMContentLoaded', function() {
-            setupEventSource();    // Initialize the SSE connection to receive real-time updates from the server
-            
-            // Fetch the current status of running applications when the page loads
-            fetch('/check_app_status')
-                .then(response => response.json())  // Parse the JSON response from the server
-                .then(data => {
-                    if (data.running_apps) {        // If there are running applications, update the UI to show their current state
-                        updateAppButtons(data.running_apps);
-                    }
-                });
-        });
     </script>
+    <script src="{{url_for('static', filename='script.js')}}"></script>
 </body>
 </html>

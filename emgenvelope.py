@@ -5,6 +5,7 @@ from pyqtgraph import PlotWidget
 import pyqtgraph as pg
 import pylsl
 import sys
+import time
 
 class EMGMonitor(QMainWindow):
     def __init__(self): 
@@ -12,6 +13,9 @@ class EMGMonitor(QMainWindow):
 
         self.setWindowTitle("Real-Time EMG Monitor with EMG Envelope")
         self.setGeometry(100, 100, 800, 600)
+
+        self.stream_active = True  # Flag to check if the stream is active
+        self.last_data_time = None  # Variable to store the last data time
 
         # Create layout
         layout = QVBoxLayout()
@@ -101,8 +105,12 @@ class EMGMonitor(QMainWindow):
         return np.pad(rms, (len(signal) - len(rms), 0), 'constant')
 
     def update_plot(self):
+        global last_data_time, stream_active
+        if self.inlet is None or not self.stream_active:
+            return
         samples, _ = self.inlet.pull_chunk(timeout=0.0, max_samples=30)
         if samples:
+            self.last_data_time = time.time()
             for sample in samples:
                 # Overwrite the oldest data point in the buffer
                 self.emg_data[self.current_index] = sample[0]
@@ -120,6 +128,13 @@ class EMGMonitor(QMainWindow):
             # Update curves
             self.emg_curve.setData(self.time_data, filtered_emg)  # Plot filtered EMG in blue
             self.envelope_curve.setData(self.time_data, rms_envelope)  # Plot EMG envelope in red
+
+        else:
+            if self.last_data_time and (time.time() - self.last_data_time) > 2:
+                self.stream_active = False
+                print("LSL stream disconnected!")
+                self.timer.stop()
+                self.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

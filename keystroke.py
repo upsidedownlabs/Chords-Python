@@ -24,6 +24,8 @@ class EOGPeakDetector:
         self.last_blink_time = 0                  # Last time a blink was detected
         self.refractory_period = 0.2              # Refractory period to prevent multiple eye blink detections
         self.stop_threads = False                 # Flag to stop threads
+        self.stream_active = False                # Flag to indicate if the stream is active
+        self.last_data_time = None                # Last time data was received from the stream
 
     def initialize_stream(self):
         """Initialize the LSL stream connection and set up the buffer and filter coefficients."""
@@ -65,14 +67,23 @@ class EOGPeakDetector:
             try:
                 samples, _ = self.inlet.pull_chunk(timeout=1.0, max_samples=1)
                 if samples:
+                    self.last_data_time = time.time()
                     for sample in samples:
                         self.eog_data[self.current_index] = sample[0]                     # Store sample in circular buffer at current position
                         self.current_index = (self.current_index + 1) % self.buffer_size  # Update index with wrap-around using modulo
 
                     filtered_eog = lfilter(self.b, self.a, self.eog_data)
                     self.detect_blinks(filtered_eog)             # Run blink detection on the filtered signal
+                else:
+                    if self.last_data_time and (time.time() - self.last_data_time) > 2:
+                        print("LSL Status: Stream disconnected. Stopping detection.")
+                        self.stop_detection()
+                        popup.after(0, popup.quit)  # Schedule quit on main thread
+                        break  # Exit the loop
             except Exception as e:
                 print(f"Error in detection: {e}")
+                self.stop_detection()
+                popup.after(0, popup.quit)
                 break
 
     def stop_detection(self):
