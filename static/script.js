@@ -279,7 +279,7 @@ function sanitizeFilename(filename) {
     // Remove leading/trailing whitespace
     filename = filename.trim();
     // Replace spaces and dots with underscores
-    filename = filename.replace(/[\s.]+/g, '_');
+    filename = filename.replace(/[^A-Za-z0-9_-]/g, '_');
     return filename;
 }
 
