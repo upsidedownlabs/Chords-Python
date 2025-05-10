@@ -29,6 +29,8 @@ class Connection:
         self.num_channels = 0
         self.stream_active = False
         self.recording_active = False
+        self.usb_thread = None
+        self.usb_running = False
 
     async def get_ble_device(self):
         devices = await Chords_BLE.scan_devices()
@@ -154,6 +156,25 @@ class Connection:
             print(f"BLE connection failed: {str(e)}")
             return False
 
+    def usb_data_handler(self):
+        while self.usb_running:
+            try:
+                if self.usb_connection and hasattr(self.usb_connection, 'ser') and self.usb_connection.ser.is_open:
+                    self.usb_connection.read_data()
+                    
+                    if hasattr(self.usb_connection, 'data'):
+                        sample = self.usb_connection.data[:, -1]
+                        if self.lsl_connection:
+                            self.lsl_connection.push_sample(sample)
+                        if self.recording_active:
+                            self.log_to_csv(sample.tolist())
+                    time.sleep(0.001)  # Small delay to prevent CPU overload
+                else:
+                    time.sleep(0.1)
+            except Exception as e:
+                print(f"USB data handler error: {str(e)}")
+                break
+
     def connect_usb(self):
         self.usb_connection = Chords_USB()
         if self.usb_connection.detect_hardware():
@@ -162,21 +183,16 @@ class Connection:
             
             self.setup_lsl(self.num_channels, sampling_rate)
             
-            original_read_data = self.usb_connection.read_data
-            def wrapped_read_data():
-                original_read_data()
-                if hasattr(self.usb_connection, 'data') and self.lsl_connection:
-                    sample = self.usb_connection.data[:, -1]
-                    self.lsl_connection.push_sample(sample)
-                    if self.recording_active:
-                        self.log_to_csv(sample.tolist())
+            # Start the USB streaming command
+            response = self.usb_connection.send_command('START')
             
-            self.usb_connection.read_data = wrapped_read_data
-            
-            # Start streaming in a separate thread
-            self.usb_thread = threading.Thread(target=self.usb_connection.start_streaming)
+            # Start the data handler thread
+            self.usb_running = True
+            self.usb_thread = threading.Thread(target=self.usb_data_handler)
             self.usb_thread.daemon = True
             self.usb_thread.start()
+            
+            print(f"USB connection established to {self.usb_connection.board}. Waiting for data...")
             return True
         return False
 
@@ -213,7 +229,7 @@ class Connection:
                             self.log_to_csv(channel_data)
                     
         except KeyboardInterrupt:
-            self.wifi_connection.disconnect()
+            self.wifi_connection.cleanup()
             print("\nDisconnected")
         finally:
             self.stop_csv_recording()
@@ -227,10 +243,14 @@ class Connection:
         
         if self.usb_connection:
             try:
-                self.usb_connection.cleanup()
+                self.usb_running = False  # Signal the thread to stop
+                if self.usb_thread and self.usb_thread.is_alive():
+                    self.usb_thread.join(timeout=1)
+                
+                if hasattr(self.usb_connection, 'ser') and self.usb_connection.ser.is_open:
+                    self.usb_connection.send_command('STOP')
+                    self.usb_connection.ser.close()
                 print("USB connection closed")
-                if hasattr(self, 'usb_thread') and self.usb_thread.is_alive():
-                    self.usb_thread.join(timeout=1)  # Wait for thread to finish
             except Exception as e:
                 print(f"Error closing USB connection: {str(e)}")
             finally:
@@ -238,7 +258,7 @@ class Connection:
         
         if self.ble_connection:
             try:
-                self.ble_connection.disconnect()
+                self.ble_connection.stop()
                 print("BLE connection closed")
             except Exception as e:
                 print(f"Error closing BLE connection: {str(e)}")
@@ -247,7 +267,7 @@ class Connection:
         
         if self.wifi_connection:
             try:
-                self.wifi_connection.disconnect()
+                self.wifi_connection.cleanup()
                 print("WiFi connection closed")
             except Exception as e:
                 print(f"Error closing WiFi connection: {str(e)}")
@@ -270,7 +290,10 @@ def main():
 
     try:
         if args.protocol == 'usb':
-            manager.connect_usb()
+            if manager.connect_usb():
+                # Keep the main thread alive while USB is running
+                while manager.usb_running:
+                    time.sleep(1)
         elif args.protocol == 'wifi':
             manager.connect_wifi()
         elif args.protocol == 'ble':
@@ -279,6 +302,8 @@ def main():
         print("\nCleanup Completed.")
     except Exception as e:
         print(f"Error: {str(e)}")
+    finally:
+        manager.cleanup()
 
 if __name__ == '__main__':
     main()
