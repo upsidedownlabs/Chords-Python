@@ -463,7 +463,7 @@ connectBtn.addEventListener('click', async () => {
 // Poll connection status
 async function pollConnectionStatus() {
     let attempts = 0;
-    const maxAttempts = 5; // 5 seconds timeout
+    const maxAttempts = 15; // 15 seconds timeout
     
     const checkStatus = async () => {
         attempts++;
