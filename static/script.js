@@ -48,6 +48,7 @@ async function initializeApplication() {
         const apps = await loadApps();
         renderApps(apps);
         setupCategoryFilter(apps);
+        startAppStatusChecker();
     } catch (error) {
         console.error('Application initialization failed:', error);
     }
@@ -71,7 +72,8 @@ function renderApps(apps) {
     
     apps.forEach(app => {
         const card = document.createElement('div');
-        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 cursor-pointer overflow-hidden`;
+        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 overflow-hidden cursor-pointer`;
+        card.id = `card-${app.script}`;
         
         card.innerHTML = `
             <div class="relative h-full flex flex-col">
@@ -79,52 +81,109 @@ function renderApps(apps) {
                     <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
                 </div>
                 <div class="p-4 flex-1 flex flex-col">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
+                        <span id="status-${app.script}" class="text-green-500 hidden">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
                 </div>
             </div>
         `;
         
+        updateAppStatus(app.script);
         card.addEventListener('click', async () => {
-            if (!isConnected) {
-                showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
-                return;
-            }
-            
-            // Add loading state to the clicked card
-            const originalContent = card.innerHTML;
-            card.innerHTML = `
-                <div class="h-full flex items-center justify-center p-4">
-                    <i class="fas fa-circle-notch fa-spin text-${app.color}-500 text-xl mr-2"></i>
-                    <span>Launching ${app.title}...</span>
-                </div>
-            `;
-            
-            try {
-                const response = await fetch(`/check_app_status/${app.script}`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to check app status');
-                }
-                
-                const data = await response.json();
-                
-                if (data.status === 'running') {
-                    showAlert(`${app.title} is already running!`);
-                    card.innerHTML = originalContent;
-                    return;
-                }
-                
-                await launchApplication(app.script);
-                card.innerHTML = originalContent;
-            } catch (error) {
-                console.error('Error launching app:', error);
-                showAlert(`Failed to launch ${app.title}: ${error.message}`);
-                card.innerHTML = originalContent;
-            }
+            await handleAppClick(app, card);
         });
         
         appGrid.appendChild(card);
+    });
+}
+
+async function handleAppClick(app, card) {
+    const statusElement = document.getElementById(`status-${app.script}`);
+    if (statusElement && !statusElement.classList.contains('hidden')) {
+        return;
+    }
+    
+    if (!isConnected) {
+        showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
+        return;
+    }
+    
+    const originalContent = card.innerHTML;            // Add loading state to the clicked card
+    card.innerHTML = `
+        <div class="h-full flex items-center justify-center p-4">
+            <i class="fas fa-circle-notch fa-spin text-${app.color}-500 text-xl mr-2"></i>
+            <span>Launching ${app.title}...</span>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch(`/check_app_status/${app.script}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to check app status');
+        }
+        
+        const data = await response.json();
+        
+        await launchApplication(app.script);
+        card.innerHTML = originalContent;
+        updateAppStatus(app.script); // Update status after launch
+    } catch (error) {
+        console.error('Error launching app:', error);
+        showAlert(`Failed to launch ${app.title}: ${error.message}`);
+        card.innerHTML = originalContent;
+    }
+}
+
+async function updateAppStatus(appName) {
+    try {
+        const response = await fetch(`/check_app_status/${appName}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const statusElement = document.getElementById(`status-${appName}`);
+        const cardElement = document.getElementById(`card-${appName}`);
+        
+        if (statusElement && cardElement) {
+            if (data.status === 'running') {
+                statusElement.classList.remove('hidden');
+                cardElement.classList.add('cursor-not-allowed');
+                cardElement.classList.remove('cursor-pointer');
+                cardElement.classList.remove('hover:shadow-lg');
+                cardElement.classList.add('opacity-60');
+            } else {
+                statusElement.classList.add('hidden');
+                cardElement.style.pointerEvents = 'auto';
+                cardElement.classList.remove('cursor-not-allowed');
+                cardElement.classList.add('cursor-pointer');
+                cardElement.classList.add('hover:shadow-lg');
+                cardElement.classList.remove('opacity-80');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking app status:', error);
+    }
+}
+
+// Periodically check all app statuses
+function startAppStatusChecker() {
+    checkAllAppStatuses();
+    setInterval(checkAllAppStatuses, 200);
+}
+
+// Check status of all apps
+function checkAllAppStatuses() {
+    const appGrid = document.getElementById('app-grid');
+    if (!appGrid) return;
+    
+    const apps = appGrid.querySelectorAll('[id^="status-"]');
+    apps.forEach(statusElement => {
+        const appName = statusElement.id.replace('status-', '');
+        updateAppStatus(appName);
     });
 }
 
@@ -179,6 +238,7 @@ function filterAppsByCategory(category, allApps) {
         appGrid.style.opacity = '0';
         setTimeout(() => {
             appGrid.style.opacity = '1';
+            checkAllAppStatuses();
         }, 10);
     }, 300);
 }
