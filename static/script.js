@@ -492,8 +492,6 @@ connectBtn.addEventListener('click', async () => {
             postData.device_address = selectedBleDevice.address;
         }
 
-        // showStatus('Connecting...', 'fa-spinner fa-spin', 'text-blue-500');
-
         const response = await fetch('/connect', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -621,7 +619,6 @@ disconnectBtn.addEventListener('click', async () => {
         // Show connecting state during disconnection
         disconnectBtn.classList.add('hidden');
         disconnectingBtn.classList.remove('hidden');
-        // showStatus('Disconnecting...', 'fa-spinner fa-spin', 'text-blue-500');
         
         const response = await fetch('/disconnect', { method: 'POST' });
         const data = await response.json();
@@ -631,6 +628,7 @@ disconnectBtn.addEventListener('click', async () => {
             // Return to connect state
             disconnectingBtn.classList.add('hidden');
             connectBtn.classList.remove('hidden');
+            showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
             
             // Reset all protocol buttons
             connectionBtns.forEach(btn => {
@@ -730,6 +728,7 @@ function toggleRecording() {
                     filenameInput.disabled = false;
                     filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.add('dark:bg-gray-800');
+                    showStatus('Recording stopped', 'fa-stop-circle', 'text-red-500');
                 }
             })
             .catch(error => {
@@ -755,6 +754,7 @@ function toggleRecording() {
                     filenameInput.disabled = true;
                     filenameInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.remove('dark:bg-gray-800');
+                    showStatus('Recording started', 'fa-record-vinyl', 'text-green-500');
                 }
             })
             .catch(error => {
@@ -775,7 +775,7 @@ function showStatus(text, icon, colorClass) {
     statusDiv.classList.remove('hidden');
     setTimeout(() => {
         statusDiv.classList.add('hidden');
-    }, 2000);
+    }, 3000);
 }
 
 function showAlert(message) {
@@ -805,6 +805,7 @@ function checkStreamStatus() {
                     disconnectingBtn.classList.add('hidden');
                     connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
+                    showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
                     
                     // Re-enable protocol buttons
                     setProtocolButtonsDisabled(false);
@@ -821,6 +822,7 @@ function checkStreamStatus() {
                         filenameInput.disabled = false;
                         filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                         filenameInput.classList.add('dark:bg-gray-800');
+                        showStatus('Recording stopped (connection lost)', 'fa-stop-circle', 'text-red-500');
                     }
                     
                     // Stop console updates
