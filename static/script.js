@@ -608,7 +608,7 @@ function handleConnectionSuccess() {
         btn.disabled = true;
     });
     
-    showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
+    showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle');
     
     // Start console updates
     startConsoleUpdates();
@@ -793,7 +793,7 @@ initializeFilename(); // Set default filename with timestamp
 function showStatus(text, icon, colorClass) {
     const statusDiv = document.getElementById('connection-status');
     statusText.textContent = text;
-    statusIcon.innerHTML = `<i class="fas ${icon} ${colorClass}"></i>`;
+    statusIcon.innerHTML = `<i class="fas ${icon} text-white"></i>`; 
     statusDiv.classList.remove('hidden');
     setTimeout(() => {
         statusDiv.classList.add('hidden');
@@ -811,6 +811,7 @@ function checkStreamStatus() {
             if (data.connected) {
                 // If connected, update the frontend
                 if (!isConnected) {
+                    handleConnectionSuccess();
                     isConnected = true;
                     connectBtn.classList.add('hidden');
                     connectingBtn.classList.add('hidden');
@@ -822,6 +823,7 @@ function checkStreamStatus() {
             } else {
                 // If not connected, update the frontend
                 if (isConnected) {
+                    handleDisconnection();
                     isConnected = false;
                     disconnectBtn.classList.add('hidden');
                     disconnectingBtn.classList.add('hidden');
@@ -858,6 +860,38 @@ function checkStreamStatus() {
         .catch(error => {
             console.error('Error fetching stream status:', error);
         });
+}
+
+function handleDisconnection() {
+    isConnected = false;
+    disconnectBtn.classList.add('hidden');
+    disconnectingBtn.classList.add('hidden');
+    connectingBtn.classList.add('hidden');
+    connectBtn.classList.remove('hidden');
+    showStatus('Stream disconnected!', 'fa-times-circle', 'text-red-500');
+    
+    // Reset protocol buttons
+    connectionBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
+        btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
+    });
+    
+    // Handle recording state
+    if (isRecording) {
+        isRecording = false;
+        recordBtn.innerHTML = 'Start Recording';
+        recordBtn.classList.remove('bg-gray-500');
+        recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+        recordingStatus.classList.add('hidden');
+        filenameInput.disabled = false;
+        showStatus('Recording stopped (stream lost)', 'fa-stop-circle', 'text-red-500');
+    }
+    
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
 }
 
 // Call the checkStreamStatus function every 1 second

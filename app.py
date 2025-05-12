@@ -63,9 +63,8 @@ async def scan_ble_devices():
 
 @app.route('/check_stream')
 def check_stream():
-    if connection_manager and connection_manager.stream_active:
-        return jsonify({'connected': True})
-    return jsonify({'connected': False})
+    is_connected = connection_manager.stream_active if hasattr(connection_manager, 'stream_active') else False
+    return jsonify({'connected': is_connected})
 
 @app.route('/check_connection')
 def check_connection():

@@ -237,6 +237,7 @@ class Connection:
 
         if self.lsl_connection:
             self.lsl_connection = None
+            self.stream_active = False
             print("LSL stream stopped")
         
         if self.usb_connection:
