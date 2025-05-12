@@ -272,13 +272,12 @@ class EEGMonitor(QMainWindow):
             
             # Only update if selections actually changed
             if (set(new_eeg_selection) != set(self.selected_eeg_channels) or (new_bp_channel != self.selected_bp_channel)):
-                self.selected_eeg_channels = new_eeg_selection
-                self.selected_bp_channel = new_bp_channel
-                self.update_plot_visibility()      # Update plot visibility without recreating plots
-                
-                # Reset data buffers for the brainpower channel if it changed
-                if new_bp_channel != self.selected_bp_channel:
-                    self.reset_brainpower_buffer()
+                bp_changed = new_bp_channel != self.selected_bp_channel  
+                self.selected_eeg_channels = new_eeg_selection  
+                self.selected_bp_channel = new_bp_channel  
+                if bp_changed:  
+                    self.reset_brainpower_buffer()  
+                self.update_plot_visibility()
     
     def reset_brainpower_buffer(self):
         self.moving_windows[self.selected_bp_channel] = deque(maxlen=self.fft_window_size)
