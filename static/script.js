@@ -332,6 +332,9 @@ function initializeFilename() {
     const defaultName = `ChordsPy_${getTimestamp()}`;
     filenameInput.value = defaultName;
     filenameInput.placeholder = defaultName;
+    filenameInput.disabled = false;              // Ensure input is enabled initially
+    filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+    filenameInput.classList.add('dark:bg-gray-800');
 }
 
 // Sanitize filename input - replace spaces and dots with underscores
@@ -722,6 +725,11 @@ function toggleRecording() {
                     recordBtn.classList.remove('bg-gray-500');
                     recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
                     recordingStatus.classList.add('hidden');
+                    
+                    // Enable filename input
+                    filenameInput.disabled = false;
+                    filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                    filenameInput.classList.add('dark:bg-gray-800');
                 }
             })
             .catch(error => {
@@ -742,6 +750,11 @@ function toggleRecording() {
                     recordBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
                     recordBtn.classList.add('bg-gray-500');
                     recordingStatus.classList.remove('hidden');
+                    
+                    // Disable filename input
+                    filenameInput.disabled = true;
+                    filenameInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                    filenameInput.classList.remove('dark:bg-gray-800');
                 }
             })
             .catch(error => {
@@ -803,6 +816,11 @@ function checkStreamStatus() {
                         recordBtn.classList.remove('bg-gray-500');
                         recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
                         recordingStatus.classList.add('hidden');
+                        
+                        // Enable filename input if recording was stopped due to disconnection
+                        filenameInput.disabled = false;
+                        filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                        filenameInput.classList.add('dark:bg-gray-800');
                     }
                     
                     // Stop console updates
