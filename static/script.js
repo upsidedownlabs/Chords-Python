@@ -161,7 +161,7 @@ async function updateAppStatus(appName) {
                 cardElement.classList.remove('cursor-not-allowed');
                 cardElement.classList.add('cursor-pointer');
                 cardElement.classList.add('hover:shadow-lg');
-                cardElement.classList.remove('opacity-80');
+                cardElement.classList.remove('opacity-60');
             }
         }
     } catch (error) {
