@@ -290,6 +290,26 @@ let isRecording = false;
 let eventSource = null;
 let isScanning = false;
 
+// Function to update the filename timestamp periodically
+function startTimestampUpdater() {
+    updateFilenameTimestamp();
+    setInterval(updateFilenameTimestamp, 1000);
+}
+
+// Update the filename timestamp in the input field
+function updateFilenameTimestamp() {
+    // Only update if recording is stop
+    if (!isRecording) {
+        const defaultName = `ChordsPy_${getTimestamp()}`;
+        filenameInput.placeholder = defaultName;
+        
+        // If the input is empty or has the default pattern, update the value too
+        if (!filenameInput.value || filenameInput.value.startsWith('ChordsPy_')) {
+            filenameInput.value = defaultName;
+        }
+    }
+}
+
 // Function to generate timestamp for filename
 function getTimestamp() {
     const now = new Date();
@@ -335,6 +355,7 @@ function initializeFilename() {
     filenameInput.disabled = false;              // Ensure input is enabled initially
     filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
     filenameInput.classList.add('dark:bg-gray-800');
+    startTimestampUpdater();
 }
 
 // Sanitize filename input - replace spaces and dots with underscores
@@ -728,6 +749,7 @@ function toggleRecording() {
                     filenameInput.disabled = false;
                     filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.add('dark:bg-gray-800');
+                    updateFilenameTimestamp()
                     showStatus('Recording stopped', 'fa-stop-circle', 'text-red-500');
                 }
             })
