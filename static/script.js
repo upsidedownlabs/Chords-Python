@@ -1,3 +1,27 @@
+let isLogging = false;
+
+function logError(error) {
+    if (isLogging) return; // Prevent recursion
+    
+    isLogging = true;
+    try {
+        const errorMessage = `[${getTimestamp()}] ${error.stack || error.message || error}\n`;
+        
+        // Fallback to console if fetch fails
+        fetch('/log_error', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: errorMessage })
+        }).catch(() => {
+            console.error('Failed to log error:', errorMessage);
+        });
+        
+        console.error(errorMessage);
+    } finally {
+        isLogging = false;
+    }
+}
+
 async function loadApps() {
     try {
         const appGrid = document.getElementById('app-grid');
@@ -21,7 +45,7 @@ async function loadApps() {
 
         return config.apps;
     } catch (error) {
-        console.error('Error loading apps config:', error);
+        logError('Error loading apps config:', error);
         
         // Show error state to user
         const appGrid = document.getElementById('app-grid');
@@ -50,7 +74,7 @@ async function initializeApplication() {
         setupCategoryFilter(apps);
         startAppStatusChecker();
     } catch (error) {
-        console.error('Application initialization failed:', error);
+        logError('Application initialization failed:', error);
     }
 }
 
@@ -133,7 +157,7 @@ async function handleAppClick(app, card) {
         card.innerHTML = originalContent;
         updateAppStatus(app.script); // Update status after launch
     } catch (error) {
-        console.error('Error launching app:', error);
+        logError('Error launching app:', error);
         showAlert(`Failed to launch ${app.title}: ${error.message}`);
         card.innerHTML = originalContent;
     }
@@ -165,7 +189,7 @@ async function updateAppStatus(appName) {
             }
         }
     } catch (error) {
-        console.error('Error checking app status:', error);
+        logError('Error checking app status:', error);
     }
 }
 
@@ -432,7 +456,7 @@ function scanBleDevices() {
         })
         .catch(error => {
             isScanning = false;
-            console.error('BLE scan error:', error);
+            logError('BLE scan error:', error);
             bleDevicesList.innerHTML = `
                 <div class="text-center py-4 text-red-500">
                     Error scanning for devices. Please try again.
@@ -532,7 +556,7 @@ connectBtn.addEventListener('click', async () => {
             throw new Error(data.message || 'Connection failed');
         }
     } catch (error) {
-        console.error('Connection error:', error);
+        logError('Connection error:', error);
         showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
         // Return to connect state
         connectingBtn.classList.add('hidden');
@@ -573,7 +597,7 @@ async function pollConnectionStatus() {
                 });
             }
         } catch (error) {
-            console.error('Connection polling error:', error);
+            logError('Connection polling error:', error);
             showStatus(`Connection failed: Try again`, 'fa-times-circle', 'text-red-500');
             // Return to connect state
             connectingBtn.classList.add('hidden');
@@ -686,7 +710,7 @@ disconnectBtn.addEventListener('click', async () => {
             }
         }
     } catch (error) {
-        console.error('Disconnection error:', error);
+        logError('Disconnection error:', error);
         // Return to disconnect state if disconnection failed
         disconnectingBtn.classList.add('hidden');
         disconnectBtn.classList.remove('hidden');
@@ -707,7 +731,7 @@ function startConsoleUpdates() {
     };
     
     eventSource.onerror = function() {
-        console.error('EventSource failed');
+        logError('EventSource failed');
         if (eventSource) {
             eventSource.close();
             eventSource = null;
@@ -754,7 +778,7 @@ function toggleRecording() {
                 }
             })
             .catch(error => {
-                console.error('Error stopping recording:', error);
+                logError('Error stopping recording:', error);
             });
     } else {
         // Start recording - send the filename (or null for default)
@@ -780,7 +804,7 @@ function toggleRecording() {
                 }
             })
             .catch(error => {
-                console.error('Error starting recording:', error);
+                logError('Error starting recording:', error);
                 showAlert('Failed to start recording: ' + error.message);
             });
     }
@@ -858,7 +882,7 @@ function checkStreamStatus() {
             }
         })
         .catch(error => {
-            console.error('Error fetching stream status:', error);
+            logError('Error fetching stream status:', error);
         });
 }
 
@@ -903,6 +927,9 @@ checkStreamStatus();
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
 initializeApplication();
+window.onerror = function(message, source, lineno, colno, error) {
+        logError(error || message);
+        return true; };
 
 document.getElementById('github-btn').addEventListener('click', () => {
     window.open('https://github.com/upsidedownlabs/Chords-Python', '_blank');
