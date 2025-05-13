@@ -32,14 +32,16 @@ A Python script for interfacing with bio-potential amplifiers, supporting data l
 > ```powershell
 > Set-ExecutionPolicy Unrestricted -Scope Process  
 > ```  
+
 ## Usage  
 Run the script and access the web interface:  
 ```bash
 python app.py  
 ```  
 **Web Interface Preview**:  
-![Web Interface Screenshot](C:\Users\PAYAL\Desktop\Chords-Python\media\Interface.png)
-![Web Interface](C:\Users\PAYAL\Desktop\Chords-Python\media\Webinterface.png) 
+![Web Interface Screenshot](./media/Interface.png)
+
+![Web Interface Screenshot](./media/Webinterface.png)
 
 ### Key Options:
 
