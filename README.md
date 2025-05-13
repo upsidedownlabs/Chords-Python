@@ -10,8 +10,8 @@ A Python script for interfacing with bio-potential amplifiers, supporting data l
 ## Features  
 - **Multiple Protocols**: Supports `Wi-Fi`, `Bluetooth`, and `Serial` communication.  
 - **LSL Data Streaming**:Once the LSL stream starts, any PC on the same Wi-Fi network can access the data using tools like BrainVision LSL Viewer. 
-- **CSV Logging**: Save raw data with timestamps.  
-- **GUI**: Live plotting for 6 channels (PyQt-based).  
+- **CSV Logging**: Save raw data with Counter 
+- **GUI**: Live plotting for all channels. 
 - **Applications**: EEG/ECG/EMG/EOG-based games and utilities (e.g., Tug of War, Keystroke Emulator).  
 
 ## Installation  
@@ -38,14 +38,14 @@ Run the script and access the web interface:
 python app.py  
 ```  
 **Web Interface Preview**:  
-![Web Interface Screenshot](media\Interface.png)
-![Web Interface Screenshot](media\Webinterface.png) 
+![Web Interface Screenshot](C:\Users\PAYAL\Desktop\Chords-Python\media\Interface.png)
+![Web Interface](C:\Users\PAYAL\Desktop\Chords-Python\media\Webinterface.png) 
 
 ### Key Options:
 
 - **LSL Streaming**: Choose a protocol (`Wi-Fi`, `Bluetooth`, `Serial`).  
 - **CSV Logging**: Data saved as `ChordsPy_{timestamp}.csv`.  
-- **Applications**: Launch from the Interface (e.g., `EEG Tug of War`). 
+- **Applications**: Multiple Applications can be Launch from the Interface simultaneously(e.g., `EEG Tug of War`). 
 
 ## Connection Guide  
 
@@ -74,10 +74,9 @@ To save sensor data for future analysis, follow these steps:
 2. **Start Recording** – Click the **Start Recording** button (it will change to **Stop Recording**).  
 3. **File Saved Automatically** – The data is saved as `ChordsPy_{timestamp}.csv` in your default folder.  
 
-- Visualizing CSV Data - You can plot the recorded data using the **CSV Plotter** tool.  
+Visualizing CSV Data - You can plot the recorded data using the **CSV Plotter** tool.  
 
-## Applications
-|----------------------------|------------------------------------------------------------------|  
+## Applications 
 | Application                | Description                                                      |  
 |----------------------------|------------------------------------------------------------------|  
 | **ECG with Heart Rate**    | Real-time ECG with BPM calculation.                              | 
@@ -88,8 +87,7 @@ To save sensor data for future analysis, follow these steps:
 | **EEG Beetle game**        | Real-time EEG focus based game.                                  |
 | **EOG Keystroke Emulator** | Blink detection triggers spacebar.                               |  
 | **GUI**                    | Visualize raw data in real-time                                  |
-| **CSV Plotter**            | Tool to plot the recorded CSV Files                              | 
-|----------------------------|------------------------------------------------------------------| 
+| **CSV Plotter**            | Tool to plot the recorded CSV Files                              |
 
 ## Troubleshooting
 
