@@ -1,174 +1,109 @@
 # Chords - Python
 
-Chords Python script is designed to interface with an Arduino-based bio-potential amplifier, read data from it, optionally log this data to CSV or stream it via the Lab Streaming Layer (LSL), and visualize it through a graphical user interface (GUI) with live plotting.
+A Python script for interfacing with bio-potential amplifiers, supporting data logging as CSV, LSL streaming, real-time visualization, and HCI/BCI applications.  
 
-> [!NOTE]
-> Flash Arduino code to your hardware from [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware) to use this python tool.
+> [!NOTE]  
+> **Firmware Required:**  
+> - For Arduino: [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware)  
+> - For NPG-Lite: [NPG-Lite Firmware](https://github.com/upsidedownlabs/npg-lite-firmware)  
 
-## Features
+## Features  
+- **Multiple Protocols**: Supports `Wi-Fi`, `Bluetooth`, and `Serial` communication.  
+- **LSL Data Streaming**:Once the LSL stream starts, any PC on the same Wi-Fi network can access the data using tools like BrainVision LSL Viewer. 
+- **CSV Logging**: Save raw data with timestamps.  
+- **GUI**: Live plotting for 6 channels (PyQt-based).  
+- **Applications**: EEG/ECG/EMG/EOG-based games and utilities (e.g., Tug of War, Keystroke Emulator).  
 
-- **Automatic Arduino Detection:** Automatically detects connected Arduino devices via serial ports.
-- **Data Reading:** Read data packets from the Arduino's serial port.
-- **CSV Logging:** Optionally logs data to a CSV file.
-- **LSL Streaming:** Optionally streams data to an LSL outlet for integration with other software.
-- **Verbose Output:** Provides detailed statistics and error reporting, including sampling rate and drift.
-- **GUI:** Live plotting of six channels using a PyQt-based GUI.
-- **Invert:** Optionally Invert the signal before streaming LSL and logging
-- **Timer:** Record data for a set time period in seconds.
-
-## Requirements
-
--  Python
-- `pyserial` library (for serial communication)
-- `pylsl` library (for LSL streaming)
-- `argparse`, `time`, `csv`, `datetime` (standard libraries)
-- `pyqtgraph` library (for GUI)
-- `PyQt5` library
-- `numpy` library
-
-## Installation
-
-1. Ensure you have latest version of Python installed.
-2. Create Virtual Environment
+## Installation  
+1. **Python**: Ensure Latest version of Python is installed.  
+2. **Virtual Environment**:  
    ```bash
-   python -m venv venv    
-   ```
-
+   python -m venv venv  
+   source venv/bin/activate  # Linux/macOS  
+   .\venv\Scripts\activate   # Windows  
+   ```  
+3. **Dependencies**:  
    ```bash
-   .\venv\Scripts\activate  
-   ```
+   pip install -r requirements.txt  
+   ```  
 
-> [!IMPORTANT]
-> You may get an execution policy error if scripts are restricted. To fix it, run:
-
-> ```bash
-> Set-ExecutionPolicy Unrestricted -Scope Process
-> ```
-
-3. Install the required Python libraries needed to run the python script:
-    ```bash
-    pip install -r chords_requirements.txt
-    ```
-
-4. Install the required Python libraries needed to run the applications:
-    ```bash
-    pip install -r app_requirements.txt
-    ```
-
-## Usage
-
-To use the script, run it from the command line with various options:
-  ```bash
-  python chords.py [options]
-  ```
-### Options
-
-- `-p`, `--port` <port>: Specify the serial port to use (e.g., COM5, /dev/ttyUSB0).
-- `-b`, `--baudrate` <baudrate>: Set the baud rate for serial communication. By default the script will first attempt to use 230400, and if that fails, it will automatically fallback to 115200.
-- `--csv`: Enable CSV logging. Data will be saved to a timestamped file.
-- `--lsl`: Enable LSL streaming. Sends data to an LSL outlet.
-- `-v`, `--verbose`: Enable verbose output with detailed statistics and error reporting.
-- `-t` : Enable the timer to run program for a set time in seconds.
-
-### Example:
-  ```bash
-  python chords.py --lsl -v --csv -t 60
-  ```
-- This command executes the Python script `chords.py`, initiates the LSL stream, enables verbose output, activates CSV logging, and sets a timer for 60 seconds:  
-
-### Data Logging
-
-- **CSV Output**: The script saves the processed data in a CSV file with a timestamped name.
-  - The CSV file contains the following columns:
-    - `Counter`: The sample counter from the Arduino.
-    - `Channel1` to `Channel6`: The data values from each channel.
-
-- **Log Intervals**: The script logs data counts every second and provides a summary every 10 minutes, including the sampling rate and drift in seconds per hour.
-
-## Applications  
-Open another terminal and run an application. Ensure the LSL Stream is running first.
-
-### Installation  
-Before running any application, install all dependencies with the following command:
-
+> [!IMPORTANT]  
+> On Windows, if scripts are blocked, run:  
+> ```powershell
+> Set-ExecutionPolicy Unrestricted -Scope Process  
+> ```  
+## Usage  
+Run the script and access the web interface:  
 ```bash
-pip install -r app_requirements.txt
-```
+python app.py  
+```  
+**Web Interface Preview**:  
+![Web Interface Screenshot](media\Interface.png)
+![Web Interface Screenshot](media\Webinterface.png) 
 
-### Available Applications  
+### Key Options:
 
-#### ECG with Heart Rate
+- **LSL Streaming**: Choose a protocol (`Wi-Fi`, `Bluetooth`, `Serial`).  
+- **CSV Logging**: Data saved as `ChordsPy_{timestamp}.csv`.  
+- **Applications**: Launch from the Interface (e.g., `EEG Tug of War`). 
 
-- `python heartbeat_ecg.py`:Enable a GUI with real-time ECG and heart rate.
+## Connection Guide  
 
-#### EMG with Envelope
+#### WIFI Connection  
+  1. Upload the NPG-Lite WIFI Code to your device.  
+  2. Connect to the device's WIFI network.  
+  3. Click the **WIFI** button in the interface, then select **CONNECT**.  
+  4. Once connected, the button will change to **Disconnect**, and a pop-up will confirm: *"Connected via Wifi!"*  
 
-- `python emgenvelope.py`: Enable a GUI with real-time EMG & its Envelope.
+#### Bluetooth Connection  
+  1. Ensure Bluetooth is turned ON on your system.  
+  2. Upload the Bluetooth code to your device.  
+  3. Click the **Bluetooth** button to scan for available devices.  
+  4. Select your device from the list and click **Connect**.
+  5. Once connected, the button will change to **Disconnect**, and a pop-up will confirm: *"Connected via Bluetooth!"*  
 
-#### EOG with Blinks
+#### Serial Connection  
+  1. Ensure Bluetooth is OFF and the device is connected via USB.  
+  2. Upload the required code to your hardware.  
+  3. Click the **Serial** button, then select **Connect**.
+  4. Once connected, the button will change to **Disconnect**, and a pop-up will confirm: *"Connected via Serial!"* 
 
-- `python eog.py`: Enable a GUI with real-time EOG that detects blinks and mark them with red dots.
+## CSV Logging  
+To save sensor data for future analysis, follow these steps:  
+1. **Start Data Streaming** – Begin streaming data via **WiFi, Bluetooth, or Serial**.  
+2. **Start Recording** – Click the **Start Recording** button (it will change to **Stop Recording**).  
+3. **File Saved Automatically** – The data is saved as `ChordsPy_{timestamp}.csv` in your default folder.  
 
-#### EEG with FFT
+- Visualizing CSV Data - You can plot the recorded data using the **CSV Plotter** tool.  
 
-- `python ffteeg.py`: Enable a GUI with real-time EEG data with its FFT and band powers.
-
-#### EEG Tug of War Game
-
-- `python game.py`: Enable a GUI to play tug of war game using EEG Signal.
-
-#### EEG Beetle Game
-
-- `python beetle.py`: Enable a GUI for Beetle Game using EEG signal.
-
-#### GUI  
-
-- `python gui.py`: Enable the real-time data plotting GUI.
-
-#### EOG Keystroke Emulator
-
-- `python keystroke.py`: On running, a pop-up opens for connecting, and on pressing Start, blinks are detected to simulate spacebar key presses.
-
-#### CSV Plotter
-
-- `python csv_plotter.py`: On running, a pop-up window opens with option to load a file, select a channel to plot, and then plot the data.
-
-## Running All Applications Together in a Web-Interface
-
-To run all applications simultaneously, execute:
-
-```bash
-python app.py
-```
-
-> [!NOTE] 
-> Before running, make sure to install all dependencies by running the command:
-```bash
-pip install -r app_requirements.txt
-```
-
-This will launch a Web interface. Use the interface to control the applications:
-
-1. Click the `Start LSL Stream` button to initiate the LSL stream or `Start NPG Stream` button to initiate the NPG stream.
-2. Then, click on any application button to run the desired module.
-Important: Keep the `python app.py` script running in the background while using any application.
-
-### Available Applications
-- `ECG with Heart Rate`: Analyze ECG data and extract heartbeat metrics.
-- `EMG with Envelope`: Real-time EMG monitor with filtering and RMS envelope.
-- `EOG with Blinks`: Real-time EOG monitoring with blink detection.
-- `EEG with FFT`: Real-time EEG analysis with FFT and brainwave power calculation.
-- `EEG Tug of War`: A 2-player game where brain activity determines the winner in a battle of focus.  
-- `EEG Beetle Game`: Use your concentration to control a beetle's movement in this brain-powered challenge.
-- `GUI of Channels`: Launch the GUI for real time signal visualization.
-- `EOG Keystroke Emulator`: GUI for EOG-based blink detection triggering a keystroke.
-- `CSV Plotter`: Plot data from a CSV file.
+## Applications
+|----------------------------|------------------------------------------------------------------|  
+| Application                | Description                                                      |  
+|----------------------------|------------------------------------------------------------------|  
+| **ECG with Heart Rate**    | Real-time ECG with BPM calculation.                              | 
+| **EMG with Envelope**      | Real-time EMG Visualization with Envelope.                       |
+| **EOG with Blinks**        | Real-time EOG Signal visualization with Blinks marked as Red Dot.|
+| **EEG with FFT**           | Real-time EEG Signal visualization with FFT and Brainpower bands.|
+| **EEG Tug of War Game**    | 2 Player EEG Based Game                                          |
+| **EEG Beetle game**        | Real-time EEG focus based game.                                  |
+| **EOG Keystroke Emulator** | Blink detection triggers spacebar.                               |  
+| **GUI**                    | Visualize raw data in real-time                                  |
+| **CSV Plotter**            | Tool to plot the recorded CSV Files                              | 
+|----------------------------|------------------------------------------------------------------| 
 
 ## Troubleshooting
 
 - **Arduino Not Detected:** Ensure the Arduino is properly connected and powered. Check the serial port and baud rate settings.
 - **CSV File Not Created:** Ensure you have write permissions in the directory where the script is run.
 - **LSL Stream Issues:** Ensure that the `pylsl` library is properly installed and configured. Additionally, confirm that Bluetooth is turned off.
+
+## How to Contribute
+
+You can add your project to this repo:
+
+- Add a button in apps.yaml to link your application.
+- Include your script as a .py file with LSL Data Reception code.
+(Pull requests welcome!)
 
 ## Contributors
 
