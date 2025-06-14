@@ -74,9 +74,9 @@
             <div id="recording-status" class="flex items-center hidden">
             </div>
         </div>
-        <div id="connection-status" class="fixed bottom-[3rem] right-1 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 text-sm hidden z-50 border border-gray-200 dark:border-gray-700 min-w-[200px] flex items-center">
+        <div id="connection-status" class="fixed bottom-[3rem] right-1 bg-[#001F0E] shadow-lg rounded-lg p-3 text-sm hidden z-50 border border-gray-200 dark:border-gray-700 min-w-[200px] flex items-center text-white">
             <span id="status-icon" class="mr-2"></span>
-            <span id="status-text" class="text-gray-700 dark:text-gray-300">Connecting...</span>
+            <span id="status-text" class="text-white">Connecting...</span>
         </div>
     </section>
 
@@ -134,13 +134,6 @@
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: {
-                    cursor: {
-                        'not-allowed': 'not-allowed',
-                    }
-                }
-            }
         }
     </script>
     <script src="{{url_for('static', filename='script.js')}}"></script>
