@@ -13,7 +13,8 @@ class Chords_BLE:
     CONTROL_CHAR_UUID = "0000ff01-0000-1000-8000-00805f9b34fb"
     
     # Packet parameters
-    SINGLE_SAMPLE_LEN = 7   # (1 Counter + 3 Channels * 2 bytes)
+    NUM_CHANNELS = 3
+    SINGLE_SAMPLE_LEN = (NUM_CHANNELS * 2) + 1   # (1 Counter + Num_Channels * 2 bytes)
     BLOCK_COUNT = 10
     NEW_PACKET_LEN = SINGLE_SAMPLE_LEN * BLOCK_COUNT
 
@@ -72,10 +73,8 @@ class Chords_BLE:
         if self.start_time is None:
             self.start_time = time.time()
         
-        channels = [
-            int.from_bytes(sample_data[1:3], byteorder='big', signed=True),
-            int.from_bytes(sample_data[3:5], byteorder='big', signed=True),
-            int.from_bytes(sample_data[5:7], byteorder='big', signed=True)]
+        channels = [int.from_bytes(sample_data[i:i+2], byteorder='big', signed=True) 
+            for i in range(1, len(sample_data), 2)]
         
         self.samples_received += 1
 
