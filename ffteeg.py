@@ -10,8 +10,8 @@ from scipy.signal import butter, iirnotch, lfilter, lfilter_zi
 import time
 
 # Constants
-FFT_WINDOW_SIZE = 500
-SMOOTHING_WINDOW_SIZE = 128
+FFT_WINDOW_SIZE = 512
+SMOOTHING_WINDOW_SIZE = 10
 DISPLAY_DURATION = 4  # seconds
 BAND_RANGES = {'delta': (0.5, 4), 'theta': (4, 8), 'alpha': (8, 12), 'beta': (12, 30), 'gamma': (30, 45)}
 
@@ -22,7 +22,7 @@ class DataProcessor:
         
         # Initialize filters
         self.b_notch, self.a_notch = iirnotch(50, 30, self.sampling_rate)
-        self.b_band, self.a_band = butter(4, [0.5 / (self.sampling_rate / 2), 48.0 / (self.sampling_rate / 2)], btype='band')
+        self.b_band, self.a_band = butter(4, [0.5 / (self.sampling_rate / 2), 45.0 / (self.sampling_rate / 2)], btype='band')
         self.zi_notch = [lfilter_zi(self.b_notch, self.a_notch) * 0 for _ in range(num_channels)]
         self.zi_band = [lfilter_zi(self.b_band, self.a_band) * 0 for _ in range(num_channels)]
         
@@ -124,17 +124,6 @@ class FFTAnalyzer:
         # Return relative powers
         return {'delta': delta / total_power,'theta': theta / total_power,'alpha': alpha / total_power,'beta': beta / total_power,'gamma': gamma / total_power}
 
-class BandPowerSmoother:
-    def __init__(self):
-        self.buffers = {band: deque(maxlen=SMOOTHING_WINDOW_SIZE) for band in BAND_RANGES}
-        
-    def update(self, band_powers):
-        for band, power in band_powers.items():
-            self.buffers[band].append(power)
-    
-    def get_smoothed(self):
-        return {band: np.mean(buffer) if buffer else 0 for band, buffer in self.buffers.items()}
-
 class SettingBox(QDialog):
     def __init__(self, num_channels, selected_eeg, selected_bp, parent=None):
         super().__init__(parent)
@@ -199,7 +188,6 @@ class EEGMonitor(QMainWindow):
         # Data processing components
         self.data_processor = DataProcessor(self.num_channels, self.sampling_rate)
         self.fft_analyzer = FFTAnalyzer(self.num_channels, self.sampling_rate)
-        self.band_smoother = BandPowerSmoother()
         
         self.selected_eeg_channels = list(range(self.num_channels))
         self.selected_bp_channel = 0
@@ -425,10 +413,7 @@ class EEGMonitor(QMainWindow):
         band_powers = self.fft_analyzer.compute_band_powers(ch, time_data)
         
         if band_powers is not None:
-            self.band_smoother.update(band_powers)
-            smoothed_powers = self.band_smoother.get_smoothed()
-            
-            relative_powers = [smoothed_powers['delta'], smoothed_powers['theta'], smoothed_powers['alpha'], smoothed_powers['beta'], smoothed_powers['gamma']]
+            relative_powers = [band_powers['delta'], band_powers['theta'], band_powers['alpha'], band_powers['beta'], band_powers['gamma']]
             self.brainwave_bars.setOpts(height=relative_powers)
 
 if __name__ == "__main__":
