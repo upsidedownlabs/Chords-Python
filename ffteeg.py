@@ -10,36 +10,41 @@ from scipy.signal import butter, iirnotch, lfilter, lfilter_zi
 import time
 
 # Constants
-FFT_WINDOW_SIZE = 512
-SMOOTHING_WINDOW_SIZE = 10
-DISPLAY_DURATION = 4  # seconds
-BAND_RANGES = {'delta': (0.5, 4), 'theta': (4, 8), 'alpha': (8, 12), 'beta': (12, 30), 'gamma': (30, 45)}
+FFT_WINDOW_SIZE = 512  # Data points we are using for fft analysis
+# On increase this value - Frequency analysis becomes more accurate but updates slower
+# On decrease this value - Updates faster but frequency details become less precise
+
+SMOOTHING_WINDOW_SIZE = 10  # How many FFT results we average to make the display smoother
+# On increase this value - Graph looks smoother but reacts slower to changes
+# On decrease this value - Reacts faster but graph looks more jumpy
+
+DISPLAY_DURATION = 4  # How many seconds of EEG data to show at once (in seconds)
 
 class DataProcessor:
     def __init__(self, num_channels, sampling_rate):
         self.num_channels = num_channels
         self.sampling_rate = sampling_rate
         
-        # Initialize filters
+        # Filters - 1. A notch filter to remove electrical interference (50Hz noise) and A bandpass filter (0.5-45Hz)
         self.b_notch, self.a_notch = iirnotch(50, 30, self.sampling_rate)
         self.b_band, self.a_band = butter(4, [0.5 / (self.sampling_rate / 2), 45.0 / (self.sampling_rate / 2)], btype='band')
         self.zi_notch = [lfilter_zi(self.b_notch, self.a_notch) * 0 for _ in range(num_channels)]
         self.zi_band = [lfilter_zi(self.b_band, self.a_band) * 0 for _ in range(num_channels)]
         
-        # Initialize data buffers
+        # Circular buffers to store the last few seconds of EEG data
         self.eeg_data = [np.zeros(DISPLAY_DURATION * sampling_rate) for _ in range(num_channels)]
-        self.current_indices = [0 for _ in range(num_channels)]
-        self.moving_windows = [deque(maxlen=FFT_WINDOW_SIZE) for _ in range(num_channels)]
+        self.current_indices = [0 for _ in range(num_channels)]    # Pointers to know where to put new data
+        self.moving_windows = [deque(maxlen=FFT_WINDOW_SIZE) for _ in range(num_channels)]   # 3. Moving windows for FFT calculation
         
     def process_sample(self, sample):
         filtered_data = []
         for ch in range(self.num_channels):
-            raw_point = sample[ch]
+            raw_point = sample[ch]  # Get the raw EEG value
             
             # Apply filters
             notch_filtered, self.zi_notch[ch] = lfilter(self.b_notch, self.a_notch, [raw_point], zi=self.zi_notch[ch])
             band_filtered, self.zi_band[ch] = lfilter(self.b_band, self.a_band, notch_filtered, zi=self.zi_band[ch])
-            band_filtered = band_filtered[-1]
+            band_filtered = band_filtered[-1]  # Get the final filtered value
             
             # Update EEG data buffer
             self.eeg_data[ch][self.current_indices[ch]] = band_filtered
@@ -60,10 +65,10 @@ class FFTAnalyzer:
         self.num_channels = num_channels
         self.sampling_rate = sampling_rate
         
-        # Frequency bins
+        # Calculate all the frequency bins
         self.freqs = np.fft.rfftfreq(FFT_WINDOW_SIZE, d=1.0/self.sampling_rate)
         self.freq_resolution = self.sampling_rate / FFT_WINDOW_SIZE
-        self.fft_window = np.hanning(FFT_WINDOW_SIZE)
+        self.fft_window = np.hanning(FFT_WINDOW_SIZE)     # Create a window function to make the FFT more accurate
         self.window_correction = np.sum(self.fft_window)  # For amplitude scaling
         
         # Smoothing buffers
@@ -77,7 +82,7 @@ class FFTAnalyzer:
         if len(time_data) < FFT_WINDOW_SIZE:
             return None, None
 
-        # Extract the most recent FFT_WINDOW_SIZE samples
+        # Extract the most recent EEG Data (FFT_WINDOW_SIZE samples)
         signal_chunk = np.array(time_data[-FFT_WINDOW_SIZE:], dtype=np.float64)
         windowed_signal = signal_chunk * self.fft_window
         fft_result = np.fft.rfft(windowed_signal)
@@ -101,8 +106,8 @@ class FFTAnalyzer:
 
     def calculate_band_power(self, fft_magnitudes, freq_range):
         low, high = freq_range
-        mask = (self.freqs[1:] >= low) & (self.freqs[1:] <= high)
-        return np.sum(fft_magnitudes[mask] ** 2)  # Total power in band
+        mask = (self.freqs[1:] >= low) & (self.freqs[1:] <= high)   # Find which frequencies are in our desired range
+        return np.sum(fft_magnitudes[mask] ** 2)  # Sum up the power in this range
 
     def compute_band_powers(self, channel, time_data):
         freqs, fft_mag = self.compute_fft(channel, time_data)
@@ -117,10 +122,6 @@ class FFTAnalyzer:
         gamma = self.calculate_band_power(fft_mag, (30, 45))
         
         total_power = delta + theta + alpha + beta + gamma
-        
-        # Avoid division by zero
-        if total_power < 1e-10:
-            return {band: 0.0 for band in BAND_RANGES}
         
         # Return relative powers
         return {'delta': delta / total_power,'theta': theta / total_power,'alpha': alpha / total_power,'beta': beta / total_power,'gamma': gamma / total_power}
