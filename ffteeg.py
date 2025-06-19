@@ -81,14 +81,15 @@ class FFTAnalyzer:
         signal_chunk = np.array(time_data[-FFT_WINDOW_SIZE:], dtype=np.float64)
         windowed_signal = signal_chunk * self.fft_window
         fft_result = np.fft.rfft(windowed_signal)
-        fft_magnitude = np.abs(fft_result) * (2.0 / self.window_correction)
+        fft_magnitude = np.abs(fft_result[1:]) * (2.0 / self.window_correction)  # Skip first value
+        adjusted_freqs = self.freqs[1:]  # Skip DC frequency (0 Hz)
         
         # DEBUG: Print detected peak frequency
         if channel == 0:
             start_idx = int(2.0 * len(fft_magnitude) / (self.sampling_rate / 2))                       
             sorted_indices = np.argsort(fft_magnitude[start_idx:])[::-1] + start_idx
             peak1_idx = sorted_indices[0]
-            peak1_freq = self.freqs[peak1_idx]
+            peak1_freq = adjusted_freqs[peak1_idx]
             print(f"Peak Frequency: {peak1_freq:.2f} Hz")
         
         # Update smoothing buffer
@@ -96,11 +97,11 @@ class FFTAnalyzer:
         
         # Return smoothed FFT
         smoothed_fft = np.mean(self.smoothing_buffers[channel], axis=0) if self.smoothing_buffers[channel] else fft_magnitude
-        return self.freqs, smoothed_fft
+        return adjusted_freqs, smoothed_fft
 
     def calculate_band_power(self, fft_magnitudes, freq_range):
         low, high = freq_range
-        mask = (self.freqs >= low) & (self.freqs <= high)
+        mask = (self.freqs[1:] >= low) & (self.freqs[1:] <= high)
         return np.sum(fft_magnitudes[mask] ** 2)  # Total power in band
 
     def compute_band_powers(self, channel, time_data):
