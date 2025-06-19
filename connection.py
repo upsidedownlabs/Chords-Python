@@ -41,6 +41,7 @@ class Connection:
         self.rate_window = deque(maxlen=10)
         self.last_timestamp = time.perf_counter()
         self.rate_update_interval = 0.5
+        self.ble_samples_received = 0
 
     async def get_ble_device(self):
         devices = await Chords_BLE.scan_devices()
@@ -165,6 +166,124 @@ class Connection:
         except Exception as e:
             print(f"Error in LSL rate check: {str(e)}")
 
+    def counter_based_data_handler(self):
+        last_counter = -1
+        dropped_samples = 0
+        total_samples = 0
+        last_print_time = time.time()
+        
+        while self.running and self.connection:
+            try:
+                raw_sample = self.connection.get_latest_sample()
+                if not raw_sample:
+                    continue
+                    
+                current_counter = raw_sample[2]
+                channel_data = raw_sample[3:]
+                
+                # Handle counter rollover (0-255)
+                if last_counter != -1:
+                    expected_counter = (last_counter + 1) % 256
+                    
+                    if current_counter != expected_counter:
+                        if current_counter > last_counter:
+                            missed = current_counter - last_counter - 1
+                        else:
+                            missed = (256 - last_counter - 1) + current_counter
+                        
+                        dropped_samples += missed
+                        print(f"\nWarning: {missed} samples dropped. Counter jump: {last_counter} -> {current_counter}")
+                
+                # Only process if this is a new sample
+                if current_counter != last_counter:
+                    total_samples += 1
+                    timestamp = local_clock()
+                    
+                    if self.lsl_connection:
+                        self.lsl_connection.push_sample(channel_data, timestamp=timestamp)
+                    
+                    if self.recording_active:
+                        self.log_to_csv(channel_data)
+                    
+                    last_counter = current_counter
+                    
+                    self.update_sample_rate()
+                    
+                    # Print stats every 5 seconds
+                    if time.time() - last_print_time > 5:
+                        drop_rate = (dropped_samples / total_samples) * 100 if total_samples > 0 else 0
+                        print(f"\nStats - Processed: {total_samples}, Dropped: {dropped_samples} ({drop_rate:.2f}%)")
+                        last_print_time = time.time()
+                        
+            except Exception as e:
+                print(f"\nCounter-based handler error: {str(e)}")
+                print(f"Last counter: {last_counter}, Current counter: {current_counter}")
+                break
+
+    def hybrid_data_handler(self):
+        last_counter = -1
+        target_interval = 1.0 / 500.0
+        last_timestamp = local_clock()
+        dropped_samples = 0
+        total_samples = 0
+        last_print_time = time.time()
+        
+        while self.running and self.connection:
+            try:
+                raw_sample = self.connection.get_latest_sample()
+                if not raw_sample:
+                    continue
+                    
+                current_counter = raw_sample[2]
+                channel_data = raw_sample[3:]
+                
+                if current_counter == last_counter:
+                    continue
+                    
+                current_time = local_clock()
+                
+                counter_diff = (current_counter - last_counter) % 256
+                if counter_diff == 0:
+                    counter_diff = 256
+                
+                # Check for missed samples
+                if last_counter != -1 and counter_diff > 1:
+                    dropped_samples += (counter_diff - 1)
+                    print(f"\nWarning: {counter_diff - 1} samples dropped. Counter jump: {last_counter} -> {current_counter}")
+                    print(f"Current timestamp: {current_time}")
+                    print(f"Sample data: {channel_data}")
+                
+                time_per_sample = target_interval
+                
+                for i in range(counter_diff):
+                    sample_timestamp = last_timestamp + (i + 1) * time_per_sample
+                    
+                    # Check if we're falling behind
+                    if local_clock() > sample_timestamp + time_per_sample * 2:
+                        print(f"\nWarning: Falling behind by {local_clock() - sample_timestamp:.4f}s, skipping samples")
+                        break
+                    
+                    if self.lsl_connection:
+                        self.lsl_connection.push_sample(channel_data, timestamp=sample_timestamp)
+                    
+                    if self.recording_active:
+                        self.log_to_csv(channel_data)
+                    
+                    total_samples += 1
+                
+                last_counter = current_counter
+                last_timestamp = current_time
+                
+                if time.time() - last_print_time > 5:
+                    drop_rate = (dropped_samples / total_samples) * 100 if total_samples > 0 else 0
+                    print(f"\nStats - Processed: {total_samples}, Dropped: {dropped_samples} ({drop_rate:.2f}%)")
+                    last_print_time = time.time()
+                    
+            except Exception as e:
+                print(f"\nHybrid handler error: {str(e)}")
+                print(f"Last counter: {last_counter}, Current counter: {current_counter}")
+                break
+
     def ble_data_handler(self):
         TARGET_SAMPLE_RATE = 500.0
         SAMPLE_INTERVAL = 1.0 / TARGET_SAMPLE_RATE
@@ -265,11 +384,52 @@ class Connection:
                             if self.recording_active:
                                 self.log_to_csv(channel_data)
             except Exception as e:
-                print(f"USB data handler error: {str(e)}")
+                print(f"\nUSB data handler error: {str(e)}")
                 break
+
+    def connect_usb_with_counter(self):
+        self.usb_connection = Chords_USB()
+        if not self.usb_connection.detect_hardware():
+            return False
+            
+        self.num_channels = self.usb_connection.num_channels
+        self.sampling_rate = self.usb_connection.supported_boards[self.usb_connection.board]["sampling_rate"]
+        
+        self.setup_lsl(self.num_channels, self.sampling_rate)
+        self.usb_connection.send_command('START')
+        
+        self.running = True
+        self.usb_thread = threading.Thread(target=self.counter_based_data_handler)
+        self.usb_thread.daemon = True
+        self.usb_thread.start()
+        
+        return True
 
     def connect_ble(self, device_address=None):
         self.ble_connection = Chords_BLE()
+        original_notification_handler = self.ble_connection.notification_handler
+
+        def notification_handler(sender, data):
+            if len(data) == self.ble_connection.NEW_PACKET_LEN:
+                if not self.lsl_connection:
+                    self.setup_lsl(num_channels=3, sampling_rate=500)
+                
+                original_notification_handler(sender, data)
+                
+                for i in range(0, self.ble_connection.NEW_PACKET_LEN, self.ble_connection.SINGLE_SAMPLE_LEN):
+                    sample_data = data[i:i+self.ble_connection.SINGLE_SAMPLE_LEN]
+                    if len(sample_data) == self.ble_connection.SINGLE_SAMPLE_LEN:
+                        channels = [int.from_bytes(sample_data[i:i+2], byteorder='big', signed=True) 
+                            for i in range(1, len(sample_data), 2)]
+                        self.last_sample = channels
+                        self.ble_samples_received += 1
+                
+                        if self.lsl_connection:             # Push to LSL
+                            self.lsl_connection.push_sample(channels)
+                        if self.recording_active:
+                            self.log_to_csv(channels)
+            
+        self.ble_connection.notification_handler = notification_handler
         
         try:
             if device_address:
@@ -281,18 +441,8 @@ class Connection:
                     return False
                 print(f"Connecting to BLE device: {selected_device.name}")
                 self.ble_connection.connect(selected_device.address)
-            
-            self.num_channels = 3
-            self.sampling_rate = 500
-            self.setup_lsl(self.num_channels, self.sampling_rate)
-            
-            self.running = True
-            self.ble_thread = threading.Thread(target=self.ble_data_handler)
-            self.ble_thread.daemon = True
-            self.ble_thread.start()
-            
-            threading.Thread(target=self.lsl_rate_checker, daemon=True).start()
-            print("BLE connection established. Streaming data...")
+
+            print("BLE connection established. Waiting for data...")
             return True
         except Exception as e:
             print(f"BLE connection failed: {str(e)}")
@@ -300,27 +450,41 @@ class Connection:
 
     def connect_wifi(self):
         self.wifi_connection = Chords_WIFI()
+        self.wifi_connection.connect()
+
+        self.num_channels = self.wifi_connection.channels
+        sampling_rate = self.wifi_connection.sampling_rate
+
+        if not self.lsl_connection:
+            self.setup_lsl(self.num_channels, sampling_rate)
         
         try:
-            if not self.wifi_connection.connect():
-                print("WiFi connection failed")
-                return False
+            print("\nConnected! (Press Ctrl+C to stop)")
+            while True:
+                data = self.wifi_connection.ws.recv()
                 
-            self.num_channels = self.wifi_connection.channels
-            self.sampling_rate = self.wifi_connection.sampling_rate
-            self.setup_lsl(self.num_channels, self.sampling_rate)
-            
-            self.running = True
-            self.wifi_thread = threading.Thread(target=self.wifi_data_handler)
-            self.wifi_thread.daemon = True
-            self.wifi_thread.start()
-            
-            threading.Thread(target=self.lsl_rate_checker, daemon=True).start()
-            print("WiFi connection established. Streaming data...")
-            return True
-        except Exception as e:
-            print(f"WiFi connection failed: {str(e)}")
-            return False
+                if isinstance(data, (bytes, list)):
+                    for i in range(0, len(data), self.wifi_connection.block_size):
+                        block = data[i:i + self.wifi_connection.block_size]
+                        if len(block) < self.wifi_connection.block_size:
+                            continue
+                        
+                        channel_data = []
+                        for ch in range(self.wifi_connection.channels):
+                            offset = 1 + ch * 2
+                            sample = int.from_bytes(block[offset:offset + 2], byteorder='big', signed=True)
+                            channel_data.append(sample)
+                        
+                        if self.lsl_connection:                   # Push to LSL
+                            self.lsl_connection.push_sample(channel_data)
+                        if self.recording_active:
+                            self.log_to_csv(channel_data)
+                    
+        except KeyboardInterrupt:
+            self.wifi_connection.disconnect()
+            print("\nDisconnected")
+        finally:
+            self.stop_csv_recording()
 
     def connect_usb(self):
         self.usb_connection = Chords_USB()
@@ -351,7 +515,7 @@ class Connection:
         if self.lsl_connection:
             self.lsl_connection = None
             self.stream_active = False
-            print("LSL stream stopped")
+            print("\nLSL stream stopped")
         
         threads = []
         if self.usb_thread and self.usb_thread.is_alive():
@@ -424,7 +588,7 @@ def main():
     except KeyboardInterrupt:
         print("\nCleanup Completed.")
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"\nError: {str(e)}")
     finally:
         manager.cleanup()
 
