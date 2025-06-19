@@ -5,7 +5,7 @@ import socket
 from scipy.signal import butter, filtfilt
 
 class Chords_WIFI:
-    def __init__(self, stream_name='NPG', channels=6, sampling_rate=500, block_size=15, timeout_sec=1):
+    def __init__(self, stream_name='NPG', channels=3, sampling_rate=500, block_size=13, timeout_sec=1):
         self.stream_name = stream_name
         self.channels = channels
         self.sampling_rate = sampling_rate
