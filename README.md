@@ -1,11 +1,10 @@
 # Chords - Python
 
-A Python script for interfacing with bio-potential amplifiers, supporting data logging as CSV, LSL streaming, real-time visualization, and HCI/BCI applications.  
+Chords- Python is a bag of tools designed to interface with Micro-controller development boards running [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware).Use Upside Down Labs bio-potential amplifiers to read data, visualize it, record data in CSV Files, and stream it via Lab Streaming Layer.  
 
 > [!NOTE]  
 > **Firmware Required:**  
-> - For Arduino: [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware)  
-> - For NPG-Lite: [NPG-Lite Firmware](https://github.com/upsidedownlabs/npg-lite-firmware)  
+> - For Arduino: [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware)
 
 ## Features  
 - **Multiple Protocols**: Supports `Wi-Fi`, `Bluetooth`, and `Serial` communication.  
