@@ -8,6 +8,7 @@ from flask import Response
 import queue
 import yaml
 from pathlib import Path
+import os
 
 console_queue = queue.Queue()
 app = Flask(__name__)
@@ -19,6 +20,22 @@ connection_thread = None
 ble_devices = []
 stream_active = False
 running_apps = {}  # Dictionary to track running apps
+
+@app.route('/log_error', methods=['POST'])
+def log_error():
+    try:
+        error_data = request.get_json()
+        if not error_data or 'error' not in error_data or 'log_error' in str(error_data):
+            return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+        
+        os.makedirs('logs', exist_ok=True)
+        
+        with open('logs/logging.txt', 'a') as f:
+            f.write(error_data['error'])
+            
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': 'Logging failed'}), 500
 
 def run_async(coro):
     def wrapper(*args, **kwargs):
@@ -63,9 +80,8 @@ async def scan_ble_devices():
 
 @app.route('/check_stream')
 def check_stream():
-    if connection_manager and connection_manager.stream_active:
-        return jsonify({'connected': True})
-    return jsonify({'connected': False})
+    is_connected = connection_manager.stream_active if hasattr(connection_manager, 'stream_active') else False
+    return jsonify({'connected': is_connected})
 
 @app.route('/check_connection')
 def check_connection():

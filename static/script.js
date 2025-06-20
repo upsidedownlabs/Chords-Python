@@ -1,3 +1,27 @@
+let isLogging = false;
+
+function logError(error) {
+    if (isLogging) return; // Prevent recursion
+    
+    isLogging = true;
+    try {
+        const errorMessage = `[${getTimestamp()}] ${error.stack || error.message || error}\n`;
+        
+        // Fallback to console if fetch fails
+        fetch('/log_error', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: errorMessage })
+        }).catch(() => {
+            console.error('Failed to log error:', errorMessage);
+        });
+        
+        console.error(errorMessage);
+    } finally {
+        isLogging = false;
+    }
+}
+
 async function loadApps() {
     try {
         const appGrid = document.getElementById('app-grid');
@@ -21,7 +45,7 @@ async function loadApps() {
 
         return config.apps;
     } catch (error) {
-        console.error('Error loading apps config:', error);
+        logError('Error loading apps config:', error);
         
         // Show error state to user
         const appGrid = document.getElementById('app-grid');
@@ -48,8 +72,9 @@ async function initializeApplication() {
         const apps = await loadApps();
         renderApps(apps);
         setupCategoryFilter(apps);
+        startAppStatusChecker();
     } catch (error) {
-        console.error('Application initialization failed:', error);
+        logError('Application initialization failed:', error);
     }
 }
 
@@ -71,7 +96,8 @@ function renderApps(apps) {
     
     apps.forEach(app => {
         const card = document.createElement('div');
-        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 cursor-pointer overflow-hidden`;
+        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 overflow-hidden cursor-pointer`;
+        card.id = `card-${app.script}`;
         
         card.innerHTML = `
             <div class="relative h-full flex flex-col">
@@ -79,52 +105,109 @@ function renderApps(apps) {
                     <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
                 </div>
                 <div class="p-4 flex-1 flex flex-col">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">${app.title}</h3>
+                        <span id="status-${app.script}" class="text-green-500 hidden">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
                 </div>
             </div>
         `;
         
+        updateAppStatus(app.script);
         card.addEventListener('click', async () => {
-            if (!isConnected) {
-                showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
-                return;
-            }
-            
-            // Add loading state to the clicked card
-            const originalContent = card.innerHTML;
-            card.innerHTML = `
-                <div class="h-full flex items-center justify-center p-4">
-                    <i class="fas fa-circle-notch fa-spin text-${app.color}-500 text-xl mr-2"></i>
-                    <span>Launching ${app.title}...</span>
-                </div>
-            `;
-            
-            try {
-                const response = await fetch(`/check_app_status/${app.script}`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to check app status');
-                }
-                
-                const data = await response.json();
-                
-                if (data.status === 'running') {
-                    showAlert(`${app.title} is already running!`);
-                    card.innerHTML = originalContent;
-                    return;
-                }
-                
-                await launchApplication(app.script);
-                card.innerHTML = originalContent;
-            } catch (error) {
-                console.error('Error launching app:', error);
-                showAlert(`Failed to launch ${app.title}: ${error.message}`);
-                card.innerHTML = originalContent;
-            }
+            await handleAppClick(app, card);
         });
         
         appGrid.appendChild(card);
+    });
+}
+
+async function handleAppClick(app, card) {
+    const statusElement = document.getElementById(`status-${app.script}`);
+    if (statusElement && !statusElement.classList.contains('hidden')) {
+        return;
+    }
+    
+    if (!isConnected) {
+        showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
+        return;
+    }
+    
+    const originalContent = card.innerHTML;            // Add loading state to the clicked card
+    card.innerHTML = `
+        <div class="h-full flex items-center justify-center p-4">
+            <i class="fas fa-circle-notch fa-spin text-${app.color}-500 text-xl mr-2"></i>
+            <span>Launching ${app.title}...</span>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch(`/check_app_status/${app.script}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to check app status');
+        }
+        
+        const data = await response.json();
+        
+        await launchApplication(app.script);
+        card.innerHTML = originalContent;
+        updateAppStatus(app.script); // Update status after launch
+    } catch (error) {
+        logError('Error launching app:', error);
+        showAlert(`Failed to launch ${app.title}: ${error.message}`);
+        card.innerHTML = originalContent;
+    }
+}
+
+async function updateAppStatus(appName) {
+    try {
+        const response = await fetch(`/check_app_status/${appName}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const statusElement = document.getElementById(`status-${appName}`);
+        const cardElement = document.getElementById(`card-${appName}`);
+        
+        if (statusElement && cardElement) {
+            if (data.status === 'running') {
+                statusElement.classList.remove('hidden');
+                cardElement.classList.add('cursor-not-allowed');
+                cardElement.classList.remove('cursor-pointer');
+                cardElement.classList.remove('hover:shadow-lg');
+                cardElement.classList.add('opacity-60');
+            } else {
+                statusElement.classList.add('hidden');
+                cardElement.style.pointerEvents = 'auto';
+                cardElement.classList.remove('cursor-not-allowed');
+                cardElement.classList.add('cursor-pointer');
+                cardElement.classList.add('hover:shadow-lg');
+                cardElement.classList.remove('opacity-60');
+            }
+        }
+    } catch (error) {
+        logError('Error checking app status:', error);
+    }
+}
+
+// Periodically check all app statuses
+function startAppStatusChecker() {
+    checkAllAppStatuses();
+    setInterval(checkAllAppStatuses, 200);
+}
+
+// Check status of all apps
+function checkAllAppStatuses() {
+    const appGrid = document.getElementById('app-grid');
+    if (!appGrid) return;
+    
+    const apps = appGrid.querySelectorAll('[id^="status-"]');
+    apps.forEach(statusElement => {
+        const appName = statusElement.id.replace('status-', '');
+        updateAppStatus(appName);
     });
 }
 
@@ -179,6 +262,7 @@ function filterAppsByCategory(category, allApps) {
         appGrid.style.opacity = '0';
         setTimeout(() => {
             appGrid.style.opacity = '1';
+            checkAllAppStatuses();
         }, 10);
     }, 300);
 }
@@ -230,6 +314,26 @@ let isRecording = false;
 let eventSource = null;
 let isScanning = false;
 
+// Function to update the filename timestamp periodically
+function startTimestampUpdater() {
+    updateFilenameTimestamp();
+    setInterval(updateFilenameTimestamp, 1000);
+}
+
+// Update the filename timestamp in the input field
+function updateFilenameTimestamp() {
+    // Only update if recording is stop
+    if (!isRecording) {
+        const defaultName = `ChordsPy_${getTimestamp()}`;
+        filenameInput.placeholder = defaultName;
+        
+        // If the input is empty or has the default pattern, update the value too
+        if (!filenameInput.value || filenameInput.value.startsWith('ChordsPy_')) {
+            filenameInput.value = defaultName;
+        }
+    }
+}
+
 // Function to generate timestamp for filename
 function getTimestamp() {
     const now = new Date();
@@ -272,6 +376,10 @@ function initializeFilename() {
     const defaultName = `ChordsPy_${getTimestamp()}`;
     filenameInput.value = defaultName;
     filenameInput.placeholder = defaultName;
+    filenameInput.disabled = false;              // Ensure input is enabled initially
+    filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+    filenameInput.classList.add('dark:bg-gray-800');
+    startTimestampUpdater();
 }
 
 // Sanitize filename input - replace spaces and dots with underscores
@@ -348,7 +456,7 @@ function scanBleDevices() {
         })
         .catch(error => {
             isScanning = false;
-            console.error('BLE scan error:', error);
+            logError('BLE scan error:', error);
             bleDevicesList.innerHTML = `
                 <div class="text-center py-4 text-red-500">
                     Error scanning for devices. Please try again.
@@ -429,8 +537,6 @@ connectBtn.addEventListener('click', async () => {
             postData.device_address = selectedBleDevice.address;
         }
 
-        // showStatus('Connecting...', 'fa-spinner fa-spin', 'text-blue-500');
-
         const response = await fetch('/connect', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -450,7 +556,7 @@ connectBtn.addEventListener('click', async () => {
             throw new Error(data.message || 'Connection failed');
         }
     } catch (error) {
-        console.error('Connection error:', error);
+        logError('Connection error:', error);
         showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
         // Return to connect state
         connectingBtn.classList.add('hidden');
@@ -463,7 +569,7 @@ connectBtn.addEventListener('click', async () => {
 // Poll connection status
 async function pollConnectionStatus() {
     let attempts = 0;
-    const maxAttempts = 5; // 5 seconds timeout
+    const maxAttempts = 15; // 15 seconds timeout
     
     const checkStatus = async () => {
         attempts++;
@@ -491,7 +597,7 @@ async function pollConnectionStatus() {
                 });
             }
         } catch (error) {
-            console.error('Connection polling error:', error);
+            logError('Connection polling error:', error);
             showStatus(`Connection failed: Try again`, 'fa-times-circle', 'text-red-500');
             // Return to connect state
             connectingBtn.classList.add('hidden');
@@ -526,7 +632,7 @@ function handleConnectionSuccess() {
         btn.disabled = true;
     });
     
-    showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle', 'text-green-500');
+    showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle');
     
     // Start console updates
     startConsoleUpdates();
@@ -558,7 +664,6 @@ disconnectBtn.addEventListener('click', async () => {
         // Show connecting state during disconnection
         disconnectBtn.classList.add('hidden');
         disconnectingBtn.classList.remove('hidden');
-        // showStatus('Disconnecting...', 'fa-spinner fa-spin', 'text-blue-500');
         
         const response = await fetch('/disconnect', { method: 'POST' });
         const data = await response.json();
@@ -568,6 +673,7 @@ disconnectBtn.addEventListener('click', async () => {
             // Return to connect state
             disconnectingBtn.classList.add('hidden');
             connectBtn.classList.remove('hidden');
+            showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
             
             // Reset all protocol buttons
             connectionBtns.forEach(btn => {
@@ -604,7 +710,7 @@ disconnectBtn.addEventListener('click', async () => {
             }
         }
     } catch (error) {
-        console.error('Disconnection error:', error);
+        logError('Disconnection error:', error);
         // Return to disconnect state if disconnection failed
         disconnectingBtn.classList.add('hidden');
         disconnectBtn.classList.remove('hidden');
@@ -625,7 +731,7 @@ function startConsoleUpdates() {
     };
     
     eventSource.onerror = function() {
-        console.error('EventSource failed');
+        logError('EventSource failed');
         if (eventSource) {
             eventSource.close();
             eventSource = null;
@@ -662,10 +768,17 @@ function toggleRecording() {
                     recordBtn.classList.remove('bg-gray-500');
                     recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
                     recordingStatus.classList.add('hidden');
+                    
+                    // Enable filename input
+                    filenameInput.disabled = false;
+                    filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                    filenameInput.classList.add('dark:bg-gray-800');
+                    updateFilenameTimestamp()
+                    showStatus('Recording stopped', 'fa-stop-circle', 'text-red-500');
                 }
             })
             .catch(error => {
-                console.error('Error stopping recording:', error);
+                logError('Error stopping recording:', error);
             });
     } else {
         // Start recording - send the filename (or null for default)
@@ -682,10 +795,16 @@ function toggleRecording() {
                     recordBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
                     recordBtn.classList.add('bg-gray-500');
                     recordingStatus.classList.remove('hidden');
+                    
+                    // Disable filename input
+                    filenameInput.disabled = true;
+                    filenameInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                    filenameInput.classList.remove('dark:bg-gray-800');
+                    showStatus('Recording started', 'fa-record-vinyl', 'text-green-500');
                 }
             })
             .catch(error => {
-                console.error('Error starting recording:', error);
+                logError('Error starting recording:', error);
                 showAlert('Failed to start recording: ' + error.message);
             });
     }
@@ -698,11 +817,11 @@ initializeFilename(); // Set default filename with timestamp
 function showStatus(text, icon, colorClass) {
     const statusDiv = document.getElementById('connection-status');
     statusText.textContent = text;
-    statusIcon.innerHTML = `<i class="fas ${icon} ${colorClass}"></i>`;
+    statusIcon.innerHTML = `<i class="fas ${icon} text-white"></i>`; 
     statusDiv.classList.remove('hidden');
     setTimeout(() => {
         statusDiv.classList.add('hidden');
-    }, 2000);
+    }, 3000);
 }
 
 function showAlert(message) {
@@ -716,6 +835,7 @@ function checkStreamStatus() {
             if (data.connected) {
                 // If connected, update the frontend
                 if (!isConnected) {
+                    handleConnectionSuccess();
                     isConnected = true;
                     connectBtn.classList.add('hidden');
                     connectingBtn.classList.add('hidden');
@@ -727,11 +847,13 @@ function checkStreamStatus() {
             } else {
                 // If not connected, update the frontend
                 if (isConnected) {
+                    handleDisconnection();
                     isConnected = false;
                     disconnectBtn.classList.add('hidden');
                     disconnectingBtn.classList.add('hidden');
                     connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
+                    showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
                     
                     // Re-enable protocol buttons
                     setProtocolButtonsDisabled(false);
@@ -743,6 +865,12 @@ function checkStreamStatus() {
                         recordBtn.classList.remove('bg-gray-500');
                         recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
                         recordingStatus.classList.add('hidden');
+                        
+                        // Enable filename input if recording was stopped due to disconnection
+                        filenameInput.disabled = false;
+                        filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                        filenameInput.classList.add('dark:bg-gray-800');
+                        showStatus('Recording stopped (connection lost)', 'fa-stop-circle', 'text-red-500');
                     }
                     
                     // Stop console updates
@@ -754,8 +882,40 @@ function checkStreamStatus() {
             }
         })
         .catch(error => {
-            console.error('Error fetching stream status:', error);
+            logError('Error fetching stream status:', error);
         });
+}
+
+function handleDisconnection() {
+    isConnected = false;
+    disconnectBtn.classList.add('hidden');
+    disconnectingBtn.classList.add('hidden');
+    connectingBtn.classList.add('hidden');
+    connectBtn.classList.remove('hidden');
+    showStatus('Stream disconnected!', 'fa-times-circle', 'text-red-500');
+    
+    // Reset protocol buttons
+    connectionBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
+        btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
+    });
+    
+    // Handle recording state
+    if (isRecording) {
+        isRecording = false;
+        recordBtn.innerHTML = 'Start Recording';
+        recordBtn.classList.remove('bg-gray-500');
+        recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+        recordingStatus.classList.add('hidden');
+        filenameInput.disabled = false;
+        showStatus('Recording stopped (stream lost)', 'fa-stop-circle', 'text-red-500');
+    }
+    
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
 }
 
 // Call the checkStreamStatus function every 1 second
@@ -767,6 +927,9 @@ checkStreamStatus();
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
 initializeApplication();
+window.onerror = function(message, source, lineno, colno, error) {
+        logError(error || message);
+        return true; };
 
 document.getElementById('github-btn').addEventListener('click', () => {
     window.open('https://github.com/upsidedownlabs/Chords-Python', '_blank');
