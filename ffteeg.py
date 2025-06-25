@@ -418,8 +418,11 @@ class EEGMonitor(QMainWindow):
             relative_powers = [band_powers['delta'], band_powers['theta'], band_powers['alpha'], band_powers['beta'], band_powers['gamma']]
             self.brainwave_bars.setOpts(height=relative_powers)
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     window = EEGMonitor()  
     window.show()
     sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from connection import Connection
+from chordspy.connection import Connection
 import threading
 import asyncio
 import logging
@@ -9,6 +9,7 @@ import queue
 import yaml
 from pathlib import Path
 import os
+import webbrowser
 
 console_queue = queue.Queue()
 app = Flask(__name__)
@@ -54,16 +55,19 @@ def index():
 @app.route('/get_apps_config')
 def get_apps_config():
     try:
-        config_path = Path('config') / 'apps.yaml'
+        config_path = Path(__file__).parent / 'config' / 'apps.yaml' # Try package-relative path first
+        if not config_path.exists():
+            config_path = Path('chordspy.config') / 'apps.yaml'      # Fallback to local path
+            
         if config_path.exists():
             with open(config_path, 'r') as file:
                 config = yaml.safe_load(file)
                 return jsonify(config)
-        return jsonify
+        return jsonify({'apps': []})
     
     except Exception as e:
         logging.error(f"Error loading apps config: {str(e)}")
-        return jsonify
+        return jsonify({'apps': [], 'error': str(e)})
 
 @app.route('/scan_ble')
 @run_async
@@ -112,26 +116,27 @@ def launch_application():
         return jsonify({'status': 'error', 'message': 'No active stream'}), 400
     
     data = request.get_json()
-    app_name = data.get('app')
+    module_name = data.get('app')
     
-    if not app_name:
+    if not module_name:
         return jsonify({'status': 'error', 'message': 'No application specified'}), 400
     
     # Check if app is already running
-    if app_name in running_apps and running_apps[app_name].poll() is None:
-        return jsonify({'status': 'error', 'message': f'{app_name} is already running','code': 'ALREADY_RUNNING'}), 400
+    if module_name in running_apps and running_apps[module_name].poll() is None:
+        return jsonify({'status': 'error', 'message': f'{module_name} is already running','code': 'ALREADY_RUNNING'}), 400
     
     try:
         import subprocess
         import sys
         
-        python_exec = sys.executable
-        process = subprocess.Popen([python_exec, f"{app_name}.py"])
-        running_apps[app_name] = process
+        # Run the module using Python's -m flag
+        process = subprocess.Popen([sys.executable, "-m", f"chordspy.{module_name}"])
         
-        return jsonify({'status': 'success', 'message': f'Launched {app_name}'})
+        running_apps[module_name] = process
+        
+        return jsonify({'status': 'success', 'message': f'Launched {module_name}'})
     except Exception as e:
-        logging.error(f"Error launching {app_name}: {str(e)}")
+        logging.error(f"Error launching {module_name}: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/check_app_status/<app_name>')
@@ -240,5 +245,12 @@ def stop_recording():
             return jsonify({'status': 'error', 'message': str(e)}), 500
     return jsonify({'status': 'error', 'message': 'No active connection'}), 400
 
+def main():
+    def open_browser():
+        webbrowser.open("http://localhost:5000")
+
+    threading.Timer(1.5, open_browser).start()
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
