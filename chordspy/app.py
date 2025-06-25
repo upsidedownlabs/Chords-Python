@@ -10,10 +10,13 @@ import yaml
 from pathlib import Path
 import os
 import webbrowser
+import logging
 
 console_queue = queue.Queue()
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)  # Only show errors
 
 # Global variables
 connection_manager = None
