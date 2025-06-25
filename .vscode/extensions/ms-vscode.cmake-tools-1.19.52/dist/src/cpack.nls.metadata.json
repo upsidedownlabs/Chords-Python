@@ -1,0 +1,15 @@
+{
+	"messages": [
+		"CPath path is not set",
+		"Package preset is not set",
+		"CPack run was terminated",
+		"CPack finished with return code {0}"
+	],
+	"keys": [
+		"cpack.path.not.set",
+		"package.preset.not.set",
+		"cpack.run.terminated",
+		"cpack.finished.with.code"
+	],
+	"filePath": "src\\cpack"
+}

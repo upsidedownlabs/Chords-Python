@@ -1,0 +1,25 @@
+{
+	"messages": [
+		"Update workspace folders",
+		"Multiple CMake projects in this folder are using the same CMAKE_BINARY_DIR.",
+		"This may cause problems when attempting to configure your projects.",
+		"Folder: {0}",
+		"Consider using substitution variables in {0} such as {1}.",
+		"More information can be found at: https://aka.ms/cmaketoolsvariables",
+		"More info",
+		"The same workspace folder was loaded twice",
+		"Workspace folder removed, but not associated with an extension instance"
+	],
+	"keys": [
+		"update.workspace.folders",
+		"duplicate.build.directory.1",
+		"duplicate.build.directory.2",
+		"duplicate.build.directory.3",
+		"duplicate.build.directory.4",
+		"duplicate.build.directory.5",
+		"more.info",
+		"same.folder.loaded.twice",
+		"removed.folder.not.on.record"
+	],
+	"filePath": "src\\projectController"
+}

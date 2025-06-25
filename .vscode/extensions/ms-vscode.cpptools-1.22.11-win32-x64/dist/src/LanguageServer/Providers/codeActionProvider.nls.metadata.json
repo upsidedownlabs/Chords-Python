@@ -1,0 +1,18 @@
+{
+	"messages": [
+		"Expands to:",
+		"Inline macro",
+		"Inline macro is not available at this location."
+	],
+	"keys": [
+		"expands.to",
+		{
+			"key": "inline.macro",
+			"comment": [
+				"'Inline' is a command and not an adjective, i.e. like 'Expand macro'."
+			]
+		},
+		"inline.macro.not.available"
+	],
+	"filePath": "LanguageServer\\Providers\\codeActionProvider"
+}

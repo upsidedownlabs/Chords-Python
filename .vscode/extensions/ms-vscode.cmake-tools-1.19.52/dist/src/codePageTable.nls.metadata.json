@@ -1,0 +1,9 @@
+{
+	"messages": [
+		"Failed to execute {0}"
+	],
+	"keys": [
+		"failed.to.execute"
+	],
+	"filePath": "src\\codePageTable"
+}

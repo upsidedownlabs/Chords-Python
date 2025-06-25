@@ -1,0 +1,69 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"title": "Java Language server contributions to package.json",
+	"type": "object",
+	"properties": {
+		"contributes": {
+			"type": "object",
+			"properties": {
+				"javaExtensions": {
+					"type": "array",
+					"markdownDescription": "Java language server extensions",
+					"items": {
+						"type": "string",
+						"description": "Relative path to a Java language server extension JAR file"
+					}
+				},
+				"javaBuildFilePatterns": {
+					"type": "array",
+					"markdownDescription": "Java build file patterns",
+					"items": {
+						"type": "string",
+						"description": "Regular expressions for specifying build file"
+					}
+				},
+				"javaBuildTools": {
+					"type": "array",
+					"description": "Information about the cared build files. Will be used when 'java.import.projectSelection' is 'manual'.",
+					"items": {
+						"type": "object",
+						"properties": {
+							"displayName": {
+								"description": "The display name of the build file type.",
+								"type": "string"
+							},
+							"buildFileNames": {
+								"description": "The build file names that supported by the build tool.",
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				},
+				"javaShortcuts": {
+					"type": "array",
+					"description": "Shortcuts to be listed when clicking server status bar item.",
+					"items": {
+						"type": "object",
+						"properties": {
+							"title": {
+								"description": "The title of the quick pick item.",
+								"type": "string"
+							},
+							"command": {
+								"description": "The command to be executed when the quick pick is selected.",
+								"type": "string"
+							},
+							"arguments": {
+								"description": "The arguments to be passed to the command.",
+								"type": "array"
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

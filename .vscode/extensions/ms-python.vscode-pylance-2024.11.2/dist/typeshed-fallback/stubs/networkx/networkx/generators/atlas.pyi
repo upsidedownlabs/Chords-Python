@@ -1,0 +1,6 @@
+from networkx.utils.backends import _dispatchable
+
+@_dispatchable
+def graph_atlas(i): ...
+@_dispatchable
+def graph_atlas_g(): ...

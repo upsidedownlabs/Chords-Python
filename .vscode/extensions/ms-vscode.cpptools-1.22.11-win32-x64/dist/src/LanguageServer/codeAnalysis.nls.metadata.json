@@ -1,0 +1,25 @@
+{
+	"messages": [
+		"Fix all code analysis problems",
+		"Clear all code analysis problems",
+		"Fix all {0} problems",
+		"Disable all {0} problems",
+		"Clear all {0} problems",
+		"Clear this {0} problem",
+		"Fix this {0} problem",
+		"Fix this {0} problem",
+		"Show documentation for {0}"
+	],
+	"keys": [
+		"fix.all.code.analysis.problems",
+		"clear.all.code.analysis.problems",
+		"fix.all.type.problems",
+		"disable.all.type.problems",
+		"clear.all.type.problems",
+		"clear.this.problem",
+		"fix.this.problem",
+		"fix.this.problem",
+		"show.documentation.for"
+	],
+	"filePath": "LanguageServer\\codeAnalysis"
+}

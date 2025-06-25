@@ -1,0 +1,31 @@
+{
+	"messages": [
+		"Circular variable reference found: {0}",
+		"Reached max string expansion recursion. Possible circular reference.",
+		"Max string expansion recursion",
+		"Exception while expanding string {0}: {1}",
+		"Exception expanding string",
+		"Invalid variable reference {0} in string: {1}",
+		"Invalid variable reference",
+		"Circular variable reference",
+		"Commands are not supported for string: {0}",
+		"Exception while executing command {0} for string: {1} {2}",
+		"Exception executing command",
+		"expanded {0}"
+	],
+	"keys": [
+		"circular.variable.reference.full",
+		"reached.max.recursion",
+		"max.recursion",
+		"exception.expanding.string.full",
+		"exception.expanding.string",
+		"invalid.variable.reference.full",
+		"invalid.variable.reference",
+		"circular.variable.reference",
+		"command.not.supported",
+		"exception.executing.command.full",
+		"exception.executing.command",
+		"expand.expandstringhelper"
+	],
+	"filePath": "src\\expand"
+}

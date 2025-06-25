@@ -1,0 +1,123 @@
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
+  <Obj RefId="0">
+    <TN RefId="0">
+      <T>Microsoft.PowerShell.Commands.PSRepositoryItemInfo</T>
+      <T>System.Management.Automation.PSCustomObject</T>
+      <T>System.Object</T>
+    </TN>
+    <MS>
+      <S N="Name">PSScriptAnalyzer</S>
+      <S N="Version">1.23.0</S>
+      <S N="Type">Module</S>
+      <S N="Description">PSScriptAnalyzer provides script analysis and checks for potential code defects in the scripts by applying a group of built-in or customized rules on the scripts being analyzed.</S>
+      <S N="Author">Microsoft Corporation</S>
+      <Obj N="CompanyName" RefId="1">
+        <TN RefId="1">
+          <T>System.Management.Automation.PSCustomObject</T>
+          <T>System.Object</T>
+        </TN>
+      </Obj>
+      <S N="Copyright">(c) Microsoft Corporation 2016. All rights reserved.</S>
+      <DT N="PublishedDate">2024-10-10T22:13:41+00:00</DT>
+      <Nil N="InstalledDate" />
+      <Nil N="UpdatedDate" />
+      <URI N="LicenseUri">https://github.com/PowerShell/PSScriptAnalyzer/blob/master/LICENSE</URI>
+      <URI N="ProjectUri">https://github.com/PowerShell/PSScriptAnalyzer</URI>
+      <URI N="IconUri">https://raw.githubusercontent.com/powershell/psscriptanalyzer/master/logo.png</URI>
+      <Obj N="Tags" RefId="2">
+        <TN RefId="2">
+          <T>System.Object[]</T>
+          <T>System.Array</T>
+          <T>System.Object</T>
+        </TN>
+        <LST>
+          <S>lint</S>
+          <S>bestpractice</S>
+          <S>PSModule</S>
+        </LST>
+      </Obj>
+      <Obj N="Includes" RefId="3">
+        <TN RefId="3">
+          <T>System.Collections.Hashtable</T>
+          <T>System.Object</T>
+        </TN>
+        <DCT>
+          <En>
+            <S N="Key">DscResource</S>
+            <Obj N="Value" RefId="4">
+              <TNRef RefId="2" />
+              <LST />
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Function</S>
+            <Ref N="Value" RefId="4" />
+          </En>
+          <En>
+            <S N="Key">RoleCapability</S>
+            <Ref N="Value" RefId="4" />
+          </En>
+          <En>
+            <S N="Key">Cmdlet</S>
+            <Obj N="Value" RefId="5">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Get-ScriptAnalyzerRule</S>
+                <S>Invoke-ScriptAnalyzer</S>
+                <S>Invoke-Formatter</S>
+              </LST>
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Workflow</S>
+            <Ref N="Value" RefId="4" />
+          </En>
+          <En>
+            <S N="Key">Command</S>
+            <Obj N="Value" RefId="6">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Get-ScriptAnalyzerRule</S>
+                <S>Invoke-ScriptAnalyzer</S>
+                <S>Invoke-Formatter</S>
+              </LST>
+            </Obj>
+          </En>
+        </DCT>
+      </Obj>
+      <Nil N="PowerShellGetFormatVersion" />
+      <Nil N="ReleaseNotes" />
+      <Obj N="Dependencies" RefId="7">
+        <TNRef RefId="2" />
+        <LST />
+      </Obj>
+      <S N="RepositorySourceLocation">https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/powershell/nuget/v2</S>
+      <S N="Repository">CFS</S>
+      <S N="PackageManagementProvider">NuGet</S>
+      <Obj N="AdditionalMetadata" RefId="8">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="copyright">(c) Microsoft Corporation 2016. All rights reserved.</S>
+          <S N="description">PSScriptAnalyzer provides script analysis and checks for potential code defects in the scripts by applying a group of built-in or customized rules on the scripts being analyzed.</S>
+          <S N="requireLicenseAcceptance">False</S>
+          <S N="isLatestVersion">True</S>
+          <S N="isAbsoluteLatestVersion">True</S>
+          <S N="downloadCount">0</S>
+          <S N="packageSize">15766431</S>
+          <S N="published">10/10/2024 10:13:41 PM +00:00</S>
+          <S N="created">10/10/2024 10:13:41 PM +00:00</S>
+          <S N="lastEdited">10/10/2024 10:13:41 PM +00:00</S>
+          <S N="lastUpdated">10/10/2024 10:13:41 PM +00:00</S>
+          <S N="tags">lint bestpractice PSModule PSIncludes_Cmdlet PSCmdlet_Get-ScriptAnalyzerRule PSCmdlet_Invoke-ScriptAnalyzer PSCmdlet_Invoke-Formatter PSCommand_Get-ScriptAnalyzerRule PSCommand_Invoke-ScriptAnalyzer PSCommand_Invoke-Formatter</S>
+          <S N="developmentDependency">False</S>
+          <S N="updated">2024-10-10T22:13:41Z</S>
+          <S N="NormalizedVersion">1.23.0</S>
+          <S N="Authors">Microsoft Corporation</S>
+          <S N="IsPrerelease">false</S>
+          <S N="Listed">true</S>
+        </MS>
+      </Obj>
+      <S N="InstalledLocation">C:\__w\1\s\module\PSScriptAnalyzer\1.23.0</S>
+    </MS>
+  </Obj>
+</Objs>

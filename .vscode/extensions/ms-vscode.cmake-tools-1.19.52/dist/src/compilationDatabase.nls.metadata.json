@@ -1,0 +1,9 @@
+{
+	"messages": [
+		"Error parsing compilation database {0}: {1}"
+	],
+	"keys": [
+		"error.parsing.compilation.database"
+	],
+	"filePath": "src\\compilationDatabase"
+}

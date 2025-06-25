@@ -1,0 +1,8 @@
+{
+  "defaults": [
+    "-D__building_module(x)=0",
+    "--pack_alignment",
+    "8"
+  ],
+  "defaults_op": "merge"
+}

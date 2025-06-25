@@ -1,0 +1,39 @@
+{
+	"messages": [
+		"Did you mean {0}?",
+		"Did you mean {0} or {1}?",
+		"Did you mean {0}, {1} or {2}?",
+		"Did you forget to open or close the quote?",
+		"Did you forget to escape the '/' (slash) character? Put two backslashes before it to escape, e.g., '\\\\/'.",
+		"Empty context key expression",
+		"Did you forget to write an expression? You can also put 'false' or 'true' to always evaluate to false or true, respectively.",
+		"'in' after 'not'.",
+		"closing parenthesis ')'",
+		"Unexpected token",
+		"Did you forget to put && or || before the token?",
+		"Unexpected end of expression",
+		"Did you forget to put a context key?",
+		"Expected: {0}\nReceived: '{1}'.",
+		"Unexpected token. Hint: {0}",
+		"Unexpected token."
+	],
+	"keys": [
+		"contextkey.scanner.hint.didYouMean1",
+		"contextkey.scanner.hint.didYouMean2",
+		"contextkey.scanner.hint.didYouMean3",
+		"contextkey.scanner.hint.didYouForgetToOpenOrCloseQuote",
+		"contextkey.scanner.hint.didYouForgetToEscapeSlash",
+		"contextkey.parser.error.emptyString",
+		"contextkey.parser.error.emptyString.hint",
+		"contextkey.parser.error.noInAfterNot",
+		"contextkey.parser.error.closingParenthesis",
+		"contextkey.parser.error.unexpectedToken",
+		"contextkey.parser.error.unexpectedToken.hint",
+		"contextkey.parser.error.unexpectedEOF",
+		"contextkey.parser.error.unexpectedEOF.hint",
+		"contextkey.parser.error.expectedButGot",
+		"contextkey.scanner.errorForLinterWithHint",
+		"contextkey.scanner.errorForLinter"
+	],
+	"filePath": "src\\contextKeyExpr"
+}

@@ -1,0 +1,19 @@
+{
+	"messages": [
+		"Failed to find user info for SSH. This could be caused by VS Code being installed using 'snap'. Please reinstall VS Code using the 'deb' package if you are planning to use SSH features.",
+		"Failed to parse SSH configuration file {0}: {1}",
+		"Failed to read file {0}.",
+		"Failed to parse SSH configuration file {0}: {1}",
+		"Failed to write to file {0}.",
+		"Failed to read file {0}."
+	],
+	"keys": [
+		"failed.to.find.user.info.for.SSH",
+		"failed.to.parse.SSH.config",
+		"failed.to.read.file",
+		"failed.to.parse.SSH.config",
+		"failed.to.write.file",
+		"failed.to.read.file"
+	],
+	"filePath": "SSH\\sshHosts"
+}

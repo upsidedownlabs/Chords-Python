@@ -1,0 +1,13 @@
+from _typeshed import Incomplete
+from collections.abc import Generator
+
+from networkx.utils.backends import _dispatchable
+
+@_dispatchable
+def is_biconnected(G): ...
+@_dispatchable
+def biconnected_component_edges(G) -> Generator[Incomplete, Incomplete, None]: ...
+@_dispatchable
+def biconnected_components(G) -> Generator[Incomplete, None, None]: ...
+@_dispatchable
+def articulation_points(G) -> Generator[Incomplete, None, None]: ...

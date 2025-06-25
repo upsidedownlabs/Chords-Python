@@ -1,0 +1,11 @@
+{
+	"messages": [
+		"Select a CMake command to pin",
+		"User cancelled selecting CMake Command to Pin"
+	],
+	"keys": [
+		"add.pinned.cmake.command",
+		"user.cancelled.add.pinned.cmake.command"
+	],
+	"filePath": "src\\pinnedCommands"
+}

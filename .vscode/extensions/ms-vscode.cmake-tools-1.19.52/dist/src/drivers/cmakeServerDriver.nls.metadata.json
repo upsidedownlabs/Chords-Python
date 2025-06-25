@@ -1,0 +1,19 @@
+{
+	"messages": [
+		"Error during CMake configure: {0}",
+		"Unknown cache entry type {0}",
+		"Found no matching code model for the current build type. This shouldn't be possible",
+		"A special target to build all available targets",
+		"A special target to install all available targets",
+		"Utility target"
+	],
+	"keys": [
+		"cmake.configure.error",
+		"unknown.cache.entry.type",
+		"found.no.matching.code.model",
+		"build.all.target",
+		"install.all.target",
+		"utility.target"
+	],
+	"filePath": "src\\drivers\\cmakeServerDriver"
+}

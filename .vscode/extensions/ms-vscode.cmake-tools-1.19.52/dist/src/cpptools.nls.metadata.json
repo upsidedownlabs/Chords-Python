@@ -1,0 +1,21 @@
+{
+	"messages": [
+		"Unexpected end of parsing command line arguments",
+		"Unknown C++ standard control flag: {0}",
+		"Unknown C standard control flag: {0}",
+		"Unknown standard control flag: {0}",
+		"Unknown language: {0}",
+		"The build configurations generated do not contain the active build configuration. Using {0} for CMAKE_BUILD_TYPE instead of {1} to ensure that IntelliSense configurations can be found",
+		"The path to the compiler for one or more source files was not found in the CMake cache. If you are using a toolchain file, this probably means that you need to specify the CACHE option when you set your C and/or C++ compiler path"
+	],
+	"keys": [
+		"unexpected.end.of.arguments",
+		"unknown.control.gflag.cpp",
+		"unknown.control.gflag.c",
+		"unknown.control.gflag",
+		"unknown language",
+		"build.type.out.of.sync",
+		"path.not.found.in.cmake.cache"
+	],
+	"filePath": "src\\cpptools"
+}

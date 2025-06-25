@@ -1,0 +1,46 @@
+from collections.abc import Callable, Sequence
+from typing import Any
+
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
+
+from .base import Operation
+
+class SeparateDatabaseAndState(Operation):
+    database_operations: Sequence[Operation] = ...
+    state_operations: Sequence[Operation] = ...
+    def __init__(
+        self,
+        database_operations: Sequence[Operation] = ...,
+        state_operations: Sequence[Operation] = ...,
+    ) -> None: ...
+
+class RunSQL(Operation):
+    noop: str = ...
+    sql: Any = ...
+    reverse_sql: Any = ...
+    state_operations: Any = ...
+    hints: Any = ...
+    def __init__(
+        self,
+        sql: Any,
+        reverse_sql: Any | None = ...,
+        state_operations: Any | None = ...,
+        hints: Any | None = ...,
+        elidable: bool = ...,
+    ) -> None: ...
+
+class RunPython(Operation):
+    code: Callable[..., Any] = ...
+    reverse_code: Callable[..., Any] | None = ...
+    hints: dict[str, Any] | None = ...
+    def __init__(
+        self,
+        code: Callable[..., Any],
+        reverse_code: Callable[..., Any] | None = ...,
+        atomic: bool | None = ...,
+        hints: dict[str, Any] | None = ...,
+        elidable: bool = ...,
+    ) -> None: ...
+    @staticmethod
+    def noop(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None: ...

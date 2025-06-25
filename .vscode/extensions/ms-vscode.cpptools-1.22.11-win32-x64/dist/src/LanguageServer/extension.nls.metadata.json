@@ -1,0 +1,48 @@
+{
+	"messages": [
+		"Learn how to install a library for this header with vcpkg",
+		"Copy vcpkg command to install '{0}' to the clipboard",
+		"IntelliSense-related commands cannot be executed when `C_Cpp.intelliSenseEngine` is set to `disabled`.",
+		"client not found",
+		"OK",
+		"The clang compiler will now be installed",
+		"You may be prompted to type your password in the VS Code terminal window to authorize the installation.",
+		"The gcc compiler will now be installed",
+		"You may be prompted to type your password in the VS Code terminal window to authorize the installation.",
+		"Open a folder first to select a configuration.",
+		"Open a folder first to select a configuration provider.",
+		"Open a folder first to edit configurations",
+		"Open a folder first to edit configurations",
+		"Open a folder first to edit configurations",
+		"The code analysis fix could not be applied because the document has changed.",
+		"A pre-release version of the C/C++ extension is available. Would you like to switch to it?",
+		"Yes",
+		"No"
+	],
+	"keys": [
+		"learn.how.to.install.a.library",
+		"copy.vcpkg.command",
+		{
+			"key": "on.disabled.command",
+			"comment": [
+				"Markdown text between `` should not be translated or localized (they represent literal text) and the capitalization, spacing, and punctuation (including the ``) should not be altered."
+			]
+		},
+		"client.not.found",
+		"ok",
+		"install.compiler.mac.title",
+		"install.compiler.mac.detail",
+		"install.compiler.linux.title",
+		"install.compiler.linux.detail",
+		"configuration.select.first",
+		"configuration.provider.select.first",
+		"edit.configurations.open.first",
+		"edit.configurations.open.first",
+		"edit.configurations.open.first",
+		"code.action.aborted",
+		"prerelease.message",
+		"yes.button",
+		"no.button"
+	],
+	"filePath": "LanguageServer\\extension"
+}

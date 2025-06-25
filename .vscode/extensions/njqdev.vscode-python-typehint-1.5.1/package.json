@@ -1,0 +1,98 @@
+{
+	"name": "vscode-python-typehint",
+	"displayName": "Python Type Hint",
+	"version": "1.5.1",
+	"publisher": "njqdev",
+	"description": "Type hint completion for Python.",
+	"icon": "images/icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/njqdev/vscode-python-typehint"
+	},
+	"license": "MIT",
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"Python",
+		"typehint",
+		"completion",
+		"autocompletion",
+		"parameter"
+	],
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"activationEvents": [
+		"onLanguage:python"
+	],
+	"main": "./dist/extension",
+	"contributes": {
+		"commands": [],
+		"languages": [
+			{
+				"id": "python",
+				"aliases": [
+					"Python"
+				],
+				"extensions": [
+					".py"
+				]
+			}
+		],
+		"configuration": {
+			"title": "Python Type Hint",
+			"properties": {
+				"workspace.searchEnabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "If enabled, other files in the workspace are searched when estimating types for a parameter. Disabling this will increase performance, but may reduce estimation accuracy."
+				},
+				"workspace.searchLimit": {
+					"type": "number",
+					"default": 10,
+					"description": "The maximum number of files searched in a workspace search. Has no effect if workspace searching is disabled."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"package": "vsce package",
+		"publish": "vsce publish",
+		"vscode:prepublish": "webpack --mode production",
+		"compile": "webpack --mode none",
+		"watch": "webpack --mode none --watch",
+		"just-test": "node node_modules/vscode/bin/test",
+		"test-compile": "tsc -p ./ && npm run compile",
+		"test": "npm run test-compile && node node_modules/vscode/bin/test"
+	},
+	"devDependencies": {
+		"@types/glob": "^8.0.0",
+		"@types/mocha": "^10.0.1",
+		"@types/node": "^18.11.13",
+		"@types/vscode": "^1.74.0",
+		"@typescript-eslint/eslint-plugin": "^5.46.0",
+		"@typescript-eslint/parser": "^5.46.0",
+		"@vscode/test-electron": "^2.2.1",
+		"eslint": "^8.29.0",
+		"glob": "^8.0.3",
+		"mocha": "^10.2.0",
+		"ts-loader": "^9.4.2",
+		"tslint": "^6.1.3",
+		"typescript": "^4.9.4",
+		"webpack": "^5.75.0",
+		"webpack-cli": "^5.0.1"
+	},
+	"__metadata": {
+		"id": "a7b7591e-f2b8-48f7-b8ea-6d62a0dd38c8",
+		"publisherId": "c9cf9853-eb72-400f-8945-ec2e8e7a5e94",
+		"publisherDisplayName": "njqdev",
+		"targetPlatform": "undefined",
+		"updated": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1714574734835,
+		"pinned": false,
+		"source": "gallery"
+	}
+}

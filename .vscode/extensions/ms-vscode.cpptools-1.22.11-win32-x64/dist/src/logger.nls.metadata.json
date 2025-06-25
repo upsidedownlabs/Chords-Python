@@ -1,0 +1,24 @@
+{
+	"messages": [
+		"C/C++ Diagnostics",
+		"C/C++ Crash Call Stacks",
+		"A C/C++ extension process has crashed. The crashing process name, date/time, signal, and call stack are below -- it would be helpful to include that in a bug report at {0}.",
+		"{0}: SSH",
+		"C/C++ Debug Protocol",
+		"C/C++ Configuration Warnings"
+	],
+	"keys": [
+		"c.cpp.diagnostics",
+		"c.cpp.crash.call.stacks.title",
+		{
+			"key": "c.cpp.crash.call.stacks.description",
+			"comment": [
+				"{0} is a URL."
+			]
+		},
+		"c.cpp.ssh.channel",
+		"c.cpp.debug.protocol",
+		"c.cpp.warnings"
+	],
+	"filePath": "logger"
+}

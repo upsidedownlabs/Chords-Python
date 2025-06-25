@@ -1,0 +1,15 @@
+{
+	"messages": [
+		"Executing CMake script: \"{0}\"",
+		"CMake script: \"{0}\" completed successfully.",
+		"CMake script: \"{0}\" completed unsuccessfully.",
+		"Cannot debug a script with this version of CMake, ensure you have CMake version 3.27 or later."
+	],
+	"keys": [
+		"run.script",
+		"run.script.successful",
+		"run.script.failed",
+		"run.script.cmakeDebugger.not.supported"
+	],
+	"filePath": "src\\debug\\debuggerScriptDriver"
+}

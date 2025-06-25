@@ -1,0 +1,11 @@
+{
+	"messages": [
+		"The setting {0} is replaced by {1}. Please upgrade your configuration.",
+		"The setting {0} is replaced by {1}. Please upgrade your configuration."
+	],
+	"keys": [
+		"please.upgrade.configuration",
+		"please.upgrade.configuration"
+	],
+	"filePath": "src\\config"
+}

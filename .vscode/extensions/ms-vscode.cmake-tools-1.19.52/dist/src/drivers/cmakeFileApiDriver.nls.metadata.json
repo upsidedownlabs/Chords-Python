@@ -1,0 +1,19 @@
+{
+	"messages": [
+		"Creating instance of {0}",
+		"Removing {0}",
+		"Failed to remove cache file {0}",
+		"This version of CMake does not support the \"toolchains\" object kind. Compiler paths will be determined by reading CMakeCache.txt.",
+		"A special target to build all available targets",
+		"Install"
+	],
+	"keys": [
+		"creating.instance.of",
+		"removing",
+		"unlink.failed",
+		"toolchains.object.unsupported",
+		"build.all.target",
+		"cmake.install.name"
+	],
+	"filePath": "src\\drivers\\cmakeFileApiDriver"
+}

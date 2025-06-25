@@ -1,0 +1,333 @@
+{
+    "Common.Yes": "Yes",
+    "Common.No": "No",
+    "Common.Help": "Help",
+    "Common.remindMeLater": "Remind me later",
+    "Common.reload": "Reload",
+    "LanguageServer.settingsMigratedMessage": {
+        "message": "Settings applicable to Microsoft Language Server were copied to Pylance settings. Please check settings.json file(s) for details.",
+        "comment": "{Locked='Microsoft Language Server','Pylance','settings.json'}"
+    },
+    "LanguageServer.settingsMigrationError": "The following settings could not be migrated:",
+    "LanguageServer.settingsNotOverridable": {
+        "message": "'{0}' cannot be set when a pyrightconfig.json or pyproject.toml is being used.",
+        "comment": "{Locked='pyrightconfig.json','pyproject.toml'}"
+    },
+    "ClientLoc.typeCheckingModeStatusItem.name": {
+        "message": "Python Type Checking Mode",
+        "comment": "{Locked='Python'}"
+    },
+    "ClientLoc.typeCheckingModeStatusItem.pickerPlaceholder": "Current mode: {0}. Select the type checking mode.",
+    "ClientLoc.typeCheckingModeStatusItem.pickerSettingsPage": "view on settings page",
+    "ClientLoc.typeCheckingModeStatusItem.textFormatted": "Type Checking: {0}",
+    "ClientLoc.typeCheckingModeStatusItem.textFormattedFromConfig": "Type Checking: {0} (from {1})",
+    "ClientLoc.typeCheckingModeStatusItem.title": "Select type checking mode",
+    "ClientLoc.typeCheckingModeStatusItem.titleConfig": "Open config",
+    "ClientLoc.autoImportCompletionsStatusItem.name": {
+        "message": "Python Auto-Import Completions Mode",
+        "comment": "{Locked='Python'}"
+    },
+    "ClientLoc.autoImportCompletionsStatusItem.text": "Auto-Import Completions: {0}",
+    "ClientLoc.autoImportCompletionsStatusItem.titleOff": "Switch to off",
+    "ClientLoc.autoImportCompletionsStatusItem.titleOn": "Switch to on",
+    "ClientLoc.updateSettingsErrorMsgFormatted": "Failed to update setting '{0}.{1}'.",
+    "ClientLoc.ServerRestart.crashMessage": {
+        "message": "Pylance has crashed.",
+        "comment": "{Locked='Pylance'}"
+    },
+    "ClientLoc.ServerRestart.restartingMessage": {
+        "message": "Restarting Pylance using Node.js...",
+        "comment": ["{Locked='Pylance','Node.js'}", "{StrEnds='...'}"]
+    },
+    "ClientLoc.ServerRestart.crashRestartingMessage": {
+        "message": "Pylance has crashed. Pylance will restart when you select a Node.js executable to run Pylance.",
+        "comment": "{Locked='Pylance','Node.js'}"
+    },
+    "ClientLoc.ServerRestart.selectButton": "Select",
+    "ClientLoc.ServerRestart.selectNodeJsTitle": {
+        "message": "Select Node.js executable to run Pylance",
+        "comment": "{Locked='Pylance','Node.js'}"
+    },
+    "ClientLoc.askNodeSafetyQuestion": {
+        "message": "Pylance is configured to run with {0}. Do you want to use this executable to run Pylance?",
+        "comment": "{Locked='Pylance'}"
+    },
+    "ClientLoc.crashTooManyRestarts": {
+        "message": "Pylance has crashed 5 times in the last 3 minutes. Pylance will not be restarted. Please check [this link](https://aka.ms/AApf7ox) for more details.",
+        "comment": "{Locked='Pylance'}"
+    },
+    "ClientLoc.pylanceAndPythonStableExtensionMismatch": {
+        "message": "Pylance and Python extension have incompatible shared dependencies.\nPlease make sure both extensions are the latest stable version.",
+        "comment": "{Locked='Pylance','Python'}"
+    },
+    "ClientLoc.pylanceAndPythonPrereleaseExtensionMismatch": {
+        "message": "Pylance and Python extension have incompatible shared dependencies.\nPlease make sure both extensions are the latest prerelease version.",
+        "comment": "{Locked='Pylance','Python'}"
+    },
+    "Refactoring.MoveSymbol.progressBarTitle": {
+        "message": "Move Symbol To...",
+        "comment": "{StrEnds='...'}"
+    },
+    "Refactoring.MoveSymbol.newFileLabel": "Enter destination file path",
+    "Refactoring.MoveSymbol.newFileDetail": "Enter path or select destination file",
+    "Refactoring.MoveSymbol.separatorText": "Destination Files",
+    "Refactoring.MoveSymbol.quickPickPlaceHolder": "Search destination file",
+    "Refactoring.MoveSymbol.quickPickTitle": "Select destination for move",
+    "Refactoring.MoveSymbol.openDialogOpenLabel": "Select",
+    "Refactoring.MoveSymbol.openDialogTitle": {
+        "message": "Select new file to move the symbol to...",
+        "comment": "{StrEnds='...'}"
+    },
+    "Refactoring.SearchImports.quickPickPlaceHolder": "Search imports",
+    "Refactoring.SearchImports.quickPickTitle": "Search additional matching imports",
+    "settings.python.analysis.inlayHints.variableTypes.description": {
+        "message": "Enable/disable inlay hints for variable types. Hints are not displayed for assignments of literals or constants:\n```python\nfoo':list[str]' = [\"a\"]\n \n```\n",
+        "comment": "{Locked=':\n```python\nfoo':list[str]' = [\"a\"]\n \n```\n'}"
+    },
+    "settings.python.analysis.inlayHints.functionReturnTypes.description": {
+        "message": "Enable/disable inlay hints for function return types:\n```python\ndef foo(x:int) '-> int':\n\treturn x\n```\n",
+        "comment": "{Locked=':\n```python\ndef foo(x:int) '-> int':\n\treturn x\n```\n'}"
+    },
+    "settings.python.analysis.inlayHints.pytestParameters.description": {
+        "message": "Enable/disable inlay hints for pytest function parameter types:\n```python\ndef test_foo(my_fixture: 'str'):\n\tassert(my_fixture == 'foo')\n```\n",
+        "comment": "{Locked=':\n```python\ndef test_foo(my_fixture: 'str'):\n\tassert(my_fixture == 'foo')\n```\n'}"
+    },
+    "settings.python.analysis.inlayHints.callArgumentNames.description": {
+        "message": "Enable/disable inlay hints for call argument names:\n```python\ndatetime('year='2019, 'month='10, 'day='27)\n```\n",
+        "comment": "{Locked=':\n```python\ndatetime('year='2019, 'month='10, 'day='27)\n```\n'}"
+    },
+    "settings.python.analysis.completeFunctionParens.description": "Add parentheses to function completions.",
+    "settings.python.analysis.autoImportCompletions.description": "Enable auto-import completions.",
+    "settings.python.analysis.autoFormatStrings.description": "When typing a '{' in a string, automatically prefix the string with an 'f'.",
+    "settings.python.analysis.autoSearchPaths.description": {
+        "message": "Automatically add common search paths like 'src'.",
+        "comment": "{Locked='src'}"
+    },
+    "settings.python.analysis.autoIndent.description": {
+        "message": "Automatically adjust indentation based on language semantics when typing Python code.",
+        "comment": "{Locked='Python'}"
+    },
+    "settings.python.analysis.stubPath.description": "Path to directory containing custom type stub files.",
+    "settings.python.analysis.diagnosticMode.description": "Analysis scope for showing diagnostics.",
+    "settings.python.analysis.extraPaths.description": "Additional import search resolution paths",
+    "settings.python.analysis.include.description": {
+        "message": "Paths of directories or files that should be included. If no paths are specified, Pylance defaults to the workspace root directory. Paths may contain wildcard characters ** (a directory or multiple levels of directories), * (a sequence of zero or more characters), or ? (a single character). If the path contains a '${workspaceFolder:<workspaceName>}' variable, the glob pattern will only apply to the corresponding workspace in a multi-root workspace environment.",
+        "comment": "{Locked='Pylance','${workspaceFolder:<workspaceName>}','glob'}"
+    },
+    "settings.python.analysis.exclude.description": {
+        "message": "Paths of directories or files that should not be included. These override the include directories, allowing specific subdirectories to be excluded. Note that files in the exclude paths may still be included in the analysis if they are referenced (imported) by source files that are not excluded. Paths may contain wildcard characters ** (a directory or multiple levels of directories), * (a sequence of zero or more characters), or ? (a single character). If no exclude paths are specified, Pylance automatically excludes the following: `**/node_modules`, `**/__pycache__`, `.git` and any virtual environment directories. If the path contains a '${workspaceFolder:<workspaceName>}' variable, the glob pattern will only apply to the corresponding workspace in a multi-root workspace environment.",
+        "comment": "{Locked='Pylance','`**/node_modules`','`**/__pycache__`','`.git`','${workspaceFolder:<workspaceName>}','glob'}"
+    },
+    "settings.python.analysis.ignore.description": {
+        "message": "Paths of directories or files whose diagnostic output (errors and warnings) should be suppressed even if they are an included file or within the transitive closure of an included file. Paths may contain wildcard characters ** (a directory or multiple levels of directories), * (a sequence of zero or more characters), or ? (a single character). If the path contains a '${workspaceFolder:<workspaceName>}' variable, the glob pattern will only apply to the corresponding workspace in a multi-root workspace environment.",
+        "comment": "{Locked='${workspaceFolder:<workspaceName>}','glob'}"
+    },
+    "settings.python.analysis.indexing.description": "Enable indexing of installed third party libraries and user files for language features such as auto-import, add import, workspace symbols and etc.",
+    "settings.python.analysis.userFileIndexingLimit.description": "Maximum number of user files to index in the workspace. Indexing files is a performance-intensive task. Please use this setting to limit the number of files you want us to index. If you enter -1, we will index all files.",
+    "settings.python.analysis.persistAllIndices.description": "Indices for all third party libraries will be persisted to disk.",
+    "settings.python.analysis.includeAliasesFromUserFiles.description": "Include alias symbols from user files. This will make alias symbols to show up in features such as `add import`, `auto import`",
+    "settings.python.analysis.extraCommitChars.description": "Allow using '.', '(' as commit characters when applicable.",
+    "settings.python.analysis.useLibraryCodeForTypes.description": "Use library implementations to extract type information when type stub is not present.",
+    "settings.typecheckingMode.off.description": "Show diagnostics for invalid syntax, unresolved imports, undefined variables.",
+    "settings.typecheckingMode.basic.description": {
+        "message": "All rules from \"off\" + \"basic\" type checking rules.",
+        "comment": "{Locked='off','basic'}"
+    },
+    "settings.typecheckingMode.standard.description": {
+        "message": "All rules from \"basic\" + \"standard\" type checking rules.",
+        "comment": "{Locked='basic','standard'}"
+    },
+    "settings.typecheckingMode.strict.description": {
+        "message": "All rules from \"standard\" + \"strict\" type checking rules.",
+        "comment": "{Locked='standard', 'strict'}"
+    },
+    "settings.python.analysis.fixAll.description": "source fixes to run in fix all.",
+    "settings.python.analysis.packageIndexDepths.description": {
+        "message": "Used to override how many levels under installed packages to index on a per package basis. By default, only top-level modules are indexed (depth = 1). To index submodules, increase depth by 1 for each level of submodule you want to index. Accepted values are:\n```JSON\n{\"name\": \"package name (str)\",\n \"depth\": \"depth to scan (int)\",\n \"includeAllSymbols\": \"whether to include all symbols (bool)\"}\n\n```\nIf `includeAllSymbols` is set to `false`, only symbols in each package's `__all__` are included. When it's set to `true`, Pylance will index every module/top level symbol declarations in the file.  \n  \nUsage example: \n```JSON\n[\n\t{\"name\": \"sklearn\", \"depth\": 2, \"includeAllSymbols\": true},\n\t{\"name\": \"matplotlib\", \"depth\": 3, \"includeAllSymbols\": false}\n]\n\n```\n",
+        "comment": [
+            "{Locked='depth'}",
+            "{Locked='\n```JSON\n{\"name\": \"package name (str)\",\n \"depth\": \"depth to scan (int)\",\n \"includeAllSymbols\": \"whether to include all symbols (bool)\"}\n\n```\n'}",
+            "{Locked='includeAllSymbols'}",
+            "{Locked='false'}",
+            "{Locked='__all__'}",
+            "{Locked='true'}",
+            "{Locked='Pylance'}",
+            "{Locked='```JSON\n[\n\t{\"name\": \"sklearn\", \"depth\": 2, \"includeAllSymbols\": true},\n\t{\"name\": \"matplotlib\", \"depth\": 3, \"includeAllSymbols\": false}\n]\n\n```\n'}"
+        ]
+    },
+    "settings.python.analysis.diagnosticSeverityOverrides.description": {
+        "message": "Allows a user to override the severity levels for individual diagnostics. Use the rule name as a key and one of \"error\", \"warning\", \"information\", \"none\", `true` (alias for \"error\") or `false` (alias for \"none\") as value. The default value shown for each diagnostic is the default when \"python.analysis.typeCheckingMode\" is set to \"off\". See [here](https://github.com/microsoft/pyright/blob/main/docs/configuration.md#diagnostic-rule-defaults) for defaults for each type checking mode (\"off\", \"basic\" and \"strict\").",
+        "comment": [
+            "{Locked='error'}",
+            "{Locked='warning'}",
+            "{Locked='information'}",
+            "{Locked='none'}",
+            "{Locked='true'}",
+            "{Locked='false'}",
+            "{Locked='python.analysis.typeCheckingMode'}",
+            "{Locked='\"off\"'}",
+            "{Locked='\"basic\"'}",
+            "{Locked='\"strict\"'}"
+        ]
+    },
+    "settings.python.analysis.typeEvaluation.strictListInference.description": {
+        "message": "When inferring the type of a list, use strict type assumptions. For example, the expression `[1, 'a', 3.4]` could be inferred to be of type `list[Any]` or `list[int | str | float]`. If this setting is true, it will use the latter (stricter) type. The default value for this setting is `false`.",
+        "comment": [
+            "{Locked='list'}",
+            "{Locked='`[1, 'a', 3.4]`'}",
+            "{Locked='list[Any]'}",
+            "{Locked='list[int | str | float]'}",
+            "{Locked='true'}",
+            "{Locked='false'}"
+        ]
+    },
+    "settings.python.analysis.typeEvaluation.strictDictionaryInference.description": {
+        "message": "When inferring the type of a dictionary’s keys and values, use strict type assumptions. For example, the expression `{'a': 1, 'b': 'a'}` could be inferred to be of type `dict[str, Any]` or `dict[str, int | str]`. If this setting is true, it will use the latter (stricter) type. The default value for this setting is `false`.",
+        "comment": [
+            "{Locked='`{'a': 1, 'b': 'a'}`'}",
+            "{Locked='dict[str, Any]'}",
+            "{Locked='dict[str, int | str]'}",
+            "{Locked='true'}",
+            "{Locked='false'}"
+        ]
+    },
+    "settings.python.analysis.typeEvaluation.strictSetInference.description": {
+        "message": "When inferring the type of a set, use strict type assumptions. For example, the expression `{1, 'a', 3.4}` could be inferred to be of type `set[Any]` or `set[int | str | float]`. If this setting is true, it will use the latter (stricter) type. The default value for this setting is `false`.",
+        "comment": [
+            "{Locked='set'}",
+            "{Locked='`{1, 'a', 3.4}`'}",
+            "{Locked='set[Any]'}",
+            "{Locked='set[int | str | float]'}",
+            "{Locked='true'}",
+            "{Locked='false'}"
+        ]
+    },
+    "settings.python.analysis.typeEvaluation.analyzeUnannotatedFunctions.description": {
+        "message": "Analyze and report errors for functions and methods that have no type annotations for input parameters or return types. The default value for this setting is `true`.",
+        "comment": "{Locked='true'}"
+    },
+    "settings.python.analysis.typeEvaluation.strictParameterNoneValue.description": {
+        "message": "PEP 484 indicates that when a function parameter is assigned a default value of None, its type should implicitly be Optional even if the explicit type is not. When enabled, this rule requires that parameter type annotations use Optional explicitly in this case. The default value for this setting is `true`.",
+        "comment": ["{Locked='PEP 484','None','Optional','true'}"]
+    },
+    "settings.python.analysis.typeEvaluation.enableTypeIgnoreComments.description": {
+        "message": "PEP 484 defines support for `# type: ignore` comments. This switch enables or disables support for these comments. The default value for this setting is `true`. This does not affect `# pyright: ignore` comments.",
+        "comment": [
+            "{Locked='PEP 484'}",
+            "{Locked='`# type: ignore`'}",
+            "{Locked='`# pyright: ignore`'}",
+            "{Locked='true'}"
+        ]
+    },
+    "settings.python.analysis.typeEvaluation.deprecateTypingAliases.description": {
+        "message": "PEP 585 indicates that aliases to types in standard collections that were introduced solely to support generics are deprecated as of Python 3.9. This switch controls whether these are treated as deprecated. This applies only when pythonVersion is 3.9 or newer. The default value for this setting is `false` but may be switched to `true` in the future.",
+        "comment": ["{Locked='PEP 585'}", "{Locked='pythonVersion'}", "{Locked='false'}", "{Locked='true'}"]
+    },
+    "settings.python.analysis.typeEvaluation.enableReachabilityAnalysis.description": {
+        "message": "If enabled, code that is determined to be unreachable by type analysis is reported using a tagged hint. This setting does not affect code that is determined to be unreachable regardless of type analysis; such code is always reported as unreachable. This setting also has no effect when when using the command-line version of pyright because it never emits tagged hints for unreachable code.",
+        "comment": "{Locked='pyright'}"
+    },
+    "settings.python.analysis.typeEvaluation.enableExperimentalFeatures.description": {
+        "message": "Enables a set of experimental (mostly undocumented) features that correspond to proposed or exploratory changes to the Python typing standard. These features will likely change or be removed, so they should not be used except for experimentation purposes. The default value for this setting is `false`.",
+        "comment": "{Locked='Python','`false`'}"
+    },
+    "settings.python.analysis.typeEvaluation.disableBytesTypePromotions.description": {
+        "message": "Disables legacy behavior where `bytearray` and `memoryview` are considered subtypes of `bytes`. [PEP 688](https://peps.python.org/pep-0688/#no-special-meaning-for-bytes) deprecates this behavior, but this switch is provided to restore the older behavior. The default value for this setting is `false`.",
+        "comment": [
+            "{Locked='`bytearray`'}",
+            "{Locked='`memoryview`'}",
+            "{Locked='`bytes`'}",
+            "{Locked='PEP 688'}",
+            "{Locked='false'}"
+        ]
+    },
+    "settings.python.analysis.logLevel.description": "Specifies the level of logging for the Output panel",
+    "settings.python.analysis.typeshedPaths.description": {
+        "message": "Paths to look for typeshed modules.",
+        "comment": "{Locked='typeshed'}"
+    },
+    "settings.python.analysis.importFormat.description": "Defines the default format for importing modules.",
+    "settings.python.analysis.enableSyncServer.description": {
+        "message": "Use sync server mode [Experimental]. For internal use only, may cause Pylance to stop working.",
+        "comment": "{Locked='sync server','Pylance'}"
+    },
+    "settings.python.analysis.reportExtraTelemetry.description": {
+        "message": "Report extra telemetry [Experimental]. For internal use only, may cause Pylance to slow down.",
+        "comment": "{Locked='Pylance'}"
+    },
+    "settings.python.analysis.enablePytestSupport.description": {
+        "message": "Enables pytest support in Pylance.",
+        "comment": "{Locked='pytest','Pylance'}"
+    },
+    "settings.python.analysis.gotoDefinitionInStringLiteral.description": "For string literals that look like module names, enables go to definition to go to the module.",
+    "settings.python.analysis.nodeExecutable.description": {
+        "message": "Path to a Node.js executable to use for running the language server. If not specified, the language server will use the Node.js executable that ships with VS Code. Set this option if you're having trouble with Pylance running out of memory. See [here](https://aka.ms/AApf7ox) for more information.",
+        "comment": "{Locked='Node.js','VS Code','Pylance'}"
+    },
+    "settings.python.analysis.supportRestructuredText.description": {
+        "message": "Enable/disable support for reStructuredText in docstrings. Experimental, may cause docstrings to no longer render.",
+        "comment": "{Locked='reStructuredText','docstrings'}"
+    },
+    "settings.python.analysis.cacheLSPData.description": {
+        "message": "Cache LSP data for faster completions. Experimental, may cause Pylance to stop working.",
+        "comment": "{Locked='LSP','Pylance'}"
+    },
+    "settings.python.analysis.regenerateStdLibIndices.description": {
+        "message": "Instead of relying on the shared stdlib.json indices for all Python versions, generate unique indices tailored to each workspace's specific Python version and platform. This regeneration process will affect performance, unlike using the prebuilt stdlib indices.",
+        "comment": "{Locked='stdlib.json','Python','stdlib'}"
+    },
+    "settings.python.analysis.disableTaggedHints.description": "Disable hint diagnostics with special hints for grayed-out or strike-through text.",
+    "settings.python.analysis.aiCodeActions.description": {
+        "message": "Enable/disable AI-assisted code actions. Requires the Copilot Chat extension to be enabled.",
+        "comment": "{Locked='Copilot Chat'}"
+    },
+    "settings.python.analysis.aiCodeActions.implementAbstractClasses.description": "Enable/disable AI assistance for implementing inherited abstract classes.",
+    "settings.python.analysis.completionOverrideExperiment.description": "Enable/disable experiment on completion override behavior.",
+    "settings.python.analysis.supportDocstringTemplate.description": "Enable/disable support for docstring generation. In a blank docstring, use `Ctrl+Space` to generate a docstring.",
+    "settings.python.analysis.displayEnglishDiagnostics.description": "Display diagnostics in English regardless of VS Code's display language.",
+    "settings.languageServerMode.description": "Select a predefined set of values for settings. Please check [this link](https://aka.ms/languageserver-mode) for more details.",
+    "settings.languageServerMode.light.description": {
+        "message": "Set Pylance to do only essential work to make it light weight. See the link at the description to find out exactly what settings are set to what value.",
+        "comment": "{Locked='Pylance'}"
+    },
+    "settings.languageServerMode.default.description": {
+        "message": "Leave Pylance with default settings.",
+        "comment": "{Locked='Pylance'}"
+    },
+    "commands.pylance.docstrings.fold.title": {
+        "message": "Pylance: Fold All Docstrings",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.docstrings.unfold.title": {
+        "message": "Pylance: Unfold All Docstrings",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.reportIssue.title": {
+        "message": "Pylance: Report Issue...",
+        "comment": ["{StrBegins='Pylance: '}", "{StrEnds='...'}"]
+    },
+    "commands.pylance.indexing.clearPersistedIndices.title": {
+        "message": "Pylance: Clear All Persisted Indices",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.profiling.start.title": {
+        "message": "Pylance: Start Profiling",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.profiling.stop.title": {
+        "message": "Pylance: Stop Profiling",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.logging.start.title": {
+        "message": "Pylance: Start Logging",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.logging.stop.title": {
+        "message": "Pylance: Stop Logging",
+        "comment": "{StrBegins='Pylance: '}"
+    },
+    "commands.pylance.gotoOutputChannel.title": {
+        "message": "Pylance: Go to output channel",
+        "comment": "{StrBegins='Pylance: '}"
+    }
+}

@@ -1,0 +1,573 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.PowerShell.EditorServices.Hosting</name>
+    </assembly>
+    <members>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.ConsoleReplKind">
+            <summary>
+            Describes the desired console REPL for the Extension Terminal.
+            </summary>
+        </member>
+        <member name="F:Microsoft.PowerShell.EditorServices.Hosting.ConsoleReplKind.None">
+            <summary>No console REPL - there will be no interactive console available.</summary>
+        </member>
+        <member name="F:Microsoft.PowerShell.EditorServices.Hosting.ConsoleReplKind.LegacyReadLine">
+            <summary>Use a REPL with the legacy readline implementation. This is generally used when PSReadLine is unavailable.</summary>
+        </member>
+        <member name="F:Microsoft.PowerShell.EditorServices.Hosting.ConsoleReplKind.PSReadLine">
+            <summary>Use a REPL with the PSReadLine module for console interaction.</summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig">
+            <summary>
+            Configuration for editor services startup.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.#ctor(Microsoft.PowerShell.EditorServices.Hosting.HostInfo,System.Management.Automation.Host.PSHost,System.String,System.String,System.String)">
+            <summary>
+            Create a new editor services config object,
+            with all required fields.
+            </summary>
+            <param name="hostInfo">The host description object.</param>
+            <param name="psHost">The PowerShell host to use in Editor Services.</param>
+            <param name="sessionDetailsPath">The path to use for the session details file.</param>
+            <param name="bundledModulePath">The path to the modules bundled with Editor Services.</param>
+            <param name="logPath">The path to be used for Editor Services' logging.</param>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.HostInfo">
+            <summary>
+            The host description object.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.PSHost">
+            <summary>
+            The PowerShell host used by Editor Services.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.SessionDetailsPath">
+            <summary>
+            The path to use for the session details file.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.BundledModulePath">
+            <summary>
+            The path to the modules bundled with EditorServices.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.LogPath">
+            <summary>
+            The path to use for logging for Editor Services.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.AdditionalModules">
+            <summary>
+            Names of or paths to any additional modules to load on startup.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.FeatureFlags">
+            <summary>
+            Flags of features to enable on startup.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.ConsoleRepl">
+            <summary>
+            The console REPL experience to use in the Extension Terminal
+            (including none to disable the Extension Terminal).
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.UseNullPSHostUI">
+            <summary>
+            Will suppress messages to PSHost (to prevent Stdio clobbering)        
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.LogLevel">
+            <summary>
+            The minimum log level to log events with.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.LanguageServiceTransport">
+            <summary>
+            Configuration for the language server protocol transport to use.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.DebugServiceTransport">
+            <summary>
+            Configuration for the debug adapter protocol transport to use.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.ProfilePaths">
+            <summary>
+            PowerShell profile locations for Editor Services to use for its profiles.
+            If none are provided, these will be generated from the hosting PowerShell's profile paths.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig.InitialSessionState">
+            <summary>
+            The InitialSessionState to use when creating runspaces. LanguageMode can be set here.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.ProfilePathConfig">
+            <summary>
+            Configuration for Editor Services' PowerShell profile paths.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ProfilePathConfig.AllUsersAllHosts">
+            <summary>
+            The path to the profile shared by all users across all PowerShell hosts.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ProfilePathConfig.AllUsersCurrentHost">
+            <summary>
+            The path to the profile shared by all users specific to this PSES host.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ProfilePathConfig.CurrentUserAllHosts">
+            <summary>
+            The path to the profile specific to the current user across all hosts.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ProfilePathConfig.CurrentUserCurrentHost">
+            <summary>
+            The path to the profile specific to the current user and to this PSES host.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.HostInfo">
+            <summary>
+            A simple readonly object to describe basic host metadata.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.HostInfo.#ctor(System.String,System.String,System.Version)">
+            <summary>
+            Create a new host info object.
+            </summary>
+            <param name="name">The name of the host.</param>
+            <param name="profileId">The profile ID of the host.</param>
+            <param name="version">The version of the host.</param>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.HostInfo.Name">
+            <summary>
+            The name of the host.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.HostInfo.ProfileId">
+            <summary>
+            The profile ID of the host.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.HostInfo.Version">
+            <summary>
+            The version of the host.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.PsesLogLevel">
+            <summary>
+            User-facing log level for editor services configuration.
+            </summary>
+            <remarks>
+            The underlying values of this enum attempt to align to both
+            <see cref="T:Microsoft.Extensions.Logging.LogLevel" /> and
+            <see cref="T:Serilog.Events.LogEventLevel" />.
+            </remarks>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.HostLogger">
+            <summary>
+            A logging front-end for host startup allowing handover to the backend and decoupling from
+            the host's particular logging sink.
+            </summary>
+            <remarks>
+            This custom logger exists to allow us to log during startup, which is vital information for
+            debugging, but happens before we can load any logger library. This is because startup
+            happens in our isolated assembly environment. See #2292 for more information.
+            </remarks>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.LogObserver">
+            <summary>
+            A simple translation struct to convert PsesLogLevel to an int for backend passthrough.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.Unsubscriber">
+            <summary>
+            Simple unsubscriber that allows subscribers to remove themselves from the observer list later.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.#ctor(Microsoft.PowerShell.EditorServices.Hosting.PsesLogLevel)">
+            <summary>
+            Construct a new logger in the host.
+            </summary>
+            <param name="minimumLogLevel">The minimum log level to log.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.Subscribe(System.IObserver{System.ValueTuple{Microsoft.PowerShell.EditorServices.Hosting.PsesLogLevel,System.String}})">
+            <summary>
+            Subscribe a new log sink.
+            </summary>
+            <param name="observer">The log sink to subscribe.</param>
+            <returns>A disposable unsubscribe object.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.Subscribe(System.IObserver{System.ValueTuple{System.Int32,System.String}})">
+            <summary>
+            Subscribe a new log sink.
+            </summary>
+            <param name="observer">The log sink to subscribe.</param>
+            <returns>A disposable unsubscribe object.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.Log(Microsoft.PowerShell.EditorServices.Hosting.PsesLogLevel,System.String)">
+            <summary>
+            Log a message to log sinks.
+            </summary>
+            <param name="logLevel">The log severity level of message to log.</param>
+            <param name="message">The message to log.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.HostLogger.LogException(System.String,System.Exception,System.String,System.String,System.Int32)">
+            <summary>
+            Convenience method for logging exceptions.
+            </summary>
+            <param name="message">The human-directed message to accompany the exception.</param>
+            <param name="exception">The actual exception to log.</param>
+            <param name="callerName">The name of the calling method.</param>
+            <param name="callerSourceFile">The name of the file where this is logged.</param>
+            <param name="callerLineNumber">The line in the file where this is logged.</param>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.PSHostLogger">
+            <summary>
+            A log sink to direct log messages back to the PowerShell host.
+            </summary>
+            <remarks>
+            Note that calling this through the cmdlet causes an error,
+            so instead we log directly to the host.
+            Since it's likely that the process will end when PSES shuts down,
+            there's no good reason to need objects rather than writing directly to the host.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.PSHostLogger.#ctor(System.Management.Automation.Host.PSHostUserInterface)">
+            <summary>
+            Create a new PowerShell host logger.
+            </summary>
+            <param name="ui">The PowerShell host user interface object to log output to.</param>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.ISessionFileWriter">
+            <summary>
+            Writes the session file when the server is ready for a connection,
+            so that the client can connect.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.ISessionFileWriter.WriteSessionFailure(System.String)">
+            <summary>
+            Write a session file describing a failed startup.
+            </summary>
+            <param name="reason">The reason for the startup failure.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.ISessionFileWriter.WriteSessionStarted(Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig,Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig)">
+            <summary>
+            Write a session file describing a successful startup.
+            </summary>
+            <param name="languageServiceTransport">The transport configuration for the LSP service.</param>
+            <param name="debugAdapterTransport">The transport configuration for the debug adapter service.</param>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.SessionFileWriter">
+            <summary>
+            The default session file writer, which uses PowerShell to write a session file.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SessionFileWriter.#ctor(Microsoft.PowerShell.EditorServices.Hosting.HostLogger,System.String,System.Version)">
+            <summary>
+            Construct a new session file writer for the given session file path.
+            </summary>
+            <param name="logger">The logger to log actions with.</param>
+            <param name="sessionFilePath">The path to write the session file path to.</param>
+            <param name="powerShellVersion">The process's PowerShell version object.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SessionFileWriter.WriteSessionFailure(System.String)">
+            <summary>
+            Write a startup failure to the session file.
+            </summary>
+            <param name="reason">The reason for the startup failure.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SessionFileWriter.WriteSessionStarted(Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig,Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig)">
+            <summary>
+            Write a successful server startup to the session file.
+            </summary>
+            <param name="languageServiceTransport">The LSP service transport configuration.</param>
+            <param name="debugAdapterTransport">The debug adapter transport configuration.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SessionFileWriter.WriteSessionObject(System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            Write the object representing the session file to the file by serializing it as JSON.
+            </summary>
+            <param name="sessionObject">The dictionary representing the session file.</param>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig">
+            <summary>
+            Configuration specifying an editor services protocol transport stream configuration.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig.ConnectStreamsAsync">
+            <summary>
+            Create, connect and return the configured transport streams.
+            </summary>
+            <returns>The connected transport streams. inStream and outStream may be the same stream for duplex streams.</returns>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig.EndpointDetails">
+            <summary>
+            The name of the transport endpoint for logging.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig.SessionFileTransportName">
+            <summary>
+            The name of the transport to record in the session file.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Hosting.ITransportConfig.SessionFileEntries">
+            <summary>
+            Extra entries to record in the session file.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.StdioTransportConfig">
+            <summary>
+            Configuration for the standard input/output transport.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.DuplexNamedPipeTransportConfig">
+            <summary>
+            Configuration for a full duplex named pipe.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.DuplexNamedPipeTransportConfig.Create(Microsoft.PowerShell.EditorServices.Hosting.HostLogger)">
+            <summary>
+            Create a duplex named pipe transport config with an automatically generated pipe name.
+            </summary>
+            <returns>A new duplex named pipe transport configuration.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.DuplexNamedPipeTransportConfig.Create(Microsoft.PowerShell.EditorServices.Hosting.HostLogger,System.String)">
+            <summary>
+            Create a duplex named pipe transport config with the given pipe name.
+            </summary>
+            <returns>A new duplex named pipe transport configuration.</returns>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.SimplexNamedPipeTransportConfig">
+            <summary>
+            Configuration for two simplex named pipes.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SimplexNamedPipeTransportConfig.Create(Microsoft.PowerShell.EditorServices.Hosting.HostLogger)">
+            <summary>
+            Create a pair of simplex named pipes using generated names.
+            </summary>
+            <returns>A new simplex named pipe transport config.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SimplexNamedPipeTransportConfig.Create(Microsoft.PowerShell.EditorServices.Hosting.HostLogger,System.String)">
+            <summary>
+            Create a pair of simplex named pipes using the given name as a base.
+            </summary>
+            <returns>A new simplex named pipe transport config.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.SimplexNamedPipeTransportConfig.Create(Microsoft.PowerShell.EditorServices.Hosting.HostLogger,System.String,System.String)">
+            <summary>
+            Create a pair of simplex named pipes using the given names.
+            </summary>
+            <returns>A new simplex named pipe transport config.</returns>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesLoader">
+            <summary>
+            Class to contain the loading behavior of Editor Services.
+            In particular, this class wraps the point where Editor Services is safely loaded
+            in a way that separates its dependencies from the calling context.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesLoader.Create(Microsoft.PowerShell.EditorServices.Hosting.HostLogger,Microsoft.PowerShell.EditorServices.Hosting.EditorServicesConfig,System.String,System.Collections.Generic.IReadOnlyCollection{System.IDisposable})">
+            <summary>
+            Create a new Editor Services loader.
+            </summary>
+            <param name="logger">The host logger to use.</param>
+            <param name="hostConfig">The host configuration to start editor services with.</param>
+            <param name="sessionDetailsPath">Path to the session file to create on startup or startup failure.</param>
+            <param name="loggersToUnsubscribe">The loggers to unsubscribe form writing to the terminal.</param>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesLoader.LoadAndRunEditorServicesAsync">
+            <summary>
+            Load Editor Services and its dependencies in an isolated way and start it.
+            This method's returned task will end when Editor Services shuts down.
+            </summary>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesRunner">
+            <summary>
+            Class to manage the startup of PowerShell Editor Services.
+            </summary>
+            <remarks>
+            This should be called by <see cref="T:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesLoader"/> only after Editor Services has
+            been loaded. It relies on <see cref="T:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesServerFactory"/> to indirectly load <see
+            cref="N:Microsoft.Extensions.Logging"/> and <see
+            cref="N:Microsoft.Extensions.DependencyInjection"/>.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesRunner.RunUntilShutdown">
+            <summary>
+            Start and run Editor Services and then wait for shutdown.
+            </summary>
+            <remarks>
+            TODO: Use "Async" suffix in names of methods that return an awaitable type.
+            </remarks>
+            <returns>A task that ends when Editor Services shuts down.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesRunner.Dispose">
+            <summary>
+            TODO: This class probably should not be <see cref="T:System.IDisposable"/> as the primary
+            intention of that interface is to provide cleanup of unmanaged resources, which the
+            logger certainly is not. Nor is this class used with a <see langword="using"/>. It is
+            only because of the use of <see cref="F:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesRunner._serverFactory"/> that this class is also
+            disposable, and instead that class should be fixed.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Microsoft.PowerShell.EditorServices.Hosting.EditorServicesRunner.CreateEditorServicesAndRunUntilShutdown" -->
+        <member name="T:Microsoft.PowerShell.EditorServices.Hosting.NamedPipeUtils">
+            <summary>
+            Utility class for handling named pipe creation in .NET Core and .NET Framework.
+            </summary>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.NamedPipeUtils.GenerateValidNamedPipeName(System.Collections.Generic.IReadOnlyCollection{System.String})">
+            <summary>
+            Generate a named pipe name known to not already be in use.
+            </summary>
+            <param name="prefixes">Prefix variants of the pipename to test, if any.</param>
+            <returns>A named pipe name or name suffix that is safe to you.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.NamedPipeUtils.IsPipeNameValid(System.String)">
+            <summary>
+            Validate that a named pipe file name is a legitimate named pipe file name and is not already in use.
+            </summary>
+            <param name="pipeName">The named pipe name to validate. This should be a simple name rather than a path.</param>
+            <returns>True if the named pipe name is valid, false otherwise.</returns>
+        </member>
+        <member name="M:Microsoft.PowerShell.EditorServices.Hosting.NamedPipeUtils.GetNamedPipePath(System.String)">
+            <summary>
+            Get the path of a named pipe given its name.
+            </summary>
+            <param name="pipeName">The simple name of the named pipe.</param>
+            <returns>The full path of the named pipe.</returns>
+        </member>
+        <member name="T:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand">
+            <summary>
+            The Start-EditorServices command, the conventional entrypoint for PowerShell Editor Services.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.HostName">
+            <summary>
+            The name of the EditorServices host to report.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.HostProfileId">
+            <summary>
+            The ID to give to the host's profile.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.HostVersion">
+            <summary>
+            The version to report for the host.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.SessionDetailsPath">
+            <summary>
+            Path to the session file to create on startup or startup failure.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.LanguageServicePipeName">
+            <summary>
+            The name of the named pipe to use for the LSP transport.
+            If left unset and named pipes are used as transport, a new name will be generated.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.DebugServicePipeName">
+            <summary>
+            The name of the named pipe to use for the debug adapter transport.
+            If left unset and named pipes are used as a transport, a new name will be generated.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.LanguageServiceInPipeName">
+            <summary>
+            The name of the input named pipe to use for the LSP transport.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.LanguageServiceOutPipeName">
+            <summary>
+            The name of the output named pipe to use for the LSP transport.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.DebugServiceInPipeName">
+            <summary>
+            The name of the input pipe to use for the debug adapter transport.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.DebugServiceOutPipeName">
+            <summary>
+            The name of the output pipe to use for the debug adapter transport.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.Stdio">
+            <summary>
+            If set, uses standard input/output as the LSP transport.
+            When <see cref="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.DebugServiceOnly"/> is set with this, standard input/output
+            is used as the debug adapter transport.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.BundledModulesPath">
+            <summary>
+            The path to where PowerShellEditorServices and its bundled modules are.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.LogPath">
+            <summary>
+            The absolute path to the folder where logs will be saved.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.LogLevel">
+            <summary>
+            The minimum log level that should be emitted.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.AdditionalModules">
+            <summary>
+            Paths to additional PowerShell modules to be imported at startup.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.FeatureFlags">
+            <summary>
+            Any feature flags to enable in EditorServices.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.EnableConsoleRepl">
+            <summary>
+            When set, enables the Extension Terminal.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.UseLegacyReadLine">
+            <summary>
+            When set and the console is enabled, the legacy lightweight
+            readline implementation will be used instead of PSReadLine.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.DebugServiceOnly">
+            <summary>
+            When set, do not enable LSP service, only the debug adapter.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.LanguageServiceOnly">
+            <summary>
+            When set, do not enable debug adapter, only the language service.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.WaitForDebugger">
+            <summary>
+            When set with a debug build, startup will wait for a debugger to attach.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.SplitInOutPipes">
+            <summary>
+            When set, will generate two simplex named pipes using a single named pipe name.
+            </summary>
+        </member>
+        <member name="P:Microsoft.PowerShell.EditorServices.Commands.StartEditorServicesCommand.StartupBanner">
+            <summary>
+            The banner/logo to display when the extension terminal is first started.
+            </summary>
+        </member>
+    </members>
+</doc>

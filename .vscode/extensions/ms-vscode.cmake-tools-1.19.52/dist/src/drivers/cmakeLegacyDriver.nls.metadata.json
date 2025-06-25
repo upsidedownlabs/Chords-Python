@@ -1,0 +1,15 @@
+{
+	"messages": [
+		"Invoking CMake {0} with arguments {1}",
+		"Reload CMake cache: {0} changed",
+		"Reloading CMake Cache",
+		"Creating instance of {0}"
+	],
+	"keys": [
+		"invoking.cmake.with.arguments",
+		"reload.cmake.cache",
+		"reloading.cmake.cache",
+		"creating.instance.of"
+	],
+	"filePath": "src\\drivers\\cmakeLegacyDriver"
+}

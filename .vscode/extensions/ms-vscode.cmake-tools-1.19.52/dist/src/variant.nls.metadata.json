@@ -1,0 +1,43 @@
+{
+	"messages": [
+		"The build type",
+		"Emit debug information without performing optimizations",
+		"Enable optimizations, omit debug info",
+		"Optimize for smallest binary size",
+		"Perform optimizations AND include debugging information",
+		"Let CMake pick the default build type",
+		"Constructing {0}",
+		"Reloading variants file {0}",
+		"Reloading variants from settings",
+		"Error parsing {0}: {1}",
+		"Invalid variants specified:",
+		"Loaded default variants",
+		"Loaded new set of variants",
+		"Missing setting {0} in variant definition.",
+		"Missing variant choice {0} on {1} in variant definition.",
+		"Last variant selection is incompatible with present variant definition.",
+		"Using default variant choices from variant definition.",
+		"Select a build variant"
+	],
+	"keys": [
+		"build.type.description",
+		"emit.debug.without.optimizations",
+		"enable.optimizations.omit.debug",
+		"optimize.for.smallest",
+		"optimize.and.debug",
+		"unspec.build.type",
+		"constructing",
+		"reloading.variants.file",
+		"reloading.variants.from.settings",
+		"error.parsing",
+		"invalid.variants",
+		"loaded.default.variants",
+		"loaded.new.variants.set",
+		"missing.setting.in.variant",
+		"missing.variant.choice",
+		"incompatible.variant",
+		"using.default.variant.choices",
+		"select.a.variant.placeholder"
+	],
+	"filePath": "src\\variant"
+}

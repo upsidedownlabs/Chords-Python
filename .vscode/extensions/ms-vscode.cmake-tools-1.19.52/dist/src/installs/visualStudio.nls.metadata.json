@@ -1,0 +1,17 @@
+{
+	"messages": [
+		"Failed to execute {0}: {1}",
+		"Error parsing environment variable: {0}",
+		"Error running:{0} with args:{1}\nCannot find INCLUDE within:\n{2}\nBat content are:\n{3}\nExecute output are:\n{4}\n",
+		"Patch Windows SDK path from {0} to {1} for {2}",
+		"OK running {0} {1}, env vars: {2}"
+	],
+	"keys": [
+		"failed.to.execute",
+		"error.parsing.environment",
+		"script.run.error.check",
+		"windows.sdk.path.patch",
+		"ok.running"
+	],
+	"filePath": "src\\installs\\visualStudio"
+}

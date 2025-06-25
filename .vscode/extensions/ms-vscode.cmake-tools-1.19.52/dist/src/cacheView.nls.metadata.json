@@ -1,0 +1,33 @@
+{
+	"messages": [
+		"CMake Cache Editor",
+		"CMake options have been saved.",
+		"Ignore",
+		"From UI",
+		"From Cache",
+		"The CMake cache has been modified outside this webview and there are conflicts with the current unsaved edits. Which values do you want to keep?",
+		"Yes",
+		"No",
+		"Do you want to save the latest cache edits?",
+		"Search",
+		"Save",
+		"Key",
+		"Value"
+	],
+	"keys": [
+		"cmake.cache.editor",
+		"cmake.cache.saved",
+		"ignore",
+		"from.UI",
+		"from.cache",
+		"merge.cache.edits",
+		"yes",
+		"no",
+		"unsaved.cache.edits",
+		"search",
+		"save",
+		"key",
+		"value"
+	],
+	"filePath": "src\\cacheView"
+}

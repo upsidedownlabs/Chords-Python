@@ -1,0 +1,23 @@
+{
+	"messages": [
+		"Unable to read {0} because it is not a file. Code model information is incomplete or corrupt. You may need to delete the cache and reconfigure.",
+		"Failed writing to file {0}",
+		"Cache object version ({0}.{1}) of cmake-file-api is unexpected. Expecting ({2}.{3}). IntelliSense configuration may be incorrect.",
+		"CMake Files object version ({0}.{1}) of cmake-file-api is unexpected. Expecting ({2}.{3}).",
+		"Unknown cache entry type: {0}.",
+		"Code model version ({0}.{1}) of cmake-file-api is unexpected. Expecting ({2}.{3}). IntelliSense configuration may be incorrect.",
+		"A special target to install all available targets",
+		"Toolchains object version ({0}.{1}) of cmake-file-api is unexpected. Expecting ({2}.{3}). IntelliSense configuration may be incorrect."
+	],
+	"keys": [
+		"path.not.a.file",
+		"failed.writing.to.file",
+		"cache.object.version",
+		"cmake.files.object.version",
+		"cache.entry.unknowntype",
+		"code.model.version",
+		"install.all.target",
+		"toolchains.object.version"
+	],
+	"filePath": "src\\drivers\\cmakeFileApi"
+}

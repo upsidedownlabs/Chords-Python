@@ -1,0 +1,2171 @@
+{
+	"name": "vscode-pylance",
+	"displayName": "Pylance",
+	"description": "A performant, feature-rich language server for Python in VS Code",
+	"version": "2024.11.2",
+	"license": "SEE LICENSE IN LICENSE.txt",
+	"author": {
+		"name": "Microsoft Corporation"
+	},
+	"publisher": "ms-python",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/microsoft/pylance-release/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/microsoft/pylance-release"
+	},
+	"engines": {
+		"vscode": "^1.91.0"
+	},
+	"keywords": [
+		"python"
+	],
+	"categories": [
+		"Programming Languages"
+	],
+	"icon": "images/icon.png",
+	"main": "./dist/extension.bundle.js",
+	"browser": "./dist/browser.extension.bundle.js",
+	"activationEvents": [
+		"onLanguage:python",
+		"workspaceContains:pyrightconfig.json"
+	],
+	"extensionDependencies": [
+		"ms-python.python"
+	],
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "Python will not be executed; the latest Python version will be used for analysis and installed libraries will not be available.",
+			"restrictedConfigurations": [
+				"python.analysis.nodeExecutable"
+			]
+		},
+		"virtualWorkspaces": {
+			"supported": "limited",
+			"description": "Analysis is limited to opened files."
+		}
+	},
+	"contributes": {
+		"commands": [
+			{
+				"command": "pylance.reportIssue",
+				"title": "%commands.pylance.reportIssue.title%"
+			},
+			{
+				"command": "pylance.indexing.clearPersistedIndices",
+				"title": "%commands.pylance.indexing.clearPersistedIndices.title%"
+			},
+			{
+				"command": "pylance.profiling.start",
+				"title": "%commands.pylance.profiling.start.title%"
+			},
+			{
+				"command": "pylance.profiling.stop",
+				"title": "%commands.pylance.profiling.stop.title%"
+			},
+			{
+				"command": "pylance.logging.start",
+				"title": "%commands.pylance.logging.start.title%"
+			},
+			{
+				"command": "pylance.logging.stop",
+				"title": "%commands.pylance.logging.stop.title%"
+			},
+			{
+				"command": "pylance.gotoOutputChannel",
+				"title": "%commands.pylance.gotoOutputChannel.title%"
+			},
+			{
+				"command": "pylance.dumpTokens",
+				"title": "Dump token streams ...",
+				"category": "Pylance debugging",
+				"enablement": "editorLangId == python && config.pyright.development"
+			},
+			{
+				"command": "pylance.dumpNodes",
+				"title": "Dump parse tree ...",
+				"category": "Pylance debugging",
+				"enablement": "editorLangId == python && config.pyright.development"
+			},
+			{
+				"command": "pylance.dumpTypes",
+				"title": "Dump type info ...",
+				"category": "Pylance debugging",
+				"enablement": "editorLangId == python && config.pyright.development"
+			},
+			{
+				"command": "pylance.dumpCachedTypes",
+				"title": "Pylance: Dump cached type info ...",
+				"category": "Pylance debugging",
+				"enablement": "editorLangId == python && config.pyright.development"
+			},
+			{
+				"command": "pylance.dumpCodeFlowGraph",
+				"title": "Pylance: Dump code flow graph for node ...",
+				"category": "Pylance debugging",
+				"enablement": "editorLangId == python && config.pyright.development"
+			},
+			{
+				"command": "pylance.learnMoreAboutImportResolution",
+				"title": "Learn more about import resolution",
+				"enablement": "false"
+			},
+			{
+				"command": "pylance.foldDocstrings",
+				"title": "%commands.pylance.docstrings.fold.title%"
+			},
+			{
+				"command": "pylance.unfoldDocstrings",
+				"title": "%commands.pylance.docstrings.unfold.title%"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "pylance.reportIssue"
+				},
+				{
+					"command": "pylance.indexing.clearPersistedIndices",
+					"when": "!isWeb"
+				},
+				{
+					"command": "pylance.profiling.start",
+					"when": "!isWeb"
+				},
+				{
+					"command": "pylance.profiling.stop",
+					"when": "!isWeb"
+				},
+				{
+					"command": "pylance.logging.start",
+					"when": "!isWeb"
+				},
+				{
+					"command": "pylance.logging.stop",
+					"when": "!isWeb"
+				},
+				{
+					"command": "pylance.dumpTokens",
+					"when": "editorLangId == python && config.pyright.development"
+				},
+				{
+					"command": "pylance.dumpNodes",
+					"when": "editorLangId == python && config.pyright.development"
+				},
+				{
+					"command": "pylance.dumpTypes",
+					"when": "editorLangId == python && config.pyright.development"
+				},
+				{
+					"command": "pylance.dumpCachedTypes",
+					"when": "editorLangId == python && config.pyright.development"
+				},
+				{
+					"command": "pylance.dumpCodeFlowGraph",
+					"when": "editorLangId == python && config.pyright.development"
+				},
+				{
+					"command": "pylance.foldDocstrings",
+					"when": "!isWeb"
+				},
+				{
+					"command": "pylance.unfoldDocstrings",
+					"when": "!isWeb"
+				}
+			]
+		},
+		"configurationDefaults": {
+			"[python]": {
+				"editor.formatOnType": true,
+				"editor.wordBasedSuggestions": "off"
+			}
+		},
+		"configuration": {
+			"type": "object",
+			"title": "Pylance",
+			"properties": {
+				"python.analysis.inlayHints.variableTypes": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "%settings.python.analysis.inlayHints.variableTypes.description%",
+					"scope": "resource"
+				},
+				"python.analysis.inlayHints.functionReturnTypes": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "%settings.python.analysis.inlayHints.functionReturnTypes.description%",
+					"scope": "resource"
+				},
+				"python.analysis.inlayHints.callArgumentNames": {
+					"type": "string",
+					"default": "off",
+					"markdownDescription": "%settings.python.analysis.inlayHints.callArgumentNames.description%",
+					"enum": [
+						"off",
+						"partial",
+						"all"
+					],
+					"enumDescriptions": [
+						"Disable inlay hints for call argument names.",
+						"Enable inlay hints for positional-or-keyword arguments while ignoring positional-only and keyword-only.",
+						"Enable inlay hints for positional-or-keyword and positional-only arguments while ignoring keyword-only."
+					],
+					"scope": "resource"
+				},
+				"python.analysis.inlayHints.pytestParameters": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "%settings.python.analysis.inlayHints.pytestParameters.description%",
+					"scope": "resource"
+				},
+				"python.analysis.completeFunctionParens": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.completeFunctionParens.description%",
+					"scope": "resource"
+				},
+				"python.analysis.autoImportCompletions": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.autoImportCompletions.description%",
+					"scope": "resource"
+				},
+				"python.analysis.autoFormatStrings": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.autoFormatStrings.description%",
+					"scope": "window"
+				},
+				"python.analysis.autoSearchPaths": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.autoSearchPaths.description%",
+					"scope": "resource"
+				},
+				"python.analysis.stubPath": {
+					"type": "string",
+					"default": "typings",
+					"description": "%settings.python.analysis.stubPath.description%",
+					"scope": "resource"
+				},
+				"python.analysis.diagnosticMode": {
+					"type": "string",
+					"default": "openFilesOnly",
+					"description": "%settings.python.analysis.diagnosticMode.description%",
+					"enum": [
+						"openFilesOnly",
+						"workspace"
+					],
+					"enumDescriptions": [
+						"Analyzes and reports errors on only open files.",
+						"Analyzes and reports errors on all files in the workspace."
+					],
+					"scope": "resource"
+				},
+				"python.analysis.extraPaths": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "%settings.python.analysis.extraPaths.description%",
+					"scope": "resource"
+				},
+				"python.analysis.include": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "%settings.python.analysis.include.description%",
+					"scope": "resource"
+				},
+				"python.analysis.exclude": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "%settings.python.analysis.exclude.description%",
+					"scope": "resource"
+				},
+				"python.analysis.ignore": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "%settings.python.analysis.ignore.description%",
+					"scope": "resource"
+				},
+				"python.analysis.indexing": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.indexing.description%",
+					"scope": "resource"
+				},
+				"python.analysis.userFileIndexingLimit": {
+					"type": "number",
+					"default": 2000,
+					"description": "%settings.python.analysis.userFileIndexingLimit.description%",
+					"scope": "resource"
+				},
+				"python.analysis.persistAllIndices": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.persistAllIndices.description%",
+					"scope": "resource"
+				},
+				"python.analysis.includeAliasesFromUserFiles": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.includeAliasesFromUserFiles.description%",
+					"scope": "resource"
+				},
+				"python.analysis.extraCommitChars": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.extraCommitChars.description%",
+					"scope": "resource"
+				},
+				"python.analysis.useLibraryCodeForTypes": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.useLibraryCodeForTypes.description%",
+					"scope": "resource"
+				},
+				"python.analysis.autoIndent": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.autoIndent.description%",
+					"scope": "window"
+				},
+				"python.analysis.typeCheckingMode": {
+					"type": "string",
+					"default": "off",
+					"enum": [
+						"off",
+						"basic",
+						"standard",
+						"strict"
+					],
+					"description": "Defines the default rule set for type checking.",
+					"enumDescriptions": [
+						"%settings.typecheckingMode.off.description%",
+						"%settings.typecheckingMode.basic.description%",
+						"%settings.typecheckingMode.standard.description%",
+						"%settings.typecheckingMode.strict.description%"
+					],
+					"scope": "resource",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.fixAll": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"enum": [
+							"source.unusedImports",
+							"source.convertImportFormat"
+						],
+						"enumDescriptions": [
+							"Remove unused imports.",
+							"Convert import format following python.analysis.importFormat."
+						]
+					},
+					"description": "%settings.python.analysis.fixAll.description%",
+					"scope": "resource"
+				},
+				"python.analysis.packageIndexDepths": {
+					"type": "array",
+					"default": [
+						{
+							"name": "sklearn",
+							"depth": 2
+						},
+						{
+							"name": "matplotlib",
+							"depth": 2
+						},
+						{
+							"name": "scipy",
+							"depth": 2
+						},
+						{
+							"name": "django",
+							"depth": 2
+						},
+						{
+							"name": "flask",
+							"depth": 2
+						},
+						{
+							"name": "fastapi",
+							"depth": 2
+						}
+					],
+					"items": {
+						"type": "object",
+						"label": "Per package settings",
+						"required": [
+							"name"
+						],
+						"properties": {
+							"name": {
+								"type": "string",
+								"label": "Package name to configure. Empty name means all packages.",
+								"default": ""
+							},
+							"depth": {
+								"type": "integer",
+								"label": "Depth to scan modules.",
+								"default": 1
+							},
+							"includeAllSymbols": {
+								"type": "boolean",
+								"label": "'true' means include all symbols. 'false' means only symbols in __all__.",
+								"default": false
+							}
+						}
+					},
+					"markdownDescription": "%settings.python.analysis.packageIndexDepths.description%",
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.strictListInference": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.strictListInference.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.strictDictionaryInference": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.strictDictionaryInference.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.strictSetInference": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.strictSetInference.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.analyzeUnannotatedFunctions": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.analyzeUnannotatedFunctions.description%",
+					"default": true,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.strictParameterNoneValue": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.strictParameterNoneValue.description%",
+					"default": true,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.enableTypeIgnoreComments": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.enableTypeIgnoreComments.description%",
+					"default": true,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.deprecateTypingAliases": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.deprecateTypingAliases.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.enableReachabilityAnalysis": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.enableReachabilityAnalysis.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.enableExperimentalFeatures": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.enableExperimentalFeatures.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.typeEvaluation.disableBytesTypePromotions": {
+					"type": "boolean",
+					"markdownDescription": "%settings.python.analysis.typeEvaluation.disableBytesTypePromotions.description%",
+					"default": false,
+					"scope": "resource"
+				},
+				"python.analysis.diagnosticSeverityOverrides": {
+					"type": "object",
+					"markdownDescription": "%settings.python.analysis.diagnosticSeverityOverrides.description%",
+					"scope": "resource",
+					"properties": {
+						"reportGeneralTypeIssues": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for general type inconsistencies, unsupported operations, argument/parameter mismatches, etc. Covers all of the basic type-checking rules not covered by other rules. Does not include syntax errors.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportPropertyTypeMismatch": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for property whose setter and getter have mismatched types.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportFunctionMemberAccess": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for member accesses on functions.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMissingImports": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for imports that have no corresponding imported python file or type stub file.",
+							"default": "warning",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMissingModuleSource": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for imports that have no corresponding source file. This happens when a type stub is found, but the module source file was not found, indicating that the code may fail at runtime when using this execution environment. Type checking will be done using the type stub.",
+							"default": "warning",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInvalidTypeForm": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for type expression that uses an invalid form.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMissingTypeStubs": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for imports that have no corresponding type stub file (either a typeshed file or a custom type stub). The type checker requires type stubs to do its best job at analysis.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportImportCycles": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for cyclical import chains. These are not errors in Python, but they do slow down type analysis and often hint at architectural layering issues. Generally, they should be avoided.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedImport": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an imported symbol that is not referenced within that file.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedClass": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for a class with a private name (starting with an underscore) that is not accessed.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedFunction": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for a function or method with a private name (starting with an underscore) that is not accessed.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedVariable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for a variable that is not accessed.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportDuplicateImport": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an imported symbol or module that is imported more than once.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportWildcardImportFromLibrary": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an wildcard import from an external library.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportAbstractUsage": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to instantiate an abstract or protocol class or use an abstract method.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportArgumentType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for a type incompatibility for an argument to a call.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportAssertTypeFailure": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for a type incompatibility detected by a typing.assert_type call.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportAssignmentType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for type incompatibilities for assignments.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportAttributeAccessIssue": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for issues involving attribute accesses.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportCallIssue": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for issues involving call expressions and arguments.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInconsistentOverload": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for inconsistencies between function overload signatures and implementation.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportIndexIssue": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics related to index operations and expressions.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInvalidTypeArguments": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for invalid type argument usage.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportNoOverloadImplementation": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an overloaded function or method with a missing implementation.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOperatorIssue": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for related to unary or binary operators.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOptionalSubscript": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to subscript (index) a variable with an Optional type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOptionalMemberAccess": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to access a member of a variable with an Optional type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOptionalCall": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to call a variable with an Optional type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOptionalIterable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to use an Optional type as an iterable value (e.g. within a for statement).",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOptionalContextManager": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to use an Optional type as a context manager (as a parameter to a with statement).",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOptionalOperand": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to use an Optional type as an operand to a binary or unary operator (like '+', '==', 'or', 'not').",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportRedeclaration": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to declare the type of a symbol multiple times.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportReturnType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics related to function return type compatibility.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportTypedDictNotRequiredAccess": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for an attempt to access a non-required key within a TypedDict without a check for its presence.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUntypedFunctionDecorator": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for function decorators that have no type annotations. These obscure the function type, defeating many type analysis features.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUntypedClassDecorator": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for class decorators that have no type annotations. These obscure the class type, defeating many type analysis features.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUntypedBaseClass": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for base classes whose type cannot be determined statically. These obscure the class type, defeating many type analysis features.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUntypedNamedTuple": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics when “namedtuple” is used rather than “NamedTuple”. The former contains no type information, whereas the latter does.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportPrivateUsage": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for incorrect usage of private or protected variables or functions. Protected class members begin with a single underscore _ and can be accessed only by subclasses. Private class members begin with a double underscore but do not end in a double underscore and can be accessed only within the declaring class. Variables and functions declared outside of a class are considered private if their names start with either a single or double underscore, and they cannot be accessed outside of the declaring module.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportTypeCommentUsage": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for usage of deprecated type comments.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportPrivateImportUsage": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for incorrect usage of symbol imported from a \"py.typed\" module that is not re-exported from that module.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportConstantRedefinition": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for attempts to redefine variables whose names are all-caps with underscores and numerals.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportDeprecated": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for use of deprecated classes or functions.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportIncompatibleMethodOverride": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for methods that override a method of the same name in a base class in an incompatible manner (wrong number of parameters, incompatible parameter types, or incompatible return type).",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportIncompatibleVariableOverride": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for overrides in subclasses that redefine a variable in an incompatible way.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInconsistentConstructor": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for __init__ and __new__ methods whose signatures are inconsistent.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportOverlappingOverload": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for function overloads that overlap in signature and obscure each other or have incompatible return types.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportPossiblyUnboundVariable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for the use of variables that may be unbound on some code paths.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMissingSuperCall": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for missing call to parent class for inherited `__init__` methods.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUninitializedInstanceVariable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for instance variables that are not declared or initialized within class body or `__init__` method.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInvalidStringEscapeSequence": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for invalid escape sequences used within string literals. The Python specification indicates that such sequences will generate a syntax error in future versions.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnknownParameterType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for input or return parameters for functions or methods that have an unknown type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnknownArgumentType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for call arguments for functions or methods that have an unknown type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnknownLambdaType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for input or return parameters for lambdas that have an unknown type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnknownVariableType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for variables that have an unknown type..",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnknownMemberType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for class or instance variables that have an unknown type.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMissingParameterType": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for parameters that are missing a type annotation.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMissingTypeArgument": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for generic class reference with missing type arguments.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInvalidTypeVarUse": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for improper use of type variables in a function signature.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportCallInDefaultInitializer": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for function calls within a default value initialization expression. Such calls can mask expensive operations that are performed at module initialization time.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnnecessaryIsInstance": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for 'isinstance' or 'issubclass' calls where the result is statically determined to be always true. Such calls are often indicative of a programming error.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnnecessaryCast": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for 'cast' calls that are statically determined to be unnecessary. Such calls are sometimes indicative of a programming error.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnnecessaryComparison": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for '==' and '!=' comparisons that are statically determined to be unnecessary. Such calls are sometimes indicative of a programming error.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnnecessaryContains": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for 'in' operation that is statically determined to be unnecessary. Such operations are sometimes indicative of a programming error.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportAssertAlwaysTrue": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for 'assert' statement that will provably always assert. This can be indicative of a programming error.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportSelfClsParameterName": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for a missing or misnamed “self” parameter in instance methods and “cls” parameter in class methods. Instance methods in metaclasses (classes that derive from “type”) are allowed to use “cls” for instance methods.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportImplicitStringConcatenation": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for two or more string literals that follow each other, indicating an implicit concatenation. This is considered a bad practice and often masks bugs such as missing commas.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportInvalidStubStatement": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for type stub statements that do not conform to PEP 484.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportIncompleteStub": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for the use of a module-level “__getattr__” function, indicating that the stub is incomplete.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUndefinedVariable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for undefined variables.",
+							"default": "warning",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnboundVariable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for the use of unbound variables.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnhashable": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for the use of an unhashable object in a container that requires hashability.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedCallResult": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for call expressions whose results are not consumed and are not None.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedCoroutine": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for call expressions that return a Coroutine and whose results are not consumed.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedExcept": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for unreachable except clause.",
+							"default": "error",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnusedExpression": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for simple expressions whose value is not used in any way.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnsupportedDunderAll": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for unsupported operations performed on __all__.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportUnnecessaryTypeIgnoreComment": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for '# type: ignore' comments that have no effect.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportMatchNotExhaustive": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for 'match' statements that do not exhaustively match all possible values.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportShadowedImports": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for files that are overriding a module in the stdlib.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						},
+						"reportImplicitOverride": {
+							"type": [
+								"string",
+								"boolean"
+							],
+							"description": "Diagnostics for overridden methods that do not include an `@override` decorator.",
+							"default": "none",
+							"enum": [
+								"none",
+								"information",
+								"warning",
+								"error",
+								true,
+								false
+							]
+						}
+					}
+				},
+				"python.analysis.disableTaggedHints": {
+					"type": "boolean",
+					"default": false,
+					"scope": "resource",
+					"description": "%settings.python.analysis.disableTaggedHints.description%"
+				},
+				"python.analysis.logLevel": {
+					"type": "string",
+					"default": "Information",
+					"description": "%settings.python.analysis.logLevel.description%",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Trace"
+					],
+					"scope": "window"
+				},
+				"python.analysis.typeshedPaths": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "Paths to look for typeshed modules.",
+					"scope": "resource"
+				},
+				"python.analysis.importFormat": {
+					"type": "string",
+					"default": "absolute",
+					"enum": [
+						"absolute",
+						"relative"
+					],
+					"description": "%settings.python.analysis.importFormat.description%",
+					"enumDescriptions": [
+						"Use absolute import format when creating new import statement.",
+						"Use relative import format when creating new import statement."
+					],
+					"scope": "resource"
+				},
+				"python.analysis.enableSyncServer": {
+					"type": "boolean",
+					"default": false,
+					"scope": "window",
+					"description": "%settings.python.analysis.enableSyncServer.description%",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.reportExtraTelemetry": {
+					"type": "boolean",
+					"default": false,
+					"scope": "window",
+					"description": "%settings.python.analysis.reportExtraTelemetry.description%",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.enablePytestSupport": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.enablePytestSupport.description%",
+					"scope": "resource"
+				},
+				"python.analysis.gotoDefinitionInStringLiteral": {
+					"type": "boolean",
+					"default": true,
+					"description": "%settings.python.analysis.gotoDefinitionInStringLiteral.description%",
+					"scope": "resource"
+				},
+				"python.analysis.nodeExecutable": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "%settings.python.analysis.nodeExecutable.description%",
+					"scope": "machine"
+				},
+				"python.analysis.supportRestructuredText": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "%settings.python.analysis.supportRestructuredText.description%",
+					"scope": "window",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.cacheLSPData": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.cacheLSPData.description%",
+					"scope": "machine",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.regenerateStdLibIndices": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "%settings.python.analysis.regenerateStdLibIndices.description%",
+					"scope": "resource"
+				},
+				"python.analysis.aiCodeActions": {
+					"type": "object",
+					"default": {},
+					"description": "%settings.python.analysis.aiCodeActions.description%",
+					"scope": "resource",
+					"properties": {
+						"implementAbstractClasses": {
+							"type": "boolean",
+							"default": false,
+							"description": "%settings.python.analysis.aiCodeActions.implementAbstractClasses.description%"
+						}
+					}
+				},
+				"python.analysis.completionOverrideExperiment": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.completionOverrideExperiment.description%",
+					"scope": "resource",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.languageServerMode": {
+					"type": "string",
+					"default": "default",
+					"enum": [
+						"light",
+						"default"
+					],
+					"markdownDescription": "%settings.languageServerMode.description%",
+					"enumDescriptions": [
+						"%settings.languageServerMode.light.description%",
+						"%settings.languageServerMode.default.description%"
+					],
+					"scope": "resource"
+				},
+				"python.analysis.supportDocstringTemplate": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.supportDocstringTemplate.description%",
+					"scope": "resource",
+					"tags": [
+						"experimental"
+					]
+				},
+				"python.analysis.displayEnglishDiagnostics": {
+					"type": "boolean",
+					"default": false,
+					"description": "%settings.python.analysis.displayEnglishDiagnostics.description%",
+					"scope": "resource"
+				}
+			}
+		},
+		"jsonValidation": [
+			{
+				"fileMatch": "pyrightconfig.json",
+				"url": "./dist/schemas/pyrightconfig.schema.json"
+			}
+		],
+		"semanticTokenTypes": [
+			{
+				"id": "module",
+				"description": "module",
+				"superType": "namespace"
+			},
+			{
+				"id": "intrinsic",
+				"description": "intrinsic",
+				"superType": "operator"
+			},
+			{
+				"id": "selfParameter",
+				"description": "self parameter",
+				"superType": "parameter"
+			},
+			{
+				"id": "clsParameter",
+				"description": "cls parameter",
+				"superType": "parameter"
+			},
+			{
+				"id": "magicFunction",
+				"description": "magic aka dunder function",
+				"superType": "function"
+			},
+			{
+				"id": "builtinConstant",
+				"description": "constants like True, False, None, or __debug__",
+				"superType": "constant"
+			},
+			{
+				"id": "parenthesis",
+				"description": "() parenthesis"
+			},
+			{
+				"id": "bracket",
+				"description": "[] bracket"
+			},
+			{
+				"id": "curlybrace",
+				"description": "{} curly brace"
+			},
+			{
+				"id": "colon",
+				"description": "colon token"
+			},
+			{
+				"id": "semicolon",
+				"description": "semicolon token"
+			},
+			{
+				"id": "arrow",
+				"description": "arrow token"
+			}
+		],
+		"semanticTokenModifiers": [
+			{
+				"id": "typeHint",
+				"description": "inside a type annotation"
+			},
+			{
+				"id": "typeHintComment",
+				"description": "inside a comment style type annotation"
+			},
+			{
+				"id": "decorator",
+				"description": "inside a decorator"
+			},
+			{
+				"id": "builtin",
+				"description": "built-in identifier"
+			},
+			{
+				"id": "overridden",
+				"description": "overridden token"
+			}
+		],
+		"semanticTokenScopes": [
+			{
+				"language": "python",
+				"scopes": {
+					"selfParameter": [
+						"variable.parameter.function.language.special.self.python"
+					],
+					"clsParameter": [
+						"variable.parameter.function.language.special.cls.python"
+					],
+					"magicFunction": [
+						"support.function.magic.python"
+					],
+					"*.typeHintComment": [
+						"comment.typehint.type.notation.python"
+					],
+					"*.overridden": [
+						"support.function.magic.python"
+					],
+					"function.decorator": [
+						"meta.function.decorator.python"
+					],
+					"class.decorator": [
+						"meta.function.decorator.python"
+					],
+					"builtinConstant": [
+						"constant.language.python"
+					],
+					"parenthesis": [
+						"source.python"
+					],
+					"bracket": [
+						"source.python"
+					],
+					"curlybrace": [
+						"source.python"
+					],
+					"colon": [
+						"punctuation.separator.colon.python"
+					],
+					"semicolon": [
+						"source.python"
+					],
+					"arrow": [
+						"punctuation.separator.annotation.result.python"
+					]
+				}
+			}
+		]
+	},
+	"scripts": {
+		"clean": "shx rm -rf ./dist ./out NOTICE.txt",
+		"package": "vsce package --githubBranch main",
+		"vscode:prepublish": "npm run clean && shx cp ../../NOTICE.txt . && node --max_old_space_size=8192 ./node_modules/webpack-cli/bin/cli.js --mode production --progress",
+		"webpack": "node --max_old_space_size=8192 ./node_modules/webpack-cli/bin/cli.js --mode development --progress",
+		"webpack-dev": "npm run clean && node --max_old_space_size=8192 ./node_modules/webpack-cli/bin/cli.js --mode development --watch --progress",
+		"webpack-dev-fast": "npm run clean && webpack --env fast --mode development --watch --progress",
+		"build:tests": "tsc",
+		"watch:tests": "tsc --watch",
+		"encryptText": "ts-node --project ./tsconfig.json -r tsconfig-paths/register ./src/encryptText.ts",
+		"test": "npm run webpack && npm run test:extension && npm run test:web",
+		"test:extension": "npm run build:tests && node ./src/tests/runTests.js extension",
+		"test:smoke": "npm run build:tests && node ./src/tests/runTests.js smoke",
+		"test:web": "npm run webpack && node ./build/launchWebTests.js",
+		"test:copytestbundle": "shx cp ./dist/browser.tests/web/index.bundle.js ./test-web/ms-python.vscode-pylance/dist/browser.tests/web/index.bundle.js",
+		"test:web:exists": "vscode-test-web --coi --extensionDevelopmentPath=./test-web --extensionTestsPath=./test-web/ms-python.vscode-pylance/dist/browser.tests/web/index.bundle.js --verbose",
+		"test:web:exists:nocoi": "vscode-test-web --extensionDevelopmentPath=./test-web --extensionTestsPath=./test-web/ms-python.vscode-pylance/dist/browser.tests/web/index.bundle.js --verbose"
+	},
+	"devDependencies": {
+		"@types/jest": "^29.5.13",
+		"@types/mocha": "^10.0.8",
+		"@types/node": "^22.7.0",
+		"@types/source-map-support": "^0.5.10",
+		"@types/vscode": "^1.90.0",
+		"@types/webpack": "^5.28.5",
+		"@types/webpack-env": "^1.18.5",
+		"@types/which": "^3.0.4",
+		"@vscode/test-electron": "^2.4.1",
+		"@vscode/test-web": "^0.0.60",
+		"@vscode/vsce": "^2.32.0",
+		"copy-webpack-plugin": "^11.0.0",
+		"esbuild-loader": "^3.2.0",
+		"javascript-obfuscator": "4.1.1",
+		"jest": "^29.7.0",
+		"jest-cli": "^29.7.0",
+		"jest-environment-node": "^29.7.0",
+		"jest-junit": "^16.0.0",
+		"mocha": "^10.7.3",
+		"shx": "^0.3.4",
+		"source-map-support": "^0.5.21",
+		"terser-webpack-plugin": "^5.3.10",
+		"ts-jest": "^29.2.5",
+		"ts-loader": "^9.5.1",
+		"ts-mockito": "^2.6.1",
+		"ts-node": "^10.9.2",
+		"typescript": "~5.5.4",
+		"webpack": "^5.94.0",
+		"webpack-cli": "^5.1.4",
+		"webpack-env": "^0.8.0",
+		"webpack-obfuscator": "^3.5.1"
+	},
+	"dependencies": {
+		"@vscode/extension-telemetry": "^0.9.7",
+		"@vscode/sync-api-common": "^0.9.0",
+		"@vscode/sync-api-service": "^0.9.0",
+		"buffer": "^6.0.3",
+		"events": "^3.3.0",
+		"path-browserify": "^1.0.1",
+		"semver": "^7.6.3",
+		"stream-browserify": "^3.0.0",
+		"typescript-char": "^0.0.0",
+		"vscode-jsonrpc": "^9.0.0-next.5",
+		"vscode-languageclient": "^10.0.0-next.12",
+		"vscode-languageserver": "^10.0.0-next.10",
+		"vscode-languageserver-protocol": "^3.17.6-next.10",
+		"vscode-languageserver-types": "^3.17.6-next.5",
+		"vscode-tas-client": "^0.1.84",
+		"which": "^4.0.0"
+	},
+	"__metadata": {
+		"id": "364d2426-116a-433a-a5d8-a5098dc3afbd",
+		"publisherId": "998b010b-e2af-44a5-a6cd-0b5fd3b9b6f8",
+		"publisherDisplayName": "Microsoft",
+		"targetPlatform": "undefined",
+		"isApplicationScoped": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1731559985957,
+		"pinned": false,
+		"preRelease": false,
+		"source": "gallery"
+	}
+}

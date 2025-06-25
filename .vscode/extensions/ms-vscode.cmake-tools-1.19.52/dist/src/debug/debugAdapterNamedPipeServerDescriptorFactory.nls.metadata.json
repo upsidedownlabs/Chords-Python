@@ -1,0 +1,11 @@
+{
+	"messages": [
+		"The script path, \"{0}\", could not be found.",
+		"Connecting debugger on named pipe: \"{0}\""
+	],
+	"keys": [
+		"cmake.debug.scriptPath.does.not.exist",
+		"debugger.create.descriptor"
+	],
+	"filePath": "src\\debug\\debugAdapterNamedPipeServerDescriptorFactory"
+}

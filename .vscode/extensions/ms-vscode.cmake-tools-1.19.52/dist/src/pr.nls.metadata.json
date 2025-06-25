@@ -1,0 +1,11 @@
+{
+	"messages": [
+		"Cannot create {0}: {1} is a non-directory",
+		"Cannot create directory {0}. It exists, and is not a directory!"
+	],
+	"keys": [
+		"cannot.create.path",
+		"cannot.create.directory"
+	],
+	"filePath": "src\\pr"
+}

@@ -1,0 +1,8 @@
+<h1 data-loc-id="walkthrough.windows.title.open.dev.command.prompt">Reiniciar usando o prompt de comando do desenvolvedor</h1>
+<p data-loc-id="walkthrough.windows.background.dev.command.prompt"> Você está usando uma máquina Windows com o compilador MSVC, então você precisa iniciar o VS Code a partir do prompt de comando do desenvolvedor para que todas as variáveis de ambiente sejam definidas corretamente. Para reiniciar usando o prompt de comando do desenvolvedor:</p>
+<ol>
+<li><p data-loc-id="walkthrough.open.command.prompt">Abra o prompt de Comando do Desenvolvedor para VS digitando "desenvolvedor" no menu Iniciar do Windows. Selecione o prompt de Comando do Desenvolvedor para VS, que navegará automaticamente para sua pasta aberta atual.</p>
+</li>
+<li><p data-loc-id="walkthrough.windows.press.f5">Digite "código" no prompt de comando e pressione enter. Isso deve reiniciar o VS Code e levá-lo de volta a este passo a passo. </p>
+</li>
+</ol>

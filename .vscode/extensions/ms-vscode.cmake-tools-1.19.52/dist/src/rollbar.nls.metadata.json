@@ -1,0 +1,19 @@
+{
+	"messages": [
+		"Unhandled exception: {0}",
+		"Unhandled exception: {0}",
+		"Invoking async function [{0}] with Rollbar wrapping [{1}]",
+		"Invoking function [${0}] with Rollbar wrapping [${1}]",
+		"Unhandled exception: {0}",
+		"Unhandled Promise rejection: {0}"
+	],
+	"keys": [
+		"unhandled.exception",
+		"unhandled.exception",
+		"invoking.async.function.rollbar",
+		"invoking.function.rollbar",
+		"unhandled.exception",
+		"unhandled.promise.rejection"
+	],
+	"filePath": "src\\rollbar"
+}

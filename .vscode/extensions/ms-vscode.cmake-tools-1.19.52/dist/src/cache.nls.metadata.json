@@ -1,0 +1,41 @@
+{
+	"messages": [
+		"Reading CMake cache file {0}",
+		"File exists",
+		"File contents read successfully",
+		"Parsed {0} entries from {1}",
+		"Cache file does not exist: Returning empty cache data",
+		"Reloading Cache file {0}",
+		"Parsing CMake cache string",
+		"Failed to read a line from a CMake cache file {0}",
+		"Read line in cache with {0}={1}, {2}={3}, {4}={5}",
+		"Cache entry {0} has unknown type: {1}",
+		"Constructing a new cache entry from the given line",
+		"Nonexisting cache entry {0} marked as advanced",
+		"Ignoring {1} property for nonexisting cache entry {0}",
+		"Parsed {0} cache entries",
+		"Newline(s) found in cache entry {0}. Value has been truncated to {1}",
+		"Get cache key {0}={1}",
+		"Get cache key {0}=[[Missing]]"
+	],
+	"keys": [
+		"reading.cmake.cache.file",
+		"file.exists",
+		"file.contents.read.successfully",
+		"parsed.entries.from",
+		"cache.file.does.not.exist",
+		"reloading.cache.file",
+		"parsing.cmake.cache.string",
+		"failed.to.read.line.from.cmake.cache.file",
+		"read.line.in.cache",
+		"cache.entry.unknown",
+		"constructing.new.cache.entry",
+		"nonexisting.advanced.entry",
+		"ignore.strings.for.nonexisting.entry",
+		"parsed.cache.entries",
+		"cache.value.truncation.warning",
+		"get.cache.key",
+		"get.cache.key.missing"
+	],
+	"filePath": "src\\cache"
+}

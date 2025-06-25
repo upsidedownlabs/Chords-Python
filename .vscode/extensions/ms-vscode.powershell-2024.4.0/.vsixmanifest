@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+		<Metadata>
+			<Identity Language="en-US" Id="powershell" Version="2024.4.0" Publisher="ms-vscode" />
+			<DisplayName>PowerShell</DisplayName>
+			<Description xml:space="preserve">Develop PowerShell modules, commands and scripts in Visual Studio Code!</Description>
+			<Tags>PowerShell,pwsh,theme,color-theme,snippet,keybindings,debuggers,powershell</Tags>
+			<Categories>Debuggers,Formatters,Programming Languages,Snippets,Linters,Themes</Categories>
+			<GalleryFlags>Public</GalleryFlags>
+			<Badges><Badge Link="https://github.com/PowerShell/vscode-powershell/actions/workflows/ci-test.yml?query=branch%3Amain" ImgUri="https://github.com/PowerShell/vscode-powershell/actions/workflows/ci-test.yml/badge.svg" Description="Build Status" />
+<Badge Link="https://aka.ms/powershell-vscode-discord" ImgUri="https://img.shields.io/discord/180528040881815552.svg?label=%23vscode&amp;logo=discord&amp;logoColor=white" Description="Join the chat on Discord" />
+<Badge Link="https://gitter.im/PowerShell/vscode-powershell?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge" ImgUri="https://badges.gitter.im/PowerShell/vscode-powershell.svg" Description="Join the chat on Gitter" /></Badges>
+			<Properties>
+				<Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.94.0" />
+				<Property Id="Microsoft.VisualStudio.Code.ExtensionDependencies" Value="vscode.powershell" />
+				<Property Id="Microsoft.VisualStudio.Code.ExtensionPack" Value="" />
+				<Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="workspace" />
+				<Property Id="Microsoft.VisualStudio.Code.LocalizedLanguages" Value="" />
+				<Property Id="Microsoft.VisualStudio.Code.EnabledApiProposals" Value="" />
+				
+				<Property Id="Microsoft.VisualStudio.Code.ExecutesCode" Value="true" />
+				
+				<Property Id="Microsoft.VisualStudio.Services.Links.Source" Value="https://github.com/PowerShell/vscode-powershell.git" />
+				<Property Id="Microsoft.VisualStudio.Services.Links.Getstarted" Value="https://github.com/PowerShell/vscode-powershell.git" />
+				<Property Id="Microsoft.VisualStudio.Services.Links.GitHub" Value="https://github.com/PowerShell/vscode-powershell.git" />
+				<Property Id="Microsoft.VisualStudio.Services.Links.Support" Value="https://github.com/PowerShell/vscode-powershell/issues" />
+				<Property Id="Microsoft.VisualStudio.Services.Links.Learn" Value="https://github.com/PowerShell/vscode-powershell/blob/main/README.md" />
+				<Property Id="Microsoft.VisualStudio.Services.Branding.Color" Value="#ACD1EC" />
+				<Property Id="Microsoft.VisualStudio.Services.Branding.Theme" Value="light" />
+				<Property Id="Microsoft.VisualStudio.Services.GitHubFlavoredMarkdown" Value="true" />
+				<Property Id="Microsoft.VisualStudio.Services.Content.Pricing" Value="Free"/>
+
+				
+				
+			</Properties>
+			<License>extension/LICENSE.txt</License>
+			<Icon>extension/media/PowerShell_Icon.png</Icon>
+		</Metadata>
+		<Installation>
+			<InstallationTarget Id="Microsoft.VisualStudio.Code"/>
+		</Installation>
+		<Dependencies/>
+		<Assets>
+			<Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
+			<Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
+<Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/CHANGELOG.md" Addressable="true" />
+<Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true" />
+<Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/media/PowerShell_Icon.png" Addressable="true" />
+		</Assets>
+	</PackageManifest>

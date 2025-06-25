@@ -1,0 +1,42 @@
+{
+	"messages": [
+		"Executing command: {0}",
+		"  with environment: {0}",
+		"The command: {0} failed with error: {1}",
+		"The command: {0} exited with code: {1} and signal: {2}",
+		"The command: {0} exited with code: {1}",
+		"Command output on standard out: {0}",
+		"Command output on standard error: {0}",
+		"Processing {0} event from proc stdout",
+		"Processing {0} event from proc stderr",
+		"Resolving process on {0} event"
+	],
+	"keys": [
+		"executing.command",
+		"execution.environment",
+		{
+			"key": "process.error",
+			"comment": [
+				"The space before and after all placeholders should be preserved."
+			]
+		},
+		{
+			"key": "process.exit.with.signal",
+			"comment": [
+				"The space before and after all placeholders should be preserved."
+			]
+		},
+		{
+			"key": "process.exit",
+			"comment": [
+				"The space before and after all placeholders should be preserved."
+			]
+		},
+		"process.exit.stdout",
+		"process.exit.stderr",
+		"processing.data.event.stdout",
+		"processing.data.event.stderr",
+		"resolving.close.event"
+	],
+	"filePath": "src\\proc"
+}

@@ -1,0 +1,23 @@
+{
+	"messages": [
+		"Workflow preset is not set",
+		"No project found for folder {0}",
+		"Configuring clean project with the {0} configure preset of the workflow.",
+		"Configuring project with the {0} configure preset of the workflow.",
+		"Building project with the {0} build preset of the workflow step.",
+		"Running ctest for the {0} test preset of the workflow step.",
+		"Packaging the project with the {0} package preset of the workflow step.",
+		"Workflow finished. Restore the original {0} configure preset and reconfigure."
+	],
+	"keys": [
+		"workflow.preset.not.set",
+		"no.project.found",
+		"workflow.configuring.clean",
+		"workflow.configuring",
+		"workflow.building",
+		"workflow.running.ctest",
+		"workflow.packaging",
+		"workflow.restore.configuring"
+	],
+	"filePath": "src\\workflow"
+}

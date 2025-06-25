@@ -1,0 +1,15 @@
+{
+	"messages": [
+		"Invalid value to convert to cmake value: {0}",
+		"Invalid version string {0}",
+		"Extension is undefined!",
+		"\"sourceDirectory\" is not a directory"
+	],
+	"keys": [
+		"invalid.value",
+		"invalid.version.string",
+		"extension.is.undefined",
+		"sourcedirectory.not.a.directory"
+	],
+	"filePath": "src\\util"
+}

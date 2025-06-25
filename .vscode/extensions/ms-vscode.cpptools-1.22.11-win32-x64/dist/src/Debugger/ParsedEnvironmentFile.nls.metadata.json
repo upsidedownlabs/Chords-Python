@@ -1,0 +1,9 @@
+{
+	"messages": [
+		"Ignoring non-parsable lines in {0} {1}: "
+	],
+	"keys": [
+		"ignoring.lines.in.envfile"
+	],
+	"filePath": "Debugger\\ParsedEnvironmentFile"
+}
