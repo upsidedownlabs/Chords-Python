@@ -81,7 +81,8 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
+          poetry convert-setup-py
+          
       - name: Set project version with Poetry
         run: |
           poetry version ${{ needs.details.outputs.new_version }}
