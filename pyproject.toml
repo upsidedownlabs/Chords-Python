@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chordspy"
-version = "0.1.1"
+version = "0.1.0"
 description = "An open source bag of tools for recording and visualizing Bio-potential signals like EEG, ECG, EMG, or EOG."
 authors = ["Upside Down Labs <support@upsidedownlabs.tech>"]
 readme = "README.md"
