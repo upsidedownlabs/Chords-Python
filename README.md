@@ -7,7 +7,7 @@ Chords- Python is an open-source bag of tools designed to interface with Micro-c
 
 ## Features  
 - **Multiple Protocols**: Supports `Wi-Fi`, `Bluetooth`, and `Serial` communication.  
-- **LSL Data Streaming**:Once the LSL stream starts, any PC on the same Wi-Fi network can access the data using tools like BrainVision LSL Viewer. 
+- **LSL Data Streaming**: Once the LSL stream starts, any PC on the same Wi-Fi network can access the data using tools like BrainVision LSL Viewer. 
 - **CSV Logging**: Save raw data with Counter 
 - **GUI**: Live plotting for all channels. 
 - **Applications**: EEG/ECG/EMG/EOG-based games and utilities (e.g., Tug of War, Keystroke Emulator). 
@@ -23,8 +23,8 @@ python -m venv venv
 ```
 
 ```bash
-venv\Scripts\activate           # For Windows
-source chordspy/bin/activate    # For MacOS/Linux
+venv\Scripts\activate         # For Windows
+source venv/bin/activate      # For MacOS/Linux
 ``` 
 
 ```bash
