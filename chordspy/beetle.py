@@ -55,7 +55,7 @@ focus_threshold = None
 calibration_duration = 10
 
 sprite_count = 10
-beetle_sprites = [pygame.image.load(f'media/Beetle{i}.png') for i in range(1, sprite_count + 1)]
+beetle_sprites = [pygame.image.load(f'chordspy/media/Beetle{i}.png') for i in range(1, sprite_count + 1)]
 beetle_sprites = [pygame.transform.smoothscale(sprite, (140, 160)) for sprite in beetle_sprites]
 
 # Animation Variables

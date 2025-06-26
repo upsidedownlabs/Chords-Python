@@ -1,0 +1,5 @@
+include requirements.txt
+include README.md
+recursive-include chordspy/templates *
+recursive-include chordspy/static *
+recursive-include chordspy/config *

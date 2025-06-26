@@ -1,6 +1,6 @@
-from chords_serial import Chords_USB
-from chords_wifi import Chords_WIFI
-from chords_ble import Chords_BLE
+from chordspy.chords_serial import Chords_USB
+from chordspy.chords_wifi import Chords_WIFI
+from chordspy.chords_ble import Chords_BLE
 from pylsl import StreamInfo, StreamOutlet
 import argparse
 import time
