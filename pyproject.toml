@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "chordspy"
+version = "0.1.0"
+description = "An open source bag of tools for recording and visualizing Bio-potential signals like EEG, ECG, EMG, or EOG."
+authors = ["Upside Down Labs <support@upsidedownlabs.tech>"]
+readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/upsidedownlabs/Chords-Python"
+packages = [{include = "chordspy"}]
+include = ["chordspy/config/*.yaml", "chordspy/static/*", "chordspy/templates/*", "chordspy/apps/*.py"]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+# Add your requirements.txt dependencies here
+# (Poetry will automatically include them if you used poetry convert-setup-py)
+
+[tool.poetry.scripts]
+chordspy = "chordspy.app:main"
+
+[tool.poetry.urls]
+Homepage = "https://github.com/upsidedownlabs/Chords-Python"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
