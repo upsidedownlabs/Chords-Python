@@ -19,11 +19,11 @@ Chords- Python is an open-source bag of tools designed to interface with Micro-c
 
 - Open command prompt and run:
 ```bash
-python -m venv chordspy
+python -m venv venv
 ```
 
 ```bash
-chordspy\Scripts\activate       # For Windows
+venv\Scripts\activate           # For Windows
 source chordspy/bin/activate    # For MacOS/Linux
 ``` 
 
