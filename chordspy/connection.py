@@ -41,7 +41,7 @@ class Connection:
     - Data streaming to LSL
     - Data recording to CSV files
     - Connection state management
-    - Sample validation and rate monitoring
+    - Sample validation and rate monitorin
     The class maintains separate connection handlers for each protocol (USB/WiFi/BLE)
     and manages their lifecycle. It implements thread-safe operations for concurrent
     data handling and provides clean shutdown procedures.
@@ -94,7 +94,7 @@ class Connection:
         self.ble_samples_received = 0              # Count of BLE-specific samples
 
     async def get_ble_device(self):
-        """c
+        """
         Scan for and select a BLE device interactively.
         This asynchronous method: Scans for available BLE devices using Chords_BLE scanner, presents discovered devices to user, handles user selection, returns selected device object.
         Returns:
@@ -235,7 +235,7 @@ class Connection:
             self.sample_count = 0
             self.last_timestamp = now
 
-    def lsl_rate_checker(self, duration=1.0):    # For USB Only(Need modification)
+    def lsl_rate_checker(self, duration=1.0):
         """
         Independently verifies the actual streaming rate of the LSL outlet.
         This method: Collects timestamps over a measurement period -> calculates rate from timestamp differences.

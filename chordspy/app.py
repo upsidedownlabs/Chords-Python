@@ -22,7 +22,6 @@ import yaml                                                 # For loading applic
 from pathlib import Path                                    # For handling file paths in a platform-independent way
 import os                                                   # For file and directory operations
 import webbrowser                                           # For opening the web interface in a browser
-import logging                                              # For logging errors and information
 
 console_queue = queue.Queue()            # Global queue for console messages to be displayed in the web interface
 app = Flask(__name__)                    # Initialize Flask application

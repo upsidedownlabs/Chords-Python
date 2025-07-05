@@ -8,7 +8,6 @@ import time
 import sys
 import websocket
 import socket
-from scipy.signal import butter, filtfilt
 
 class Chords_WIFI:
     """
