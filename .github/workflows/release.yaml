@@ -1,0 +1,133 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+a[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+b[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+rc[0-9]+"
+
+env:
+  PACKAGE_NAME: "chordspy"
+  OWNER: "Upside Down Labs"
+
+jobs:
+  details:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.release.outputs.new_version }}
+      suffix: ${{ steps.release.outputs.suffix }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract tag and Details
+        id: release
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            NEW_VERSION=$(echo $TAG_NAME | awk -F'-' '{print $1}')
+            SUFFIX=$(echo $TAG_NAME | grep -oP '[a-z]+[0-9]+' || echo "")
+            echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+            echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "No tag found"
+            exit 1
+          fi
+
+  check_pypi:
+    needs: details
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch PyPI version
+        run: |
+          response=$(curl -s https://pypi.org/pypi/${{ env.PACKAGE_NAME }}/json || echo "{}")
+          latest_version=$(echo $response | jq -r '.info.version // "0.0.0"')
+          echo "latest_version=$latest_version" >> $GITHUB_ENV
+
+      - name: Compare versions
+        run: |
+          if [ "$(printf '%s\n' "$latest_version" "${{ needs.details.outputs.new_version }}" | sort -rV | head -n1)" != "${{ needs.details.outputs.new_version }}" ]; then
+            echo "Version ${{ needs.details.outputs.new_version }} is not newer than PyPI version $latest_version"
+            exit 1
+          fi
+
+  setup_and_build:
+    needs: [details, check_pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"  # Changed from 3.13 to stable version
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry config virtualenvs.create true
+
+      - name: Set version
+        run: poetry version ${{ needs.details.outputs.new_version }}
+
+      - name: Install dependencies
+        run: poetry install --sync --no-interaction --no-root
+
+      - name: Build package
+        run: poetry build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
+  pypi_publish:
+    needs: setup_and_build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      id-token: write  # Essential for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true  # For better debugging
+
+  github_release:
+    needs: [details, setup_and_build, pypi_publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.details.outputs.tag_name }}
+          files: |
+            dist/*
+          generate_release_notes: true

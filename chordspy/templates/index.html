@@ -1,25 +1,39 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+<!-- 
+  Main HTML document with dark mode enabled by default- The 'dark' class enables Tailwind's dark mode styling
+-->
 <head>
+    <!-- Meta tags for character set and responsive viewport -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chords Python</title>
+    <!-- Font Awesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
+<!-- Main body with flex layout and dark mode background classes -->
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
-    <!-- Header -->
+    <!-- 
+      Header Section - Contains app title, theme toggle, and action buttons
+    -->
     <header class="bg-gray-900 dark:bg-gray-800 text-white sticky top-0 z-50">
         <div class="max-w-full px-8 py-3 flex justify-between items-center">
+            <!-- App title with gradient text effect -->
             <span class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                 Chords Python
             </span>
+            <!-- Header action buttons -->
             <div class="flex space-x-4 items-center">
+                <!-- Theme toggle button -->
                 <button id="theme-toggle" class="text-white hover:text-cyan-400 transition-colors">
                     <i class="fas fa-moon text-xl"></i>
                 </button>
+                <!-- GitHub link button -->
                 <button id="github-btn" class="text-white hover:text-cyan-400 transition-colors">
                     <i class="fab fa-github text-xl"></i>
                 </button>
+                <!-- Info button -->
                 <button id="info-btn" class="text-white hover:text-cyan-400 transition-colors">
                     <i class="fas fa-info-circle text-xl"></i>
                 </button>
@@ -27,23 +41,30 @@
         </div>
     </header>
 
-    <!-- Connectivity + Recording (Sticky Section) -->
+    <!-- 
+      Connectivity and Recording Section - Sticky section that remains visible when scrolling
+    -->
     <section class="px-8 py-4 sticky top-14 z-40 bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
         <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <!-- Connection protocol buttons (WiFi, Bluetooth, Serial) -->
             <div class="flex gap-2 flex-wrap">
+                <!-- WiFi connection button -->
                 <button data-protocol="wifi" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-wifi text-lg"></i>
                     <span class="text-sm font-medium">WiFi</span>
                 </button>
+                <!-- Bluetooth connection button -->
                 <button data-protocol="ble" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fab fa-bluetooth text-lg"></i>
                     <span class="text-sm font-medium">Bluetooth</span>
                 </button>
+                <!-- Serial (USB) connection button -->
                 <button data-protocol="usb" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-microchip text-lg"></i>
                     <span class="text-sm font-medium">Serial</span>
                 </button>
             </div>
+            <!-- Connection action buttons (dynamically shown/hidden) -->
             <button id="connect-btn" class="h-10 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
                 Connect Device
             </button>
@@ -57,8 +78,10 @@
                 <i class="fas fa-spinner fa-spin mr-2"></i> Disconnecting...
             </button>
           
+            <!-- Vertical separator (visible on medium screens and up) -->
             <div class="hidden md:block self-stretch w-px bg-gray-300 dark:bg-gray-700 mx-4"></div>
           
+            <!-- Recording filename input with CSV suffix -->
             <div class="flex flex-1">
                 <input type="text" id="filename"
                     class="flex-1 h-10 px-4 rounded-l-lg focus:outline-none focus:ring-1  border border-gray-600  dark:text-white dark:bg-gray-800" 
@@ -68,33 +91,42 @@
                 </span>
             </div>
           
+            <!-- Recording control button -->
             <button id="record-btn" class="h-10 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold px-6">
                 Start Recording
             </button>
+            <!-- Recording status indicator (hidden by default) -->
             <div id="recording-status" class="flex items-center hidden">
             </div>
         </div>
+        <!-- Connection status popup (fixed position) -->
         <div id="connection-status" class="fixed bottom-[3rem] right-1 bg-[#001F0E] shadow-lg rounded-lg p-3 text-sm hidden z-50 border border-gray-200 dark:border-gray-700 min-w-[200px] flex items-center text-white">
             <span id="status-icon" class="mr-2"></span>
             <span id="status-text" class="text-white">Connecting...</span>
         </div>
     </section>
 
-    <!-- BLE Device Selection Modal -->
+    <!-- 
+      BLE Device Selection Modal - Hidden by default, shown when Bluetooth connection is selected
+    -->
     <div id="ble-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <!-- Modal header with title and close button -->
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Select Bluetooth Device</h3>
                 <button id="close-ble-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
+            <!-- List of discovered BLE devices -->
             <div class="space-y-2 max-h-96 overflow-y-auto" id="ble-devices-list">
+                <!-- Loading spinner shown while scanning -->
                 <div class="flex items-center justify-center py-4">
                     <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
                     <span>Scanning for devices...</span>
                 </div>
             </div>
+            <!-- Modal footer with rescan button -->
             <div class="mt-4 flex justify-end space-x-2">
                 <button id="rescan-ble" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
                     <i class="fas fa-sync-alt mr-2"></i>Rescan
@@ -103,10 +135,13 @@
         </div>
     </div>
 
-    <!-- Main Scrollable Application Area -->
+    <!-- 
+      Main Content Area - Scrollable section containing the applications grid
+    -->
     <main class="flex-1 overflow-y-auto px-8 py-6">
         <!-- Applications Section -->
         <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <!-- Section header with title and filter dropdown -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Applications</h2>
                 <select class="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:ring-cyan-500 focus:outline-none dark:bg-gray-700">
@@ -119,23 +154,32 @@
                 </select>
             </div>
 
+            <!-- Grid that will be populated with application cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="app-grid">
             </div>
         </div>
     </main>
 
-    <!-- Footer -->
+    <!-- 
+      Footer Section - Simple sticky footer with attribution
+    -->
     <footer class="bg-gray-900 dark:bg-gray-800 text-white sticky bottom-0 z-50">
         <div class="max-w-full px-8 py-3 text-center">
             Made with ❤️ at Upside Down Labs
         </div>
     </footer>
+
+    <!-- 
+      JavaScript Resources - Tailwind CSS configuration, Main application script.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Configure Tailwind to use class-based dark mode
         tailwind.config = {
             darkMode: 'class',
         }
     </script>
+    <!-- Link to the main JavaScript file (served from Flask static files) -->
     <script src="{{url_for('static', filename='script.js')}}"></script>
 </body>
 </html>

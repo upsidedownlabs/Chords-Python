@@ -112,17 +112,40 @@ function renderApps(apps) {
                         </span>
                     </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
+                    <button onclick="launchApp('${app.script}')" 
+                            class="w-full py-2 bg-${app.color}-500 hover:bg-${app.color}-600 text-white rounded-lg transition-colors">
+                        Launch
+                    </button>
                 </div>
             </div>
         `;
         
-        updateAppStatus(app.script);
-        card.addEventListener('click', async () => {
-            await handleAppClick(app, card);
-        });
-        
         appGrid.appendChild(card);
     });
+}
+
+async function launchApp(appScript) {
+    try {
+        const response = await fetch('/launch_app', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ app: appScript })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'error') {
+            if (result.code === 'ALREADY_RUNNING') {
+                alert(`Application is already running.`);
+            } else {
+                alert(`Failed to launch application: ${result.message}`);
+            }   
+        } else {
+            console.log(`Launched ${appScript}`);
+        }
+    } catch (error) {
+        logError('Error launching app:', error);
+    }
 }
 
 async function handleAppClick(app, card) {
@@ -926,8 +949,13 @@ checkStreamStatus();
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-initializeApplication();
-window.onerror = function(message, source, lineno, colno, error) {
+    initializeApplication();
+    checkStreamStatus();
+    setInterval(checkStreamStatus, 1000);
+    startTimestampUpdater();
+    
+    // Error handling
+    window.onerror = function(message, source, lineno, colno, error) {
         logError(error || message);
         return true; };
 
@@ -936,6 +964,6 @@ document.getElementById('github-btn').addEventListener('click', () => {
 });
 
 document.getElementById('info-btn').addEventListener('click', () => {
-    alert('Chords Python - Biopotential Data Acquisition System\nVersion 2.1.0');
+    alert('Chords Python - Bio-potential Data Acquisition System\nVersion 0.1.0');
 });
 });
