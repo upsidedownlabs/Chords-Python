@@ -13,7 +13,7 @@ function logError(error) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ error: errorMessage })
         }).catch(() => {
-            consoled.error('Failed to log error:', errorMessage);
+            console.error('Failed to log error:', errorMessage);
         });
         
         console.error(errorMessage);
