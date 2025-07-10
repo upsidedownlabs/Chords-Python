@@ -203,7 +203,7 @@ def create_popup():
     horizontal_frame = tk.Frame(popup)
     horizontal_frame.pack(expand=True, pady=10)
 
-    eye_icon = PhotoImage(file="media\\icons8-eye-30.png")
+    eye_icon = PhotoImage(file="C:/Users/PAYAL/Desktop/Chords-Python/chordspy/media/icons8-eye-30.png")
 
     blink_button = tk.Button(horizontal_frame, image=eye_icon, width=70, height=38, bg="#FFFFFF")
     blink_button.image = eye_icon

@@ -129,7 +129,7 @@ def eeg_data_thread(eeg_queue):
             continue
         try:
             sample, timestamp = inlet.pull_sample()
-            if len(sample) >= 6:
+            if len(sample) >= 3:
                 channel1_data = sample[0]  # PLAYER A
                 channel2_data = sample[1]  # PLAYER B
 

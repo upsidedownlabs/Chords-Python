@@ -160,8 +160,11 @@ class ECGMonitor(QMainWindow):
         r_peak_values = filtered_ecg[self.r_peaks]              # Get corresponding ECG values
         self.r_peak_curve.setData(r_peak_times, r_peak_values)  # Plot R-peaks as red dots
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     window = ECGMonitor()  
     window.show()
     sys.exit(app.exec_())    
+
+if __name__ == "__main__":
+    main()   

@@ -99,7 +99,10 @@ class CSVPlotterApp:
         )
         fig.show()               # Display the plot in a new window
 
-if __name__ == "__main__":
+def main():
     root = tk.Tk()               # Create the main Tkinter root window
-    app = CSVPlotterApp(root)    # Create an instance of the CSVPlotterApp class
+    CSVPlotterApp(root)    # Create an instance of the CSVPlotterApp class
     root.mainloop()              # Start the Tkinter main loop
+
+if __name__ == "__main__":
+    main()
