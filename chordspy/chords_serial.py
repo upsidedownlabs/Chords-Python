@@ -41,19 +41,19 @@ class Chords_USB:
 
     # Supported boards with their sampling rate and Number of Channels
     supported_boards = {
-        "UNO-R3": {"sampling_rate": 250, "Num_channels": 6},
-        "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6},
-        "GENUINO-UNO": {"sampling_rate": 250, "Num_channels": 6},
-        "UNO-R4": {"sampling_rate": 500, "Num_channels": 6},
-        "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3},
-        "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8},
-        "NANO-CLASSIC": {"sampling_rate": 250, "Num_channels": 8},
-        "STM32F4-BLACK-PILL": {"sampling_rate": 500, "Num_channels": 8},
-        "STM32G4-CORE-BOARD": {"sampling_rate": 500, "Num_channels": 16},
-        "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16},
-        "MEGA-2560-CLONE": {"sampling_rate": 250, "Num_channels": 16},
-        "GIGA-R1": {"sampling_rate": 500, "Num_channels": 6},
-        "NPG-LITE": {"sampling_rate": 500, "Num_channels": 3},
+        "UNO-R3": {"sampling_rate": 250, "Num_channels": 6, "resolution": 10},
+        "UNO-CLONE": {"sampling_rate": 250, "Num_channels": 6, "resolution": 10},
+        "GENUINO-UNO": {"sampling_rate": 250, "Num_channels": 6, "resolution": 10},
+        "UNO-R4": {"sampling_rate": 500, "Num_channels": 6, "resolution": 14},
+        "RPI-PICO-RP2040": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},
+        "NANO-CLONE": {"sampling_rate": 250, "Num_channels": 8, "resolution": 10},
+        "NANO-CLASSIC": {"sampling_rate": 250, "Num_channels": 8, "resolution": 10},
+        "STM32F4-BLACK-PILL": {"sampling_rate": 500, "Num_channels": 8, "resolution": 12},
+        "STM32G4-CORE-BOARD": {"sampling_rate": 500, "Num_channels": 16, "resolution": 12},
+        "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16, "resolution": 10},
+        "MEGA-2560-CLONE": {"sampling_rate": 250, "Num_channels": 16, "resolution": 10},
+        "GIGA-R1": {"sampling_rate": 500, "Num_channels": 6, "resolution": 16},
+        "NPG-LITE": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},
     }
 
     def __init__(self):

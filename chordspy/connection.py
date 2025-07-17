@@ -61,6 +61,7 @@ class Connection:
         self.stream_type = "EXG"                   # LSL stream type
         self.stream_format = "float32"             # Data format for LSL samples
         self.stream_id = "UDL"                     # Unique stream identifier
+        self.resolution = 12                       # Resolution bit for stream
         
         # Data Tracking Systems
         self.last_sample = None                    # Stores the most recent sample received
@@ -131,8 +132,15 @@ class Connection:
         """
         # Create LSL stream info with configured parameters
         info = StreamInfo(self.stream_name, self.stream_type, num_channels, sampling_rate, self.stream_format, self.stream_id)
-        self.lsl_connection = StreamOutlet(info)   # Initialize LSL outlet
-        print(f"LSL stream started: {num_channels} channels at {sampling_rate}Hz")
+        
+        # Add resolution information to the stream description
+        desc = info.desc()
+        resinfo = desc.append_child("resinfo")
+        resolution = getattr(self, 'resolution', 12)
+        resinfo.append_child_value("resolution", str(resolution))
+        
+        self.lsl_connection = StreamOutlet(info)
+        print(f"LSL stream started: {num_channels} channels at {sampling_rate}Hz with {resolution}-bit resolution")
         self.stream_active = True
         self.num_channels = num_channels
         self.sampling_rate = sampling_rate
@@ -538,6 +546,9 @@ class Connection:
         self.num_channels = self.usb_connection.num_channels
         board_config = self.usb_connection.supported_boards[self.usb_connection.board]
         self.sampling_rate = board_config["sampling_rate"]
+        
+        # Get resolution from board config (with fallback to 12)
+        self.resolution = board_config.get("resolution", 12)
         
         # Initialize LSL stream
         self.setup_lsl(self.num_channels, self.sampling_rate)
