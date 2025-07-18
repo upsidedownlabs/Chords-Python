@@ -1,46 +1,46 @@
 # Chords - Python
 
-Chords- Python is a bag of tools designed to interface with Micro-controller development boards running [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware).Use Upside Down Labs bio-potential amplifiers to read data, visualize it, record data in CSV Files, and stream it via Lab Streaming Layer.  
+Chords- Python is an open-source bag of tools designed to interface with Micro-controller development boards running [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware). Use Upside Down Labs bio-potential amplifiers to read data, visualize it, record data in CSV Files, and stream it via Lab Streaming Layer.  
 
 > [!NOTE]  
-> **Firmware Required:**  
-> - For Arduino: [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware)
+> **Firmware Required for Arduino:** [Chords Arduino Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware)
 
 ## Features  
 - **Multiple Protocols**: Supports `Wi-Fi`, `Bluetooth`, and `Serial` communication.  
-- **LSL Data Streaming**:Once the LSL stream starts, any PC on the same Wi-Fi network can access the data using tools like BrainVision LSL Viewer. 
+- **LSL Data Streaming**: Once the LSL stream starts, any PC on the same Wi-Fi network can access the data using tools like BrainVision LSL Viewer. 
 - **CSV Logging**: Save raw data with Counter 
 - **GUI**: Live plotting for all channels. 
-- **Applications**: EEG/ECG/EMG/EOG-based games and utilities (e.g., Tug of War, Keystroke Emulator).  
+- **Applications**: EEG/ECG/EMG/EOG-based games and utilities (e.g., Tug of War, Keystroke Emulator). 
 
-## Installation  
-1. **Python**: Ensure Latest version of Python is installed.  
-2. **Virtual Environment**:  
-   ```bash
-   python -m venv venv  
-   source venv/bin/activate  # Linux/macOS  
-   .\venv\Scripts\activate   # Windows  
-   ```  
-3. **Dependencies**:  
-   ```bash
-   pip install -r requirements.txt  
-   ```  
 
-> [!IMPORTANT]  
-> On Windows, if scripts are blocked, run:  
-> ```powershell
-> Set-ExecutionPolicy Unrestricted -Scope Process  
-> ```  
+## Installation
+
+- Make sure you have the latest version of Python installed.
+
+- Open command prompt and run:
+```bash
+python -m venv venv
+```
+
+```bash
+venv\Scripts\activate         # For Windows
+source venv/bin/activate      # For MacOS/Linux
+``` 
+
+```bash
+pip install chordspy
+```
 
 ## Usage  
-Run the script and access the web interface:  
+Run the command and access the web interface:  
 ```bash
-python app.py  
+chordspy  
 ```  
-**Web Interface Preview**:  
-![Web Interface Screenshot](./media/Interface.png)
 
-![Web Interface Screenshot](./media/Webinterface.png)
+**Web Interface Preview**:  
+![Web Interface Screenshot](./chordspy/media/Interface.png)
+
+![Web Interface Screenshot](./chordspy/media/Webinterface.png)
 
 ### Key Options:
 

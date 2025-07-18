@@ -122,7 +122,10 @@ def init_gui():
 
     return app
 
-if __name__ == "__main__":
+def main():
     plot_lsl_data()
     if inlet:
-        sys.exit(app.exec_())  # Start the Qt application only if a stream was connected
+        sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
