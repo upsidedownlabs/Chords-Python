@@ -80,7 +80,7 @@ jobs:
         run: poetry version ${{ needs.details.outputs.new_version }}
 
       - name: Install dependencies
-        run: poetry install --sync --no-interaction --no-root
+        run: poetry sync --no-interaction --no-root
 
       - name: Build package
         run: poetry build
