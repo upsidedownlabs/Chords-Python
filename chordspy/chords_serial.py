@@ -244,35 +244,35 @@ class Chords_USB:
         """
         global start_time, last_ten_minute_time, total_packet_count, cumulative_packet_count
         current_time = time.time()
-        start_time = current_time            # Session start time
-        last_ten_minute_time = current_time  # 10-minute interval start time
-        total_packet_count = 0               # Counter for packets in current second
-        cumulative_packet_count = 0          # Counter for all packets
+        self.start_time = current_time            # Session start time
+        self.last_ten_minute_time = current_time  # 10-minute interval start time
+        self.total_packet_count = 0               # Counter for packets in current second
+        self.cumulative_packet_count = 0          # Counter for all packets
 
     def log_one_second_data(self):
         """
         Log data for one second intervals and displays: Number of packets received in the last second, Number of missing samples (if any)
         """
         global total_packet_count, samples_per_second, missing_samples
-        samples_per_second = total_packet_count
+        self.samples_per_second = total_packet_count
         print(f"Data count for the last second: {total_packet_count} samples, "f"Missing samples: {missing_samples}")
-        total_packet_count = 0  # Reset for next interval
+        self.total_packet_count = 0  # Reset for next interval
 
     def log_ten_minute_data(self):
         """
         Log data for 10-minute intervals and displays: Total packets received, Actual sampling rate, Drift from expected rate
         """
         global cumulative_packet_count, last_ten_minute_time, supported_boards, board
-        print(f"Total data count after 10 minutes: {cumulative_packet_count}")
-        sampling_rate = cumulative_packet_count / (10 * 60)    # Calculate actual sampling rate
+        print(f"Total data count after 10 minutes: {self.cumulative_packet_count}")
+        sampling_rate = self.cumulative_packet_count / (10 * 60)    # Calculate actual sampling rate
         print(f"Sampling rate: {sampling_rate:.2f} samples/second")
-        expected_sampling_rate = supported_boards[board]["sampling_rate"]
+        expected_sampling_rate = self.supported_boards[board]["sampling_rate"]
         drift = ((sampling_rate - expected_sampling_rate) / expected_sampling_rate) * 3600    # Calculate drift from expected rate
         print(f"Drift: {drift:.2f} seconds/hour")
         
         # Reset counters
-        cumulative_packet_count = 0
-        last_ten_minute_time = time.time()
+        self.cumulative_packet_count = 0
+        self.last_ten_minute_time = time.time()
 
 if __name__ == "__main__":
     client = Chords_USB()     # Create and run the USB client
