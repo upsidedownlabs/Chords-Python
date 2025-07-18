@@ -2,7 +2,7 @@
 name = "chordspy"
 version = "0.1.0"
 description = "An open source bag of tools for recording and visualizing Bio-potential signals like EEG, ECG, EMG, or EOG."
-authors = ["Upside Down Labs <support@upsidedownlabs.tech>"]
+authors = ["Upside Down Labs <chords@upsidedownlabs.tech>"]
 readme = "README.md"
 license = "MIT"
 homepage = "https://github.com/upsidedownlabs/Chords-Python"
