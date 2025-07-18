@@ -432,8 +432,10 @@ class Connection:
                 for i in range(0, self.ble_connection.NEW_PACKET_LEN, self.ble_connection.SINGLE_SAMPLE_LEN):
                     sample_data = data[i:i+self.ble_connection.SINGLE_SAMPLE_LEN]
                     if len(sample_data) == self.ble_connection.SINGLE_SAMPLE_LEN:
-                        channels = [int.from_bytes(sample_data[i:i+2], byteorder='big', signed=True) 
-                            for i in range(1, len(sample_data), 2)]
+                        channels = [
+                            int.from_bytes(sample_data[i:i + 2], byteorder='big', signed=True)
+                            for i in range(1, len(sample_data), 2)
+                        ]
                         self.last_sample = channels
                         self.ble_samples_received += 1
                 
