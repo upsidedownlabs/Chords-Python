@@ -19,13 +19,19 @@ Chords- Python is an open-source bag of tools designed to interface with Micro-c
 
 - Open command prompt and run:
 ```bash
-python -m venv venv
+python -m venv .venv
 ```
 
 ```bash
-venv\Scripts\activate         # For Windows
-source venv/bin/activate      # For MacOS/Linux
+.venv\Scripts\activate         # For Windows
+source .venv/bin/activate      # For MacOS/Linux
 ``` 
+
+[!IMPORTANT]
+You may get an execution policy error if scripts are restricted. To fix it, run:
+```bash
+Set-ExecutionPolicy Unrestricted -Scope Process
+```
 
 ```bash
 pip install chordspy
@@ -38,9 +44,52 @@ chordspy
 ```  
 
 **Web Interface Preview**:  
-![Web Interface Screenshot](./chordspy/media/Interface.png)
+![Web Interface Screenshot](Chords-Python\chordspy\media\Interface.png)
 
-![Web Interface Screenshot](./chordspy/media/Webinterface.png)
+![Web Interface Screenshot](Chords-Python\chordspy\media\Webinterface.png)
+
+# [!Optional]
+
+If you want to run the individual scripts, then follow these steps:
+
+- Open command prompt and run:
+```bash
+python -m venv .venv
+```
+
+```bash
+.venv\Scripts\activate         # For Windows
+source .venv/bin/activate      # For MacOS/Linux
+``` 
+
+[!IMPORTANT]
+You may get an execution policy error if scripts are restricted. To fix it, run:
+```bash
+Set-ExecutionPolicy Unrestricted -Scope Process
+```
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+Run the command and access the web interface:  
+```bash
+python -m chordspy.app  
+```  
+
+Run the command to start the LSL Stream only:
+```bash
+python -m chordspy.connection --protocol ble    # For BLE
+python -m chordspy.connection --protocol wifi   # For WiFi
+python -m chordspy.connection --protocol usb    # For USB
+```
+
+Then, in a new terminal, run any application you need:
+```bash
+python -m chordspy.gui       # For GUI
+python -m chordspy.ffteeg    # For EEG with FFT
+```  
 
 ### Key Options:
 
