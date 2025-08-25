@@ -61,3 +61,10 @@ apps:
     script: "csvplotter"
     description: "Load and plot data from CSV files for offline analysis."
     category: "Tools"
+
+  - title: "Morse Decoder"
+    icon: "fa-font"
+    color: "rose"
+    script: "morse_decoder"
+    description: "Decode EOG Signals into Alphabets based on Morse Code."
+    category: "EOG"
