@@ -6,6 +6,7 @@ import numpy as np
 from scipy.signal import butter, lfilter
 import pylsl
 import time
+import os
 
 class EOGPeakDetector:
     def __init__(self, blink_button, keystroke_action, connect_button):
@@ -203,7 +204,9 @@ def create_popup():
     horizontal_frame = tk.Frame(popup)
     horizontal_frame.pack(expand=True, pady=10)
 
-    eye_icon = PhotoImage(file="C:/Users/PAYAL/Desktop/Chords-Python/chordspy/media/icons8-eye-30.png")
+    # Use a relative path for the icon
+    icon_path = os.path.join(os.path.dirname(__file__), "media", "icons8-eye-30.png")
+    eye_icon = PhotoImage(file=icon_path)
 
     blink_button = tk.Button(horizontal_frame, image=eye_icon, width=70, height=38, bg="#FFFFFF")
     blink_button.image = eye_icon
