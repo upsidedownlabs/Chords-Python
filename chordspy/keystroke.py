@@ -136,9 +136,10 @@ class EOGPeakDetector:
     def update_button_color(self):
         self.blink_button.config(bg="#ADD8E6")
         self.blink_button.update()
-    # Use a cross-platform default color for button background
-    default_bg = self.blink_button.master.cget("bg")
-    self.blink_button.after(100, lambda: self.blink_button.config(bg=default_bg))
+
+    def reset_button_color(self):
+        # Use a cross-platform default color for button background
+        self.blink_button.after(100, lambda: self.blink_button.config(bg=self.blink_button.cget("bg")))
 
 def quit_action(detector):
     """Handle the quit action for the GUI."""
