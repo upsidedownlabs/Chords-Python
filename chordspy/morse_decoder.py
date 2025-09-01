@@ -21,14 +21,14 @@ class MorseCodeEOGSystem:
         }
     
         self.morse_buffer = ""            # Output buffer for morse code
-        self.min_interblink_gap = 0.1     # 100ms minimum between blinks in a double blink
-        self.max_interblink_gap = 0.4     # 400ms maximum between blinks in a double blink
+        self.min_interblink_gap = 0.11     # 100ms minimum between blinks in a double blink
+        self.max_interblink_gap = 0.5     # 400ms maximum between blinks in a double blink
         self.double_blink_cooldown = 1.0  # 1 second cooldown between double blink detections
         self.last_double_blink_time = 0
         self.last_data_time = None
         self.stream_active = True
         self.last_input_time = None       # Track last input time for inactivity
-        self.inactivity_timeout = 3.0
+        self.inactivity_timeout = 7.0
 
         # GUI label and root for updating decoded character
         self.gui_label = gui_label
@@ -76,11 +76,11 @@ class MorseCodeEOGSystem:
         
         # Left/Right detection parameters
         self.BUFFER_SIZE = 250
-        self.BASELINE_SAMPLES = 100
-        self.DEVIATION_SIGMA = 8
-        self.MIN_MOVEMENT_SAMPLES = 8
-        self.COOLDOWN_SAMPLES = 15
-        
+        self.BASELINE_SAMPLES = 125
+        self.DEVIATION_SIGMA = 6
+        self.MIN_MOVEMENT_SAMPLES = 40
+        self.COOLDOWN_SAMPLES = 30
+
         # Left/Right data structures
         self.circular_buffer = deque(maxlen=self.BUFFER_SIZE)
         self.baseline = None

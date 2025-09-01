@@ -6,6 +6,7 @@ import numpy as np
 from scipy.signal import butter, lfilter
 import pylsl
 import time
+import os
 
 class EOGPeakDetector:
     def __init__(self, blink_button, keystroke_action, connect_button):
@@ -135,7 +136,10 @@ class EOGPeakDetector:
     def update_button_color(self):
         self.blink_button.config(bg="#ADD8E6")
         self.blink_button.update()
-        self.blink_button.after(100, lambda: self.blink_button.config(bg="SystemButtonFace"))
+
+    def reset_button_color(self):
+        # Use a cross-platform default color for button background
+        self.blink_button.after(100, lambda: self.blink_button.config(bg=self.blink_button.cget("bg")))
 
 def quit_action(detector):
     """Handle the quit action for the GUI."""
@@ -203,7 +207,9 @@ def create_popup():
     horizontal_frame = tk.Frame(popup)
     horizontal_frame.pack(expand=True, pady=10)
 
-    eye_icon = PhotoImage(file="C:/Users/PAYAL/Desktop/Chords-Python/chordspy/media/icons8-eye-30.png")
+    # Use a relative path for the icon
+    icon_path = os.path.join(os.path.dirname(__file__), "media", "icons8-eye-30.png")
+    eye_icon = PhotoImage(file=icon_path)
 
     blink_button = tk.Button(horizontal_frame, image=eye_icon, width=70, height=38, bg="#FFFFFF")
     blink_button.image = eye_icon
