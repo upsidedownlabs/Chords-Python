@@ -5,6 +5,7 @@ import time
 from collections import deque
 import threading
 import tkinter as tk
+from tkinter import ttk
 
 class BiquadFilter:
     """Biquad filter implementation matching the firmware"""
@@ -31,7 +32,6 @@ class BiquadFilter:
 class EOGFilter:
     """EOG High-pass filter (0.5Hz) matching firmware"""
     def __init__(self):
-        # Coefficients from firmware
         self.stage = BiquadFilter(0.99136003, -1.98272007, 0.99136003, 
                                    -1.98264542, 0.98279472)
     
@@ -44,7 +44,6 @@ class EOGFilter:
 class NotchFilter:
     """50Hz/60Hz Notch filter matching firmware"""
     def __init__(self):
-        # Two-stage notch filter from firmware
         self.stage0 = BiquadFilter(0.96588529, -1.57986211, 0.96588529,
                                     -1.58696045, 0.96505858)
         self.stage1 = BiquadFilter(1.00000000, -1.63566226, 1.00000000,
@@ -101,7 +100,7 @@ class BaselineTracker:
         return self.sum / count if count > 0 else 0.0
 
 class MorseCodeEOGSystem:
-    def __init__(self, gui_label=None, gui_root=None):
+    def __init__(self, gui_label=None, gui_root=None, status_label=None, buffer_label=None):
         self.morse_code = {
             '.-': 'A', '-...': 'B', '-.-.': 'C', '-..': 'D', '.': 'E',
             '..-.': 'F', '--.': 'G', '....': 'H', '..': 'I', '.---': 'J',
@@ -113,16 +112,15 @@ class MorseCodeEOGSystem:
             '----.': '9'
         }
         
-        # Morse buffer and configuration
         self.morse_buffer = ""
         self.MAX_MORSE_LENGTH = 5
         
-        # GUI label and root for updating decoded character
         self.gui_label = gui_label
         self.gui_root = gui_root
+        self.status_label = status_label
+        self.buffer_label = buffer_label
         self.decoded_word = ""
         
-        # Set up LSL stream inlet
         print("Searching for available LSL streams...")
         available_streams = pylsl.resolve_streams()
         if not available_streams:
@@ -145,33 +143,42 @@ class MorseCodeEOGSystem:
         self.sampling_rate = int(self.inlet.info().nominal_srate())
         print(f"Sampling rate: {self.sampling_rate} Hz")
         
-        # Blink Detection Configuration (matching firmware)
-        self.BLINK_DEBOUNCE_MS = 250
-        self.DOUBLE_BLINK_MS = 600
-        self.TRIPLE_BLINK_MS = 1000
-        self.BLINK_THRESHOLD = 150.0
+        # Detect ADC resolution from stream metadata or default to 12-bit
+        self.adc_resolution = 12
+        self.adc_max = (2 ** self.adc_resolution) - 1
+        self.adc_mid = self.adc_max / 2.0
+        
+        print(f"ADC Resolution: {self.adc_resolution}-bit (0-{self.adc_max})")
+        
+        # Blink Detection Configuration - adjusted for filtered signal magnitude
+        self.BLINK_DEBOUNCE_MS = 150  # Minimum time between detecting separate blinks
+        self.DOUBLE_BLINK_MS = 700    # Window for intentional double blinks
+        self.TRIPLE_BLINK_MS = 1200   # Window for intentional triple blinks
+        self.BLINK_THRESHOLD = 120.0  # Threshold to detect blink start
+        self.BLINK_RELEASE_THRESHOLD = 100.0  # Hysteresis: must drop below to allow next blink
         
         self.last_blink_time = 0
         self.first_blink_time = 0
         self.second_blink_time = 0
         self.blink_count = 0
         self.blink_active = False
+        self.blink_released = True  # Track if blink has been released before next detection
         
-        # Eye Movement Detection Configuration (matching firmware)
-        self.EYE_MOVEMENT_DEBOUNCE_MS = 500
-        self.EYE_MOVEMENT_THRESHOLD = 350.0
+        # Eye Movement Detection Configuration - adjusted for filtered signal
+        self.EYE_MOVEMENT_DEBOUNCE_MS = 750  # Minimum time between detecting separate movements
+        self.EYE_MOVEMENT_THRESHOLD = 200.0  # Threshold to detect movement
+        self.EYE_MOVEMENT_RELEASE_THRESHOLD = 30.0  # Must drop below this to allow next movement
         self.last_eye_movement_time = 0
         self.eye_movement_active = False
+        self.eye_movement_released = True  # Track if movement has been released
         
-        # Initialize filters for vertical EOG (blink detection)
+        # Initialize filters
         self.eog_filter_vertical = EOGFilter()
         self.notch_filter_vertical = NotchFilter()
-        
-        # Initialize filters for horizontal EOG (left/right detection)
         self.eog_filter_horizontal = EOGFilter()
         self.notch_filter_horizontal = NotchFilter()
         
-        # Envelope detector for blink detection (100ms window)
+        # Envelope detector (100ms window)
         envelope_window_ms = 100
         envelope_window_size = (envelope_window_ms * self.sampling_rate) // 1000
         self.envelope_detector = EnvelopeDetector(envelope_window_size)
@@ -179,11 +186,9 @@ class MorseCodeEOGSystem:
         # Baseline tracker for horizontal EOG
         self.horizontal_baseline = BaselineTracker(window_size=512)
         
-        # Current signal values
         self.current_envelope = 0.0
         self.horizontal_signal = 0.0
         
-        # Stream state
         self.stream_active = True
         self.last_data_time = None
         
@@ -197,25 +202,24 @@ class MorseCodeEOGSystem:
         print("===================================\n")
 
     def add_dot(self):
-        """Add dot to morse buffer"""
         if len(self.morse_buffer) >= self.MAX_MORSE_LENGTH:
             print("\nBuffer full! Resetting...")
             self.morse_buffer = ""
         
         self.morse_buffer += "."
         print(".", end="", flush=True)
+        self.update_buffer_gui()
     
     def add_dash(self):
-        """Add dash to morse buffer"""
         if len(self.morse_buffer) >= self.MAX_MORSE_LENGTH:
             print("\nBuffer full! Resetting...")
             self.morse_buffer = ""
         
         self.morse_buffer += "-"
         print("-", end="", flush=True)
+        self.update_buffer_gui()
     
     def send_morse_as_letter(self):
-        """Send accumulated morse code as letter"""
         if len(self.morse_buffer) == 0:
             print("\nBuffer empty")
             return
@@ -224,89 +228,127 @@ class MorseCodeEOGSystem:
             decoded = self.morse_code[self.morse_buffer]
             print(f" -> {decoded}")
             self.decoded_word += decoded
-            self.update_gui(self.decoded_word)
+            self.update_word_gui(self.decoded_word)
         else:
             print(f"\nInvalid: {self.morse_buffer}")
         
         self.morse_buffer = ""
+        self.update_buffer_gui()
     
     def send_backspace(self):
-        """Send backspace - clear buffer and remove last character"""
         print("\n>>> BACKSPACE")
         self.morse_buffer = ""
         if len(self.decoded_word) > 0:
             self.decoded_word = self.decoded_word[:-1]
-            self.update_gui(self.decoded_word)
+            self.update_word_gui(self.decoded_word)
+        self.update_buffer_gui()
     
-    def update_gui(self, text):
-        """Update the label in the tkinter window with the decoded word"""
+    def update_word_gui(self, text):
         if self.gui_label and self.gui_root:
             def set_label():
                 self.gui_label.config(text=text)
             self.gui_root.after(0, set_label)
     
+    def update_status_gui(self, text):
+        if self.status_label and self.gui_root:
+            def set_status():
+                self.status_label.config(text=text)
+            self.gui_root.after(0, set_status)
+    
+    def update_buffer_gui(self):
+        if self.buffer_label and self.gui_root:
+            buffer_text = f"Buffer: {self.morse_buffer if self.morse_buffer else '(empty)'}"
+            def set_buffer():
+                self.buffer_label.config(text=buffer_text)
+            self.gui_root.after(0, set_buffer)
+    
     def detect_blinks(self, now_ms):
-        """Detect blinks using envelope detector matching firmware logic"""
         envelope_high = self.current_envelope > self.BLINK_THRESHOLD
+        envelope_low = self.current_envelope < self.BLINK_RELEASE_THRESHOLD
         
-        if not self.blink_active and envelope_high and (now_ms - self.last_blink_time) >= self.BLINK_DEBOUNCE_MS:
+        # Track release state - envelope must drop below release threshold before next blink
+        if envelope_low and self.blink_active:
+            self.blink_released = True
+            self.blink_active = False
+        
+        # Only detect new blink if:
+        # 1. Envelope is high (crossing threshold upward)
+        # 2. Previous blink has been released (envelope went low)
+        # 3. Sufficient time has passed (debounce) OR blink was released
+        # The key: allow quick blinks if they properly released, ignore bouncing if too fast
+        time_since_last = now_ms - self.last_blink_time
+        can_detect = self.blink_released and (time_since_last >= self.BLINK_DEBOUNCE_MS or time_since_last >= 150)
+        
+        if envelope_high and not self.blink_active and can_detect:
             self.last_blink_time = now_ms
+            self.blink_released = False  # Mark as not released until envelope drops
+            self.blink_active = True
             
             if self.blink_count == 0:
                 self.first_blink_time = now_ms
                 self.blink_count = 1
-            elif self.blink_count == 1 and (now_ms - self.first_blink_time) <= self.DOUBLE_BLINK_MS and \
-                 (now_ms - self.first_blink_time) >= self.BLINK_DEBOUNCE_MS:
+                self.update_status_gui("Blink detected (1)")
+                print("\n[BLINK 1]", end="", flush=True)
+            elif self.blink_count == 1 and (now_ms - self.first_blink_time) <= self.DOUBLE_BLINK_MS:
                 self.second_blink_time = now_ms
                 self.blink_count = 2
-            elif self.blink_count == 2 and (now_ms - self.second_blink_time) <= self.TRIPLE_BLINK_MS and \
-                 (now_ms - self.second_blink_time) >= self.BLINK_DEBOUNCE_MS:
+                self.update_status_gui("Double Blink detected (2)")
+                print(" [BLINK 2]", end="", flush=True)
+            elif self.blink_count == 2 and (now_ms - self.second_blink_time) <= self.TRIPLE_BLINK_MS:
                 print("\n>>> TRIPLE BLINK <<<")
+                self.update_status_gui(">>> TRIPLE BLINK - BACKSPACE <<<")
                 self.send_backspace()
                 self.blink_count = 0
             else:
+                # Reset if timing doesn't match double/triple blink pattern
                 self.first_blink_time = now_ms
                 self.blink_count = 1
-            
-            self.blink_active = True
-        
-        if not envelope_high:
-            self.blink_active = False
+                self.update_status_gui("Blink detected (1)")
+                print("\n[BLINK 1]", end="", flush=True)
         
         # Check for double blink timeout
         if self.blink_count == 2 and (now_ms - self.second_blink_time) > self.TRIPLE_BLINK_MS:
             print("\n>>> DOUBLE BLINK <<<")
+            self.update_status_gui(">>> DOUBLE BLINK - SEND LETTER <<<")
             self.send_morse_as_letter()
             self.blink_count = 0
         
         # Check for single blink timeout
         if self.blink_count == 1 and (now_ms - self.first_blink_time) > self.DOUBLE_BLINK_MS:
             self.blink_count = 0
+            self.update_status_gui("Ready")
     
     def detect_eye_movement(self, now_ms):
-        """Detect eye movement (left/right) matching firmware logic"""
         baseline = self.horizontal_baseline.get_baseline()
         deviation = self.horizontal_signal - baseline
         abs_deviation = abs(deviation)
         
+        # Track release state - must return to low deviation before next movement
+        if abs_deviation < self.EYE_MOVEMENT_RELEASE_THRESHOLD and self.eye_movement_active:
+            self.eye_movement_released = True
+            self.eye_movement_active = False
+        
+        # Only detect new movement if:
+        # 1. Deviation exceeds threshold
+        # 2. Previous movement has been released
+        # 3. Sufficient time has passed (debounce)
         if not self.eye_movement_active and abs_deviation > self.EYE_MOVEMENT_THRESHOLD and \
-           (now_ms - self.last_eye_movement_time) >= self.EYE_MOVEMENT_DEBOUNCE_MS:
+           self.eye_movement_released and (now_ms - self.last_eye_movement_time) >= self.EYE_MOVEMENT_DEBOUNCE_MS:
             
             self.eye_movement_active = True
+            self.eye_movement_released = False  # Mark as not released
             self.last_eye_movement_time = now_ms
             
             if deviation < 0:
                 print("\n>>> LEFT <<<")
+                self.update_status_gui(">>> LEFT - DOT <<<")
                 self.add_dot()
             else:
                 print("\n>>> RIGHT <<<")
+                self.update_status_gui(">>> RIGHT - DASH <<<")
                 self.add_dash()
-        
-        if self.eye_movement_active and abs_deviation < (self.EYE_MOVEMENT_THRESHOLD * 0.5):
-            self.eye_movement_active = False
 
     def run(self):
-        """Main loop matching firmware processing"""
         try:
             while self.stream_active:
                 samples, _ = self.inlet.pull_chunk(timeout=0.1, max_samples=10)
@@ -316,20 +358,23 @@ class MorseCodeEOGSystem:
                     now_ms = int(time.time() * 1000)
                     
                     for sample in samples:
-                        # Process vertical EOG (channel 1) for blink detection
-                        raw_ch1 = sample[1]
-                        filt_ch1 = self.notch_filter_vertical.process(raw_ch1)
-                        filt_ch1 = self.eog_filter_vertical.process(filt_ch1)
-                        self.current_envelope = self.envelope_detector.update(filt_ch1)
+                        # Get raw ADC values and center them
+                        # sample[0] = Vertical EOG (blinks)
+                        # sample[1] = Horizontal EOG (left/right)
+                        raw_vertical = sample[0] - self.adc_mid
+                        raw_horizontal = sample[1] - self.adc_mid
                         
-                        # Process horizontal EOG (channel 0) for left/right detection
-                        raw_ch0 = sample[0]
-                        filt_ch0 = self.notch_filter_horizontal.process(raw_ch0)
-                        filt_ch0 = self.eog_filter_horizontal.process(filt_ch0)
-                        self.horizontal_signal = filt_ch0
-                        self.horizontal_baseline.update(filt_ch0)
+                        # Process vertical EOG (channel 0) for blink detection
+                        filt_vertical = self.notch_filter_vertical.process(raw_vertical)
+                        filt_vertical = self.eog_filter_vertical.process(filt_vertical)
+                        self.current_envelope = self.envelope_detector.update(filt_vertical)
+                        
+                        # Process horizontal EOG (channel 1) for left/right detection
+                        filt_horizontal = self.notch_filter_horizontal.process(raw_horizontal)
+                        filt_horizontal = self.eog_filter_horizontal.process(filt_horizontal)
+                        self.horizontal_signal = filt_horizontal
+                        self.horizontal_baseline.update(filt_horizontal)
                     
-                    # Detect blinks and eye movements
                     self.detect_blinks(now_ms)
                     self.detect_eye_movement(now_ms)
                 
@@ -337,19 +382,54 @@ class MorseCodeEOGSystem:
                     if self.last_data_time and (time.time() - self.last_data_time) > 2:
                         self.stream_active = False
                         print("\nLSL stream disconnected!")
+                        self.update_status_gui("Stream disconnected!")
                         
         except KeyboardInterrupt:
             print("\nExiting...")
 
 if __name__ == "__main__":
     gui_root = tk.Tk()
-    gui_root.title("Morse Output")
+    gui_root.title("EOG Morse Code Decoder")
     gui_root.configure(bg="white")
-    gui_root.geometry("500x300+220+280")
-    gui_label = tk.Label(gui_root, text="", font=("Arial", 48), bg="white", fg="black")
-    gui_label.pack(expand=True)
+    gui_root.geometry("700x400+200+200")
+    
+    # Title
+    title_label = tk.Label(gui_root, text="EOG Morse Code Decoder", 
+                           font=("Arial", 20, "bold"), bg="white", fg="#2c3e50")
+    title_label.pack(pady=10)
+    
+    # Instructions
+    instructions = tk.Label(gui_root, 
+                           text="Left Eye = DOT (.)  |  Right Eye = DASH (-)  |  2x Blink = SEND  |  3x Blink = BACKSPACE",
+                           font=("Arial", 10), bg="white", fg="#7f8c8d")
+    instructions.pack(pady=5)
+    
+    # Status label
+    status_label = tk.Label(gui_root, text="Initializing...", 
+                           font=("Arial", 14), bg="white", fg="#27ae60")
+    status_label.pack(pady=10)
+    
+    # Buffer display
+    buffer_label = tk.Label(gui_root, text="Buffer: (empty)", 
+                           font=("Courier", 16, "bold"), bg="#ecf0f1", fg="#2980b9",
+                           relief=tk.SUNKEN, padx=10, pady=5)
+    buffer_label.pack(pady=10, padx=20, fill=tk.X)
+    
+    # Decoded word display
+    word_frame = tk.Frame(gui_root, bg="white")
+    word_frame.pack(pady=10, fill=tk.BOTH, expand=True, padx=20)
+    
+    word_title = tk.Label(word_frame, text="Decoded Message:", 
+                         font=("Arial", 12), bg="white", fg="#34495e")
+    word_title.pack(anchor=tk.W)
+    
+    gui_label = tk.Label(word_frame, text="", font=("Arial", 36, "bold"), 
+                        bg="#ffffff", fg="#2c3e50", relief=tk.GROOVE, 
+                        padx=20, pady=20, anchor=tk.W, justify=tk.LEFT)
+    gui_label.pack(fill=tk.BOTH, expand=True)
 
-    system = MorseCodeEOGSystem(gui_label=gui_label, gui_root=gui_root)
+    system = MorseCodeEOGSystem(gui_label=gui_label, gui_root=gui_root, 
+                                status_label=status_label, buffer_label=buffer_label)
     system_thread = threading.Thread(target=system.run, daemon=True)
     system_thread.start()
 
