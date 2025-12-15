@@ -1,11 +1,104 @@
 import numpy as np
-from scipy.signal import butter, lfilter, lfilter_zi, iirnotch
 import pylsl
 import sys
 import time
 from collections import deque
 import threading
 import tkinter as tk
+
+class BiquadFilter:
+    """Biquad filter implementation matching the firmware"""
+    def __init__(self, b0, b1, b2, a1, a2):
+        self.b0 = b0
+        self.b1 = b1
+        self.b2 = b2
+        self.a1 = a1
+        self.a2 = a2
+        self.z1 = 0.0
+        self.z2 = 0.0
+    
+    def process(self, input_sample):
+        x0 = input_sample - (self.a1 * self.z1) - (self.a2 * self.z2)
+        output = self.b0 * x0 + self.b1 * self.z1 + self.b2 * self.z2
+        self.z2 = self.z1
+        self.z1 = x0
+        return output
+    
+    def reset(self):
+        self.z1 = 0.0
+        self.z2 = 0.0
+
+class EOGFilter:
+    """EOG High-pass filter (0.5Hz) matching firmware"""
+    def __init__(self):
+        # Coefficients from firmware
+        self.stage = BiquadFilter(0.99136003, -1.98272007, 0.99136003, 
+                                   -1.98264542, 0.98279472)
+    
+    def process(self, input_sample):
+        return self.stage.process(input_sample)
+    
+    def reset(self):
+        self.stage.reset()
+
+class NotchFilter:
+    """50Hz/60Hz Notch filter matching firmware"""
+    def __init__(self):
+        # Two-stage notch filter from firmware
+        self.stage0 = BiquadFilter(0.96588529, -1.57986211, 0.96588529,
+                                    -1.58696045, 0.96505858)
+        self.stage1 = BiquadFilter(1.00000000, -1.63566226, 1.00000000,
+                                    -1.62761184, 0.96671306)
+    
+    def process(self, input_sample):
+        output = self.stage0.process(input_sample)
+        output = self.stage1.process(output)
+        return output
+    
+    def reset(self):
+        self.stage0.reset()
+        self.stage1.reset()
+
+class EnvelopeDetector:
+    """Envelope detector for blink detection matching firmware"""
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.buffer = np.zeros(window_size)
+        self.index = 0
+        self.sum = 0.0
+    
+    def update(self, sample):
+        abs_sample = abs(sample)
+        self.sum -= self.buffer[self.index]
+        self.sum += abs_sample
+        self.buffer[self.index] = abs_sample
+        self.index = (self.index + 1) % self.window_size
+        envelope = self.sum / self.window_size
+        return envelope
+
+class BaselineTracker:
+    """Baseline tracker for horizontal EOG matching firmware"""
+    def __init__(self, window_size=512):
+        self.window_size = window_size
+        self.buffer = np.zeros(window_size)
+        self.index = 0
+        self.sum = 0.0
+        self.filled = False
+    
+    def update(self, sample):
+        self.sum -= self.buffer[self.index]
+        self.sum += sample
+        self.buffer[self.index] = sample
+        self.index += 1
+        if self.index >= self.window_size:
+            self.index = 0
+            self.filled = True
+    
+    def get_baseline(self):
+        if not self.filled and self.index == 0:
+            return 0.0
+        count = self.window_size if self.filled else self.index
+        return self.sum / count if count > 0 else 0.0
 
 class MorseCodeEOGSystem:
     def __init__(self, gui_label=None, gui_root=None):
@@ -19,24 +112,16 @@ class MorseCodeEOGSystem:
             '....-': '4', '.....': '5', '-....': '6', '--...': '7', '---..': '8',
             '----.': '9'
         }
-    
-        self.morse_buffer = ""            # Output buffer for morse code
-        self.min_interblink_gap = 0.11     # 100ms minimum between blinks in a double blink
-        self.max_interblink_gap = 0.5     # 400ms maximum between blinks in a double blink
-        self.double_blink_cooldown = 1.0  # 1 second cooldown between double blink detections
-        self.last_double_blink_time = 0
-        self.last_data_time = None
-        self.stream_active = True
-        self.last_input_time = None       # Track last input time for inactivity
-        self.inactivity_timeout = 7.0
-
+        
+        # Morse buffer and configuration
+        self.morse_buffer = ""
+        self.MAX_MORSE_LENGTH = 5
+        
         # GUI label and root for updating decoded character
         self.gui_label = gui_label
         self.gui_root = gui_root
-
-        # Accumulated decoded word for GUI
         self.decoded_word = ""
-
+        
         # Set up LSL stream inlet
         print("Searching for available LSL streams...")
         available_streams = pylsl.resolve_streams()
@@ -60,269 +145,198 @@ class MorseCodeEOGSystem:
         self.sampling_rate = int(self.inlet.info().nominal_srate())
         print(f"Sampling rate: {self.sampling_rate} Hz")
         
-        # Buffer for EOG data
-        self.buffer_size = self.sampling_rate * 5  # 5 seconds buffer
-        self.eog_data = np.zeros(self.buffer_size)
-        self.filtered_eog_data = np.zeros(self.buffer_size)  # Buffer for filtered EOG data
-        self.current_index = 0
+        # Blink Detection Configuration (matching firmware)
+        self.BLINK_DEBOUNCE_MS = 250
+        self.DOUBLE_BLINK_MS = 600
+        self.TRIPLE_BLINK_MS = 1000
+        self.BLINK_THRESHOLD = 150.0
         
-        # Low-pass filter for blink detection (10 Hz)
-        self.b, self.a = butter(4, 10.0 / (0.5 * self.sampling_rate), btype='low')
-        self.zi = lfilter_zi(self.b, self.a)
+        self.last_blink_time = 0
+        self.first_blink_time = 0
+        self.second_blink_time = 0
+        self.blink_count = 0
+        self.blink_active = False
         
-        # Circular buffer for detected peaks
-        self.detected_peaks = deque(maxlen=self.sampling_rate * 5)
-        self.start_time = time.time()
+        # Eye Movement Detection Configuration (matching firmware)
+        self.EYE_MOVEMENT_DEBOUNCE_MS = 500
+        self.EYE_MOVEMENT_THRESHOLD = 350.0
+        self.last_eye_movement_time = 0
+        self.eye_movement_active = False
         
-        # Left/Right detection parameters
-        self.BUFFER_SIZE = 250
-        self.BASELINE_SAMPLES = 125
-        self.DEVIATION_SIGMA = 6
-        self.MIN_MOVEMENT_SAMPLES = 40
-        self.COOLDOWN_SAMPLES = 30
+        # Initialize filters for vertical EOG (blink detection)
+        self.eog_filter_vertical = EOGFilter()
+        self.notch_filter_vertical = NotchFilter()
+        
+        # Initialize filters for horizontal EOG (left/right detection)
+        self.eog_filter_horizontal = EOGFilter()
+        self.notch_filter_horizontal = NotchFilter()
+        
+        # Envelope detector for blink detection (100ms window)
+        envelope_window_ms = 100
+        envelope_window_size = (envelope_window_ms * self.sampling_rate) // 1000
+        self.envelope_detector = EnvelopeDetector(envelope_window_size)
+        
+        # Baseline tracker for horizontal EOG
+        self.horizontal_baseline = BaselineTracker(window_size=512)
+        
+        # Current signal values
+        self.current_envelope = 0.0
+        self.horizontal_signal = 0.0
+        
+        # Stream state
+        self.stream_active = True
+        self.last_data_time = None
+        
+        print("\n===================================")
+        print("EOG Morse Code Decoder")
+        print("===================================")
+        print("Left Eye  = DOT (.)")
+        print("Right Eye = DASH (-)")
+        print("2x Blink  = SEND Letter")
+        print("3x Blink  = BACKSPACE")
+        print("===================================\n")
 
-        # Left/Right data structures
-        self.circular_buffer = deque(maxlen=self.BUFFER_SIZE)
-        self.baseline = None
-        self.baseline_std = None
-        self.current_state = "NEUTRAL"
-        self.movement_samples = 0
-        self.cooldown_counter = 0
-        self.last_movement = None
-        self.movement_sequence = deque(maxlen=4)
+    def add_dot(self):
+        """Add dot to morse buffer"""
+        if len(self.morse_buffer) >= self.MAX_MORSE_LENGTH:
+            print("\nBuffer full! Resetting...")
+            self.morse_buffer = ""
         
-        # Filter parameters for left/right detection
-        self.NOTCH_FREQ = 50.0
-        self.NOTCH_Q = 20.0
-        self.BANDPASS_LOW = 1.0
-        self.BANDPASS_HIGH = 20.0
+        self.morse_buffer += "."
+        print(".", end="", flush=True)
+    
+    def add_dash(self):
+        """Add dash to morse buffer"""
+        if len(self.morse_buffer) >= self.MAX_MORSE_LENGTH:
+            print("\nBuffer full! Resetting...")
+            self.morse_buffer = ""
         
-        # Initialize filters for left/right detection
-        self.initialize_filters()
+        self.morse_buffer += "-"
+        print("-", end="", flush=True)
+    
+    def send_morse_as_letter(self):
+        """Send accumulated morse code as letter"""
+        if len(self.morse_buffer) == 0:
+            print("\nBuffer empty")
+            return
         
-        print("Right movement -> Dot (.)")
-        print("Left movement -> Dash (-)")
-        print("Double blink -> Process morse code and clear buffer")
-        print("=" * 50)
-
-    def initialize_filters(self):
-        """Initialize filters for left/right detection"""
-        self.notch_b, self.notch_a = iirnotch(self.NOTCH_FREQ, self.NOTCH_Q, self.sampling_rate)
-        nyq = 0.5 * self.sampling_rate
-        low = self.BANDPASS_LOW / nyq
-        high = self.BANDPASS_HIGH / nyq
-        self.bandpass_b, self.bandpass_a = butter(2, [low, high], btype='band')
-        self.filter_state_notch = np.zeros(max(len(self.notch_a), len(self.notch_b)) - 1)
-        self.filter_state_bandpass = np.zeros(max(len(self.bandpass_a), len(self.bandpass_b)) - 1)
-
-    def apply_filters(self, sample):
-        """Apply notch and bandpass filters to sample"""
-        if self.filter_state_notch[0] == -1:
-            filtered, self.filter_state_notch = lfilter(self.notch_b, self.notch_a, [sample], zi=None)
-        else:
-            filtered, self.filter_state_notch = lfilter(self.notch_b, self.notch_a, [sample], zi=self.filter_state_notch)
-        
-        if self.filter_state_bandpass[0] == -1:
-            filtered, self.filter_state_bandpass = lfilter(self.bandpass_b, self.bandpass_a, filtered, zi=None)
-        else:
-            filtered, self.filter_state_bandpass = lfilter(self.bandpass_b, self.bandpass_a, filtered, zi=self.filter_state_bandpass)
-        
-        return filtered[0]
-
-    def update_baseline_stats(self):
-        """Update baseline statistics for left/right detection"""
-        self.baseline = np.median(self.circular_buffer)
-        self.baseline_std = np.std(self.circular_buffer)
-        print(f"Baseline set: {self.baseline:.2f}μV")
-
-    def get_movement_type(self, current_value):
-        """Determine movement type based on current value"""
-        deviation = current_value - self.baseline
-        threshold = self.DEVIATION_SIGMA * self.baseline_std
-        
-        if deviation < -threshold:
-            return "LEFT"
-        elif deviation > threshold:
-            return "RIGHT"
-        else:
-            return "NEUTRAL"
-
-    def check_movement_completion(self):
-        """Check if a complete movement sequence has been detected"""
-        if len(self.movement_sequence) != 4:
-            return False
-        
-        seq = tuple(self.movement_sequence)
-        
-        # Right movement -> Dot (.)
-        if seq == ("RIGHT", "NEUTRAL", "LEFT", "NEUTRAL"):
-            print(".", end="", flush=True)
-            self.morse_buffer += "."
-            self.movement_sequence.clear()
-            self.last_input_time = time.time()  # Update last input time
-            return True
-        
-        # Left movement -> Dash (-)
-        if seq == ("LEFT", "NEUTRAL", "RIGHT", "NEUTRAL"):
-            print("-", end="", flush=True)
-            self.morse_buffer += "-"
-            self.movement_sequence.clear()
-            self.last_input_time = time.time()  # Update last input time
-            return True
-        
-        self.movement_sequence.popleft()   # If we have 4 elements but no match, clear the oldest one
-        return False
-
-    def process_morse_code(self):
-        """Process the current morse buffer and convert to character"""
         if self.morse_buffer in self.morse_code:
-            character = self.morse_code[self.morse_buffer]
-            print(f" -> {character}")
-            # Append character to the decoded word and update GUI
-            self.decoded_word += character
+            decoded = self.morse_code[self.morse_buffer]
+            print(f" -> {decoded}")
+            self.decoded_word += decoded
             self.update_gui(self.decoded_word)
-            self.morse_buffer = ""
-            self.last_input_time = None  # Reset last input time after decoding
         else:
-            # print(f" -> Unknown morse code: {self.morse_buffer}")
-            self.morse_buffer = ""
-            self.last_input_time = None  # Reset last input time after decoding
-
+            print(f"\nInvalid: {self.morse_buffer}")
+        
+        self.morse_buffer = ""
+    
+    def send_backspace(self):
+        """Send backspace - clear buffer and remove last character"""
+        print("\n>>> BACKSPACE")
+        self.morse_buffer = ""
+        if len(self.decoded_word) > 0:
+            self.decoded_word = self.decoded_word[:-1]
+            self.update_gui(self.decoded_word)
+    
     def update_gui(self, text):
-        # Update the label in the tkinter window with the decoded word
+        """Update the label in the tkinter window with the decoded word"""
         if self.gui_label and self.gui_root:
             def set_label():
                 self.gui_label.config(text=text)
             self.gui_root.after(0, set_label)
-
-    def detect_peaks(self, signal, threshold):
-        """Detect peaks in the signal for blink detection"""
-        peaks = []
-        prev_peak_time = None
-        min_peak_gap = 0.1  # Minimum time gap between two peaks in seconds
+    
+    def detect_blinks(self, now_ms):
+        """Detect blinks using envelope detector matching firmware logic"""
+        envelope_high = self.current_envelope > self.BLINK_THRESHOLD
         
-        for i in range(1, len(signal) - 1):
-            if signal[i] > signal[i - 1] and signal[i] > signal[i + 1] and signal[i] > threshold:
-                current_peak_time = i / self.sampling_rate
-                if prev_peak_time is not None:
-                    time_gap = current_peak_time - prev_peak_time
-                    if time_gap < min_peak_gap:
-                        continue
-                peaks.append(i)
-                prev_peak_time = current_peak_time
-        
-        return peaks
-
-    def detect_blinks(self, filtered_eog):
-        """Detect blinks and check for double blinks"""
-        mean_signal = np.mean(filtered_eog)
-        stdev_signal = np.std(filtered_eog)
-        threshold = mean_signal + (1.5 * stdev_signal)
-        
-        window_size = 1 * self.sampling_rate
-        start_index = self.current_index - window_size
-        if start_index < 0:
-            start_index = 0
-        
-        end_index = self.current_index
-        filtered_window = filtered_eog[start_index:end_index]
-        peaks = self.detect_peaks(filtered_window, threshold)
-        
-        for peak in peaks:
-            full_peak_index = start_index + peak
-            peak_time = time.time() - (self.current_index - full_peak_index) / self.sampling_rate
-            self.detected_peaks.append((full_peak_index, peak_time))
-        
-        # Double blink detection using actual peak times
-        if len(self.detected_peaks) >= 2:
-            last_peak_index, last_peak_time = self.detected_peaks[-1]
-            prev_peak_index, prev_peak_time = self.detected_peaks[-2]
-            time_diff = last_peak_time - prev_peak_time
+        if not self.blink_active and envelope_high and (now_ms - self.last_blink_time) >= self.BLINK_DEBOUNCE_MS:
+            self.last_blink_time = now_ms
             
-            if (self.min_interblink_gap <= time_diff <= self.max_interblink_gap and 
-                time.time() - self.last_double_blink_time > self.double_blink_cooldown):
+            if self.blink_count == 0:
+                self.first_blink_time = now_ms
+                self.blink_count = 1
+            elif self.blink_count == 1 and (now_ms - self.first_blink_time) <= self.DOUBLE_BLINK_MS and \
+                 (now_ms - self.first_blink_time) >= self.BLINK_DEBOUNCE_MS:
+                self.second_blink_time = now_ms
+                self.blink_count = 2
+            elif self.blink_count == 2 and (now_ms - self.second_blink_time) <= self.TRIPLE_BLINK_MS and \
+                 (now_ms - self.second_blink_time) >= self.BLINK_DEBOUNCE_MS:
+                print("\n>>> TRIPLE BLINK <<<")
+                self.send_backspace()
+                self.blink_count = 0
+            else:
+                self.first_blink_time = now_ms
+                self.blink_count = 1
             
-                print("\nDOUBLE BLINK DETECTED!")
-                self.process_morse_code()
-                self.last_double_blink_time = time.time()
+            self.blink_active = True
+        
+        if not envelope_high:
+            self.blink_active = False
+        
+        # Check for double blink timeout
+        if self.blink_count == 2 and (now_ms - self.second_blink_time) > self.TRIPLE_BLINK_MS:
+            print("\n>>> DOUBLE BLINK <<<")
+            self.send_morse_as_letter()
+            self.blink_count = 0
+        
+        # Check for single blink timeout
+        if self.blink_count == 1 and (now_ms - self.first_blink_time) > self.DOUBLE_BLINK_MS:
+            self.blink_count = 0
+    
+    def detect_eye_movement(self, now_ms):
+        """Detect eye movement (left/right) matching firmware logic"""
+        baseline = self.horizontal_baseline.get_baseline()
+        deviation = self.horizontal_signal - baseline
+        abs_deviation = abs(deviation)
+        
+        if not self.eye_movement_active and abs_deviation > self.EYE_MOVEMENT_THRESHOLD and \
+           (now_ms - self.last_eye_movement_time) >= self.EYE_MOVEMENT_DEBOUNCE_MS:
+            
+            self.eye_movement_active = True
+            self.last_eye_movement_time = now_ms
+            
+            if deviation < 0:
+                print("\n>>> LEFT <<<")
+                self.add_dot()
+            else:
+                print("\n>>> RIGHT <<<")
+                self.add_dash()
+        
+        if self.eye_movement_active and abs_deviation < (self.EYE_MOVEMENT_THRESHOLD * 0.5):
+            self.eye_movement_active = False
 
     def run(self):
+        """Main loop matching firmware processing"""
         try:
             while self.stream_active:
                 samples, _ = self.inlet.pull_chunk(timeout=0.1, max_samples=10)
                 
                 if samples:
                     self.last_data_time = time.time()
+                    now_ms = int(time.time() * 1000)
                     
                     for sample in samples:
-                        # Store data for blink detection (channel 1)
-                        self.eog_data[self.current_index] = sample[1]
-                        # Filter only the new sample and update filtered_eog_data
-                        filtered_sample, self.zi = lfilter(self.b, self.a, [sample[1]], zi=self.zi)
-                        self.filtered_eog_data[self.current_index] = filtered_sample[0]
-                        self.current_index = (self.current_index + 1) % self.buffer_size
+                        # Process vertical EOG (channel 1) for blink detection
+                        raw_ch1 = sample[1]
+                        filt_ch1 = self.notch_filter_vertical.process(raw_ch1)
+                        filt_ch1 = self.eog_filter_vertical.process(filt_ch1)
+                        self.current_envelope = self.envelope_detector.update(filt_ch1)
                         
-                        # Process for left/right detection (channel 0)
-                        filtered_sample_lr = sample[0]  # Using raw signal for left/right
-                        self.circular_buffer.append(filtered_sample_lr)
-                        
-                        # Set baseline for left/right detection
-                        if len(self.circular_buffer) == self.BASELINE_SAMPLES and self.baseline is None:
-                            self.update_baseline_stats()
-                            continue
-                        
-                        if self.baseline is None:
-                            continue
-                        
-                        # Left/Right movement detection
-                        detected_state = self.get_movement_type(filtered_sample_lr)
-                        
-                        if self.cooldown_counter > 0:
-                            self.cooldown_counter -= 1
-                            continue
-                        
-                        # Movement validation
-                        if detected_state != "NEUTRAL":
-                            if detected_state == self.last_movement or self.last_movement is None:
-                                self.movement_samples += 1
-                            else:
-                                self.movement_samples = 1
-                            
-                            if self.movement_samples >= self.MIN_MOVEMENT_SAMPLES:
-                                if detected_state != self.current_state:
-                                    self.movement_sequence.append(detected_state)
-                                    self.current_state = detected_state
-                                    self.last_movement = detected_state
-                                    self.cooldown_counter = self.COOLDOWN_SAMPLES
-                                    self.movement_samples = 0
-                                    self.check_movement_completion()
-                        else:
-                            if self.current_state != "NEUTRAL":
-                                self.movement_sequence.append("NEUTRAL")
-                                self.current_state = "NEUTRAL"
-                                self.check_movement_completion()
-                            self.movement_samples = 0
-                            self.last_movement = None
+                        # Process horizontal EOG (channel 0) for left/right detection
+                        raw_ch0 = sample[0]
+                        filt_ch0 = self.notch_filter_horizontal.process(raw_ch0)
+                        filt_ch0 = self.eog_filter_horizontal.process(filt_ch0)
+                        self.horizontal_signal = filt_ch0
+                        self.horizontal_baseline.update(filt_ch0)
                     
-                    # Blink detection
-                    if time.time() - self.start_time >= 2:
-                        # Use only the filtered_eog_data buffer
-                        self.detect_blinks(self.filtered_eog_data)
-                    
-                    # Clear out old peaks from the circular buffer
-                    current_time = time.time()
-                    while self.detected_peaks and (current_time - self.detected_peaks[0][1] > 4):
-                        self.detected_peaks.popleft()
+                    # Detect blinks and eye movements
+                    self.detect_blinks(now_ms)
+                    self.detect_eye_movement(now_ms)
                 
                 else:
                     if self.last_data_time and (time.time() - self.last_data_time) > 2:
                         self.stream_active = False
-                        print("LSL stream disconnected!")
-                if self.morse_buffer and self.last_input_time:
-                    if time.time() - self.last_input_time > self.inactivity_timeout:
-                        print(f"\nBuffer timeout. Clearing morse buffer: {self.morse_buffer}")
-                        self.morse_buffer = ""
-                        self.last_input_time = None
+                        print("\nLSL stream disconnected!")
                         
         except KeyboardInterrupt:
             print("\nExiting...")
