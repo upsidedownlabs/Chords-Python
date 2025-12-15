@@ -171,6 +171,8 @@ class MorseCodeEOGSystem:
         self.last_eye_movement_time = 0
         self.eye_movement_active = False
         self.eye_movement_released = True  # Track if movement has been released
+        self.last_direction = None  # Track last detected direction to prevent false reversals
+        self.previous_deviation = 0.0  # Track previous deviation for direction change detection
         
         # Initialize filters
         self.eog_filter_vertical = EOGFilter()
@@ -323,27 +325,53 @@ class MorseCodeEOGSystem:
         deviation = self.horizontal_signal - baseline
         abs_deviation = abs(deviation)
         
+        # Determine current direction
+        if deviation < -self.EYE_MOVEMENT_THRESHOLD:
+            current_direction = "LEFT"
+        elif deviation > self.EYE_MOVEMENT_THRESHOLD:
+            current_direction = "RIGHT"
+        else:
+            current_direction = None
+        
         # Track release state - must return to low deviation before next movement
         if abs_deviation < self.EYE_MOVEMENT_RELEASE_THRESHOLD and self.eye_movement_active:
             self.eye_movement_released = True
             self.eye_movement_active = False
+            self.last_direction = None  # Clear direction when fully released
+        
+        # Check if deviation is increasing (moving away from baseline)
+        # This prevents detecting overshoot when returning to center
+        deviation_increasing = False
+        if current_direction == "LEFT" and deviation < self.previous_deviation:
+            deviation_increasing = True  # Moving more negative (away from baseline to left)
+        elif current_direction == "RIGHT" and deviation > self.previous_deviation:
+            deviation_increasing = True  # Moving more positive (away from baseline to right)
+        
+        # Store current deviation for next comparison
+        self.previous_deviation = deviation
         
         # Only detect new movement if:
-        # 1. Deviation exceeds threshold
+        # 1. Deviation exceeds threshold in a direction
         # 2. Previous movement has been released
         # 3. Sufficient time has passed (debounce)
-        if not self.eye_movement_active and abs_deviation > self.EYE_MOVEMENT_THRESHOLD and \
-           self.eye_movement_released and (now_ms - self.last_eye_movement_time) >= self.EYE_MOVEMENT_DEBOUNCE_MS:
+        # 4. Direction is different from last detected OR last_direction is None
+        # 5. Deviation is increasing (moving away from baseline, not returning)
+        if not self.eye_movement_active and current_direction is not None and \
+           self.eye_movement_released and \
+           (now_ms - self.last_eye_movement_time) >= self.EYE_MOVEMENT_DEBOUNCE_MS and \
+           (self.last_direction is None or current_direction != self.last_direction) and \
+           deviation_increasing:
             
             self.eye_movement_active = True
             self.eye_movement_released = False  # Mark as not released
             self.last_eye_movement_time = now_ms
+            self.last_direction = current_direction  # Store the direction
             
-            if deviation < 0:
+            if current_direction == "LEFT":
                 print("\n>>> LEFT <<<")
                 self.update_status_gui(">>> LEFT - DOT <<<")
                 self.add_dot()
-            else:
+            else:  # RIGHT
                 print("\n>>> RIGHT <<<")
                 self.update_status_gui(">>> RIGHT - DASH <<<")
                 self.add_dash()
