@@ -127,6 +127,7 @@ To save sensor data for future analysis, follow these steps:
 Visualizing CSV Data - You can plot the recorded data using the **CSV Plotter** tool.  
 
 ## Applications 
+
 | Application                | Description                                                        |  
 |----------------------------|--------------------------------------------------------------------|  
 | **ECG with Heart Rate**    | Real-time ECG with BPM calculation.                                | 
@@ -134,7 +135,7 @@ Visualizing CSV Data - You can plot the recorded data using the **CSV Plotter** 
 | **EOG with Blinks**        | Real-time EOG Signal visualization with Blinks marked as Red Dot.  |
 | **EEG with FFT**           | Real-time EEG Signal visualization with FFT and Brainpower bands.  | 
 | **EEG Tug of War Game**    | 2 Player EEG Based Game                                            |
-| **EEG Beetle game**        | Real-time EEG focus based game.                                    |
+| **EEG Beetle game**        | Real-time EEG focus-based game.                                    |
 | **EOG Keystroke Emulator** | Blink detection triggers spacebar.                                 |  
 | **GUI**                    | Visualize raw data in real-time                                    |
 | **CSV Plotter**            | Tool to plot the recorded CSV Files                                |
