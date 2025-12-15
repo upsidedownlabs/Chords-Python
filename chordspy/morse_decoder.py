@@ -264,6 +264,88 @@ class MorseCodeEOGSystem:
                 self.buffer_label.config(text=buffer_text)
             self.gui_root.after(0, set_buffer)
     
+    def update_blink_threshold(self, value):
+        """Update blink threshold from slider"""
+        self.BLINK_THRESHOLD = float(value)
+    
+    def update_eye_threshold(self, value):
+        """Update eye movement threshold from slider"""
+        self.EYE_MOVEMENT_THRESHOLD = float(value)
+    
+    def update_blink_bar(self):
+        """Update the blink envelope bar display"""
+        if hasattr(self, 'blink_canvas') and self.gui_root:
+            def update_bar():
+                value = min(self.current_envelope, 250)  # Cap at max display value
+                # Clear canvas
+                self.blink_canvas.delete("all")
+                
+                # Draw background
+                self.blink_canvas.create_rectangle(0, 0, 400, 30, fill="#ecf0f1", outline="#bdc3c7")
+                
+                # Draw filled bar
+                fill_width = (value / 250) * 400
+                color = "#27ae60" if value < self.BLINK_THRESHOLD else "#e74c3c"
+                self.blink_canvas.create_rectangle(0, 0, fill_width, 30, fill=color, outline="")
+                
+                # Draw threshold marker
+                threshold_x = (self.BLINK_THRESHOLD / 250) * 400
+                self.blink_canvas.create_line(threshold_x, 0, threshold_x, 30, fill="#e67e22", width=2)
+                
+                # Draw scale markers every 50 units
+                for i in range(0, 251, 50):
+                    x = (i / 250) * 400
+                    self.blink_canvas.create_line(x, 25, x, 30, fill="#7f8c8d", width=1)
+                    self.blink_canvas.create_text(x, 40, text=str(i), font=("Arial", 8), fill="#34495e")
+                
+                # Update value label
+                self.blink_value_label.config(text=f"{value:.1f}")
+            
+            self.gui_root.after(0, update_bar)
+    
+    def update_eye_bar(self):
+        """Update the eye movement deviation bar display"""
+        if hasattr(self, 'eye_canvas') and self.gui_root:
+            def update_bar():
+                baseline = self.horizontal_baseline.get_baseline()
+                deviation = self.horizontal_signal - baseline
+                abs_deviation = min(abs(deviation), 250)  # Cap at max display value
+                
+                # Clear canvas
+                self.eye_canvas.delete("all")
+                
+                # Draw background
+                self.eye_canvas.create_rectangle(0, 0, 400, 30, fill="#ecf0f1", outline="#bdc3c7")
+                
+                # Draw filled bar
+                fill_width = (abs_deviation / 250) * 400
+                
+                # Color based on direction and threshold
+                if abs_deviation < self.EYE_MOVEMENT_THRESHOLD:
+                    color = "#3498db"  # Blue when below threshold
+                elif deviation < 0:
+                    color = "#9b59b6"  # Purple for LEFT
+                else:
+                    color = "#e74c3c"  # Red for RIGHT
+                
+                self.eye_canvas.create_rectangle(0, 0, fill_width, 30, fill=color, outline="")
+                
+                # Draw threshold marker
+                threshold_x = (self.EYE_MOVEMENT_THRESHOLD / 250) * 400
+                self.eye_canvas.create_line(threshold_x, 0, threshold_x, 30, fill="#e67e22", width=2)
+                
+                # Draw scale markers every 50 units
+                for i in range(0, 251, 50):
+                    x = (i / 250) * 400
+                    self.eye_canvas.create_line(x, 25, x, 30, fill="#7f8c8d", width=1)
+                    self.eye_canvas.create_text(x, 40, text=str(i), font=("Arial", 8), fill="#34495e")
+                
+                # Update value label with direction indicator
+                direction_text = "←" if deviation < 0 else "→" if deviation > 0 else "•"
+                self.eye_value_label.config(text=f"{abs_deviation:.1f} {direction_text}")
+            
+            self.gui_root.after(0, update_bar)
+    
     def detect_blinks(self, now_ms):
         envelope_high = self.current_envelope > self.BLINK_THRESHOLD
         envelope_low = self.current_envelope < self.BLINK_RELEASE_THRESHOLD
@@ -405,6 +487,10 @@ class MorseCodeEOGSystem:
                     
                     self.detect_blinks(now_ms)
                     self.detect_eye_movement(now_ms)
+                    
+                    # Update real-time bars
+                    self.update_blink_bar()
+                    self.update_eye_bar()
                 
                 else:
                     if self.last_data_time and (time.time() - self.last_data_time) > 2:
@@ -419,7 +505,7 @@ if __name__ == "__main__":
     gui_root = tk.Tk()
     gui_root.title("EOG Morse Code Decoder")
     gui_root.configure(bg="white")
-    gui_root.geometry("700x400+200+200")
+    gui_root.geometry("800x750+150+50")
     
     # Title
     title_label = tk.Label(gui_root, text="EOG Morse Code Decoder", 
@@ -443,6 +529,78 @@ if __name__ == "__main__":
                            relief=tk.SUNKEN, padx=10, pady=5)
     buffer_label.pack(pady=10, padx=20, fill=tk.X)
     
+    # Create system instance first (needed for threshold values)
+    system = MorseCodeEOGSystem(gui_label=None, gui_root=gui_root, 
+                                status_label=status_label, buffer_label=buffer_label)
+    
+    # Blink Threshold Section
+    blink_frame = tk.Frame(gui_root, bg="white")
+    blink_frame.pack(pady=10, padx=20, fill=tk.X)
+    
+    blink_title = tk.Label(blink_frame, text="Blink Detection", 
+                          font=("Arial", 11, "bold"), bg="white", fg="#2c3e50")
+    blink_title.pack(anchor=tk.W)
+    
+    blink_slider_frame = tk.Frame(blink_frame, bg="white")
+    blink_slider_frame.pack(fill=tk.X, pady=5)
+    
+    tk.Label(blink_slider_frame, text="Threshold:", font=("Arial", 9), 
+             bg="white", fg="#34495e").pack(side=tk.LEFT)
+    blink_slider = tk.Scale(blink_slider_frame, from_=50, to=250, orient=tk.HORIZONTAL,
+                           command=system.update_blink_threshold, bg="white", 
+                           length=200, fg="#2c3e50")
+    blink_slider.set(system.BLINK_THRESHOLD)
+    blink_slider.pack(side=tk.LEFT, padx=10)
+    
+    # Blink bar display
+    blink_bar_frame = tk.Frame(blink_frame, bg="white")
+    blink_bar_frame.pack(fill=tk.X, pady=5)
+    
+    blink_value_label = tk.Label(blink_bar_frame, text="0.0", 
+                                 font=("Arial", 10, "bold"), bg="white", fg="#2c3e50")
+    blink_value_label.pack(side=tk.LEFT, padx=(0, 10))
+    
+    blink_canvas = tk.Canvas(blink_bar_frame, width=400, height=50, bg="white", highlightthickness=0)
+    blink_canvas.pack(side=tk.LEFT)
+    
+    # Store references in system
+    system.blink_canvas = blink_canvas
+    system.blink_value_label = blink_value_label
+    
+    # Eye Movement Threshold Section
+    eye_frame = tk.Frame(gui_root, bg="white")
+    eye_frame.pack(pady=10, padx=20, fill=tk.X)
+    
+    eye_title = tk.Label(eye_frame, text="Eye Movement Detection", 
+                        font=("Arial", 11, "bold"), bg="white", fg="#2c3e50")
+    eye_title.pack(anchor=tk.W)
+    
+    eye_slider_frame = tk.Frame(eye_frame, bg="white")
+    eye_slider_frame.pack(fill=tk.X, pady=5)
+    
+    tk.Label(eye_slider_frame, text="Threshold:", font=("Arial", 9), 
+             bg="white", fg="#34495e").pack(side=tk.LEFT)
+    eye_slider = tk.Scale(eye_slider_frame, from_=50, to=300, orient=tk.HORIZONTAL,
+                         command=system.update_eye_threshold, bg="white", 
+                         length=200, fg="#2c3e50")
+    eye_slider.set(system.EYE_MOVEMENT_THRESHOLD)
+    eye_slider.pack(side=tk.LEFT, padx=10)
+    
+    # Eye movement bar display
+    eye_bar_frame = tk.Frame(eye_frame, bg="white")
+    eye_bar_frame.pack(fill=tk.X, pady=5)
+    
+    eye_value_label = tk.Label(eye_bar_frame, text="0.0", 
+                               font=("Arial", 10, "bold"), bg="white", fg="#2c3e50")
+    eye_value_label.pack(side=tk.LEFT, padx=(0, 10))
+    
+    eye_canvas = tk.Canvas(eye_bar_frame, width=400, height=50, bg="white", highlightthickness=0)
+    eye_canvas.pack(side=tk.LEFT)
+    
+    # Store references in system
+    system.eye_canvas = eye_canvas
+    system.eye_value_label = eye_value_label
+    
     # Decoded word display
     word_frame = tk.Frame(gui_root, bg="white")
     word_frame.pack(pady=10, fill=tk.BOTH, expand=True, padx=20)
@@ -455,9 +613,10 @@ if __name__ == "__main__":
                         bg="#ffffff", fg="#2c3e50", relief=tk.GROOVE, 
                         padx=20, pady=20, anchor=tk.W, justify=tk.LEFT)
     gui_label.pack(fill=tk.BOTH, expand=True)
+    
+    # Update system with gui_label
+    system.gui_label = gui_label
 
-    system = MorseCodeEOGSystem(gui_label=gui_label, gui_root=gui_root, 
-                                status_label=status_label, buffer_label=buffer_label)
     system_thread = threading.Thread(target=system.run, daemon=True)
     system_thread.start()
 
