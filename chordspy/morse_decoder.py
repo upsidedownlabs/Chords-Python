@@ -7,56 +7,105 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 
-class BiquadFilter:
-    """Biquad filter implementation matching the firmware"""
-    def __init__(self, b0, b1, b2, a1, a2):
-        self.b0 = b0
-        self.b1 = b1
-        self.b2 = b2
-        self.a1 = a1
-        self.a2 = a2
-        self.z1 = 0.0
-        self.z2 = 0.0
-    
-    def process(self, input_sample):
-        x0 = input_sample - (self.a1 * self.z1) - (self.a2 * self.z2)
-        output = self.b0 * x0 + self.b1 * self.z1 + self.b2 * self.z2
-        self.z2 = self.z1
-        self.z1 = x0
-        return output
-    
-    def reset(self):
-        self.z1 = 0.0
-        self.z2 = 0.0
-
+# High-Pass Butterworth IIR digital filter
+# Sampling rate: 500.0 Hz, frequency: 1.0 Hz
+# Filter is order 2, implemented as second-order sections (biquads)
+# Reference: 
+#   - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+#   - https://github.com/upsidedownlabs/BioAmp-Filter-Designer
 class EOGFilter:
-    """EOG High-pass filter (0.5Hz) matching firmware"""
     def __init__(self):
-        self.stage = BiquadFilter(0.99136003, -1.98272007, 0.99136003, 
-                                   -1.98264542, 0.98279472)
-    
-    def process(self, input_sample):
-        return self.stage.process(input_sample)
-    
-    def reset(self):
-        self.stage.reset()
+        # Initialize state variables for each biquad section
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
 
-class NotchFilter:
-    """50Hz/60Hz Notch filter matching firmware"""
-    def __init__(self):
-        self.stage0 = BiquadFilter(0.96588529, -1.57986211, 0.96588529,
-                                    -1.58696045, 0.96505858)
-        self.stage1 = BiquadFilter(1.00000000, -1.63566226, 1.00000000,
-                                    -1.62761184, 0.96671306)
-    
     def process(self, input_sample):
-        output = self.stage0.process(input_sample)
-        output = self.stage1.process(output)
+        """Process a single sample through the filter"""
+        output = input_sample
+
+        # Biquad section 0
+        x = output - (-1.98222893 * self.z1_0) - (0.98238545 * self.z2_0)
+        output = 0.99115360 * x + -1.98230719 * self.z1_0 + 0.99115360 * self.z2_0
+        self.z2_0 = self.z1_0
+        self.z1_0 = x
+
         return output
-    
+
     def reset(self):
-        self.stage0.reset()
-        self.stage1.reset()
+        """Reset filter state variables"""
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+
+# Low-Pass Butterworth IIR digital filter
+# Sampling rate: 500.0 Hz, frequency: 10.0 Hz
+# Filter is order 2, implemented as second-order sections (biquads)
+# Reference: 
+#   - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+#   - https://github.com/upsidedownlabs/BioAmp-Filter-Designer
+class LowPassFilter:
+    def __init__(self):
+        # Initialize state variables for each biquad section
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+    def process(self, input_sample):
+        """Process a single sample through the filter"""
+        output = input_sample
+
+        # Biquad section 0
+        x = output - (-1.82269493 * self.z1_0) - (0.83718165 * self.z2_0)
+        output = 0.00362168 * x + 0.00724336 * self.z1_0 + 0.00362168 * self.z2_0
+        self.z2_0 = self.z1_0
+        self.z1_0 = x
+
+        return output
+
+    def reset(self):
+        """Reset filter state variables"""
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+
+# Band-Stop Butterworth IIR digital filter
+# Sampling rate: 500.0 Hz, frequency: [48.0, 52.0] Hz
+# Filter is order 2, implemented as second-order sections (biquads)
+# Reference: 
+#   - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+#   - https://github.com/upsidedownlabs/BioAmp-Filter-Designer
+class NotchFilter:
+    def __init__(self):
+        # Initialize state variables for each biquad section
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+        self.z1_1 = 0.0
+        self.z2_1 = 0.0
+
+    def process(self, input_sample):
+        """Process a single sample through the filter"""
+        output = input_sample
+
+        # Biquad section 0
+        x = output - (-1.56858163 * self.z1_0) - (0.96424138 * self.z2_0)
+        output = 0.96508099 * x + -1.56202714 * self.z1_0 + 0.96508099 * self.z2_0
+        self.z2_0 = self.z1_0
+        self.z1_0 = x
+
+        # Biquad section 1
+        x = output - (-1.61100358 * self.z1_1) - (0.96592171 * self.z2_1)
+        output = 1.00000000 * x + -1.61854514 * self.z1_1 + 1.00000000 * self.z2_1
+        self.z2_1 = self.z1_1
+        self.z1_1 = x
+
+        return output
+
+    def reset(self):
+        """Reset filter state variables"""
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+        self.z1_1 = 0.0
+        self.z2_1 = 0.0
+
 
 class EnvelopeDetector:
     """Envelope detector for blink detection matching firmware"""
@@ -151,9 +200,9 @@ class MorseCodeEOGSystem:
         print(f"ADC Resolution: {self.adc_resolution}-bit (0-{self.adc_max})")
         
         # Blink Detection Configuration - adjusted for filtered signal magnitude
-        self.BLINK_DEBOUNCE_MS = 400  # Minimum time between detecting separate blinks
+        self.BLINK_DEBOUNCE_MS = 200  # Minimum time between detecting separate blinks
         self.DOUBLE_BLINK_MS = 1000    # Window for intentional double blinks
-        self.TRIPLE_BLINK_MS = 2000   # Window for intentional triple blinks
+        self.TRIPLE_BLINK_MS = 1500   # Window for intentional triple blinks
         self.BLINK_THRESHOLD = 200.0  # Threshold to detect blink start
         self.BLINK_RELEASE_THRESHOLD = (self.BLINK_THRESHOLD)/2  # Hysteresis: must drop below to allow next blink
         
@@ -165,9 +214,9 @@ class MorseCodeEOGSystem:
         self.blink_released = True  # Track if blink has been released before next detection
         
         # Eye Movement Detection Configuration - adjusted for filtered signal
-        self.EYE_MOVEMENT_DEBOUNCE_MS = 1000  # Minimum time between detecting separate movements
+        self.EYE_MOVEMENT_DEBOUNCE_MS = 750  # Minimum time between detecting separate movements
         self.EYE_MOVEMENT_THRESHOLD = 250.0  # Threshold to detect movement
-        self.EYE_MOVEMENT_RELEASE_THRESHOLD = 30.0  # Must drop below this to allow next movement
+        self.EYE_MOVEMENT_RELEASE_THRESHOLD = 20.0  # Must drop below this to allow next movement
         self.last_eye_movement_time = 0
         self.eye_movement_active = False
         self.eye_movement_released = True  # Track if movement has been released
@@ -177,8 +226,10 @@ class MorseCodeEOGSystem:
         # Initialize filters
         self.eog_filter_vertical = EOGFilter()
         self.notch_filter_vertical = NotchFilter()
+        self.lowpass_filter_vertical = LowPassFilter()
         self.eog_filter_horizontal = EOGFilter()
         self.notch_filter_horizontal = NotchFilter()
+        self.lowpass_filter_horizontal = LowPassFilter()
         
         # Envelope detector (100ms window)
         envelope_window_ms = 100
@@ -424,7 +475,7 @@ class MorseCodeEOGSystem:
         # 3. Sufficient time has passed (debounce) OR blink was released
         # The key: allow quick blinks if they properly released, ignore bouncing if too fast
         time_since_last = now_ms - self.last_blink_time
-        can_detect = self.blink_released and (time_since_last >= self.BLINK_DEBOUNCE_MS or time_since_last >= 150)
+        can_detect = self.blink_released and (time_since_last >= self.BLINK_DEBOUNCE_MS)
         
         if envelope_high and not self.blink_active and can_detect:
             self.last_blink_time = now_ms
@@ -540,11 +591,13 @@ class MorseCodeEOGSystem:
                         # Process vertical EOG (channel 0) for blink detection
                         filt_vertical = self.notch_filter_vertical.process(raw_vertical)
                         filt_vertical = self.eog_filter_vertical.process(filt_vertical)
+                        filt_vertical = self.lowpass_filter_vertical.process(filt_vertical)
                         self.current_envelope = self.envelope_detector.update(filt_vertical)
                         
                         # Process horizontal EOG (channel 1) for left/right detection
                         filt_horizontal = self.notch_filter_horizontal.process(raw_horizontal)
                         filt_horizontal = self.eog_filter_horizontal.process(filt_horizontal)
+                        filt_horizontal = self.lowpass_filter_horizontal.process(filt_horizontal)
                         self.horizontal_signal = filt_horizontal
                         self.horizontal_baseline.update(filt_horizontal)
                     
