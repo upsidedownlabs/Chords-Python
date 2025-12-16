@@ -650,7 +650,7 @@ if __name__ == "__main__":
     buffer_container = tk.Frame(buffer_frame, bg="white")
     buffer_container.pack(fill=tk.X, pady=5)
     
-    buffer_value_box = tk.Label(buffer_container, text="Buffer:", 
+    buffer_value_box = tk.Label(buffer_container, text="Input:", 
                                 font=("Arial", 12, "bold"), bg="#fef5e7", fg="#f39c12",
                                 width=8, anchor=tk.CENTER, relief=tk.RAISED, borderwidth=2)
     buffer_value_box.pack(side=tk.LEFT, padx=(0, 10), ipady=2, anchor='n')  # ipady for exact height control
