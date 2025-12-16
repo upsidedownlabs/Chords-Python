@@ -127,17 +127,19 @@ To save sensor data for future analysis, follow these steps:
 Visualizing CSV Data - You can plot the recorded data using the **CSV Plotter** tool.  
 
 ## Applications 
-| Application                | Description                                                      |  
-|----------------------------|------------------------------------------------------------------|  
-| **ECG with Heart Rate**    | Real-time ECG with BPM calculation.                              | 
-| **EMG with Envelope**      | Real-time EMG Visualization with Envelope.                       |
-| **EOG with Blinks**        | Real-time EOG Signal visualization with Blinks marked as Red Dot.|
-| **EEG with FFT**           | Real-time EEG Signal visualization with FFT and Brainpower bands.|
-| **EEG Tug of War Game**    | 2 Player EEG Based Game                                          |
-| **EEG Beetle game**        | Real-time EEG focus based game.                                  |
-| **EOG Keystroke Emulator** | Blink detection triggers spacebar.                               |  
-| **GUI**                    | Visualize raw data in real-time                                  |
-| **CSV Plotter**            | Tool to plot the recorded CSV Files                              |
+
+| Application                | Description                                                        |  
+|----------------------------|--------------------------------------------------------------------|  
+| **ECG with Heart Rate**    | Real-time ECG with BPM calculation.                                | 
+| **EMG with Envelope**      | Real-time EMG Visualization with Envelope.                         |
+| **EOG with Blinks**        | Real-time EOG Signal visualization with Blinks marked as Red Dot.  |
+| **EEG with FFT**           | Real-time EEG Signal visualization with FFT and Brainpower bands.  | 
+| **EEG Tug of War Game**    | 2 Player EEG Based Game                                            |
+| **EEG Beetle game**        | Real-time EEG focus-based game.                                    |
+| **EOG Keystroke Emulator** | Blink detection triggers spacebar.                                 |  
+| **GUI**                    | Visualize raw data in real-time                                    |
+| **CSV Plotter**            | Tool to plot the recorded CSV Files                                |
+| **Morse Decoder**          | Convert Blinks and eye movements into morse code using EOG signals.|
 
 ## Troubleshooting
 
@@ -158,6 +160,7 @@ You can add your project to this repo:
 We are thankful to our awesome contributors, the list below is alphabetically sorted.
 
 - [Aman Maheshwari](https://github.com/Amanmahe)
+- [Krishnanshu Mittal](https://github.com/cIumsy)
 - [Payal Lakra](https://github.com/payallakra)
 
 The audio file used in `game.py` is sourced from [Pixabay](https://pixabay.com/sound-effects/brass-fanfare-with-timpani-and-windchimes-reverberated-146260/)

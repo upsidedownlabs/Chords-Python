@@ -1,14 +1,155 @@
 import numpy as np
-from scipy.signal import butter, lfilter, lfilter_zi, iirnotch
 import pylsl
 import sys
 import time
 from collections import deque
 import threading
 import tkinter as tk
+from tkinter import ttk
+
+# High-Pass Butterworth IIR digital filter
+# Sampling rate: 500.0 Hz, frequency: 1.0 Hz
+# Filter is order 2, implemented as second-order sections (biquads)
+# Reference: 
+#   - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+#   - https://github.com/upsidedownlabs/BioAmp-Filter-Designer
+class EOGFilter:
+    def __init__(self):
+        # Initialize state variables for each biquad section
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+    def process(self, input_sample):
+        """Process a single sample through the filter"""
+        output = input_sample
+
+        # Biquad section 0
+        x = output - (-1.98222893 * self.z1_0) - (0.98238545 * self.z2_0)
+        output = 0.99115360 * x + -1.98230719 * self.z1_0 + 0.99115360 * self.z2_0
+        self.z2_0 = self.z1_0
+        self.z1_0 = x
+
+        return output
+
+    def reset(self):
+        """Reset filter state variables"""
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+
+# Low-Pass Butterworth IIR digital filter
+# Sampling rate: 500.0 Hz, frequency: 10.0 Hz
+# Filter is order 2, implemented as second-order sections (biquads)
+# Reference: 
+#   - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+#   - https://github.com/upsidedownlabs/BioAmp-Filter-Designer
+class LowPassFilter:
+    def __init__(self):
+        # Initialize state variables for each biquad section
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+    def process(self, input_sample):
+        """Process a single sample through the filter"""
+        output = input_sample
+
+        # Biquad section 0
+        x = output - (-1.82269493 * self.z1_0) - (0.83718165 * self.z2_0)
+        output = 0.00362168 * x + 0.00724336 * self.z1_0 + 0.00362168 * self.z2_0
+        self.z2_0 = self.z1_0
+        self.z1_0 = x
+
+        return output
+
+    def reset(self):
+        """Reset filter state variables"""
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+
+
+# Band-Stop Butterworth IIR digital filter
+# Sampling rate: 500.0 Hz, frequency: [48.0, 52.0] Hz
+# Filter is order 2, implemented as second-order sections (biquads)
+# Reference: 
+#   - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+#   - https://github.com/upsidedownlabs/BioAmp-Filter-Designer
+class NotchFilter:
+    def __init__(self):
+        # Initialize state variables for each biquad section
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+        self.z1_1 = 0.0
+        self.z2_1 = 0.0
+
+    def process(self, input_sample):
+        """Process a single sample through the filter"""
+        output = input_sample
+
+        # Biquad section 0
+        x = output - (-1.56858163 * self.z1_0) - (0.96424138 * self.z2_0)
+        output = 0.96508099 * x + -1.56202714 * self.z1_0 + 0.96508099 * self.z2_0
+        self.z2_0 = self.z1_0
+        self.z1_0 = x
+
+        # Biquad section 1
+        x = output - (-1.61100358 * self.z1_1) - (0.96592171 * self.z2_1)
+        output = 1.00000000 * x + -1.61854514 * self.z1_1 + 1.00000000 * self.z2_1
+        self.z2_1 = self.z1_1
+        self.z1_1 = x
+
+        return output
+
+    def reset(self):
+        """Reset filter state variables"""
+        self.z1_0 = 0.0
+        self.z2_0 = 0.0
+        self.z1_1 = 0.0
+        self.z2_1 = 0.0
+
+
+class EnvelopeDetector:
+    """Envelope detector for blink detection matching firmware"""
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.buffer = np.zeros(window_size)
+        self.index = 0
+        self.sum = 0.0
+    
+    def update(self, sample):
+        abs_sample = abs(sample)
+        self.sum -= self.buffer[self.index]
+        self.sum += abs_sample
+        self.buffer[self.index] = abs_sample
+        self.index = (self.index + 1) % self.window_size
+        envelope = self.sum / self.window_size
+        return envelope
+
+class BaselineTracker:
+    """Baseline tracker for horizontal EOG matching firmware"""
+    def __init__(self, window_size=512):
+        self.window_size = window_size
+        self.buffer = np.zeros(window_size)
+        self.index = 0
+        self.sum = 0.0
+        self.filled = False
+    
+    def update(self, sample):
+        self.sum -= self.buffer[self.index]
+        self.sum += sample
+        self.buffer[self.index] = sample
+        self.index += 1
+        if self.index >= self.window_size:
+            self.index = 0
+            self.filled = True
+    
+    def get_baseline(self):
+        if not self.filled and self.index == 0:
+            return 0.0
+        count = self.window_size if self.filled else self.index
+        return self.sum / count if count > 0 else 0.0
 
 class MorseCodeEOGSystem:
-    def __init__(self, gui_label=None, gui_root=None):
+    def __init__(self, gui_label=None, gui_root=None, status_label=None, buffer_label=None):
         self.morse_code = {
             '.-': 'A', '-...': 'B', '-.-.': 'C', '-..': 'D', '.': 'E',
             '..-.': 'F', '--.': 'G', '....': 'H', '..': 'I', '.---': 'J',
@@ -19,25 +160,16 @@ class MorseCodeEOGSystem:
             '....-': '4', '.....': '5', '-....': '6', '--...': '7', '---..': '8',
             '----.': '9'
         }
-    
-        self.morse_buffer = ""            # Output buffer for morse code
-        self.min_interblink_gap = 0.11     # 100ms minimum between blinks in a double blink
-        self.max_interblink_gap = 0.5     # 400ms maximum between blinks in a double blink
-        self.double_blink_cooldown = 1.0  # 1 second cooldown between double blink detections
-        self.last_double_blink_time = 0
-        self.last_data_time = None
-        self.stream_active = True
-        self.last_input_time = None       # Track last input time for inactivity
-        self.inactivity_timeout = 7.0
-
-        # GUI label and root for updating decoded character
+        
+        self.morse_buffer = ""
+        self.MAX_MORSE_LENGTH = 5
+        
         self.gui_label = gui_label
         self.gui_root = gui_root
-
-        # Accumulated decoded word for GUI
+        self.status_label = status_label
+        self.buffer_label = buffer_label
         self.decoded_word = ""
-
-        # Set up LSL stream inlet
+        
         print("Searching for available LSL streams...")
         available_streams = pylsl.resolve_streams()
         if not available_streams:
@@ -60,191 +192,385 @@ class MorseCodeEOGSystem:
         self.sampling_rate = int(self.inlet.info().nominal_srate())
         print(f"Sampling rate: {self.sampling_rate} Hz")
         
-        # Buffer for EOG data
-        self.buffer_size = self.sampling_rate * 5  # 5 seconds buffer
-        self.eog_data = np.zeros(self.buffer_size)
-        self.filtered_eog_data = np.zeros(self.buffer_size)  # Buffer for filtered EOG data
-        self.current_index = 0
+        # Detect ADC resolution from stream metadata or default to 12-bit
+        self.adc_resolution = 12
+        self.adc_max = (2 ** self.adc_resolution) - 1
+        self.adc_mid = self.adc_max / 2.0
         
-        # Low-pass filter for blink detection (10 Hz)
-        self.b, self.a = butter(4, 10.0 / (0.5 * self.sampling_rate), btype='low')
-        self.zi = lfilter_zi(self.b, self.a)
+        print(f"ADC Resolution: {self.adc_resolution}-bit (0-{self.adc_max})")
         
-        # Circular buffer for detected peaks
-        self.detected_peaks = deque(maxlen=self.sampling_rate * 5)
-        self.start_time = time.time()
+        # Blink Detection Configuration - adjusted for filtered signal magnitude
+        self.BLINK_DEBOUNCE_MS = 200  # Minimum time between detecting separate blinks
+        self.DOUBLE_BLINK_MS = 1000    # Window for intentional double blinks
+        self.TRIPLE_BLINK_MS = 1500   # Window for intentional triple blinks
+        self.BLINK_THRESHOLD = 200.0  # Threshold to detect blink start
+        self.BLINK_RELEASE_THRESHOLD = (self.BLINK_THRESHOLD)/2  # Hysteresis: must drop below to allow next blink
         
-        # Left/Right detection parameters
-        self.BUFFER_SIZE = 250
-        self.BASELINE_SAMPLES = 125
-        self.DEVIATION_SIGMA = 6
-        self.MIN_MOVEMENT_SAMPLES = 40
-        self.COOLDOWN_SAMPLES = 30
+        self.last_blink_time = 0
+        self.first_blink_time = 0
+        self.second_blink_time = 0
+        self.blink_count = 0
+        self.blink_active = False
+        self.blink_released = True  # Track if blink has been released before next detection
+        
+        # Eye Movement Detection Configuration - adjusted for filtered signal
+        self.EYE_MOVEMENT_DEBOUNCE_MS = 750  # Minimum time between detecting separate movements
+        self.EYE_MOVEMENT_THRESHOLD = 250.0  # Threshold to detect movement
+        self.EYE_MOVEMENT_RELEASE_THRESHOLD = 20.0  # Must drop below this to allow next movement
+        self.last_eye_movement_time = 0
+        self.eye_movement_active = False
+        self.eye_movement_released = True  # Track if movement has been released
+        self.last_direction = None  # Track last detected direction to prevent false reversals
+        self.previous_deviation = 0.0  # Track previous deviation for direction change detection
+        
+        # Initialize filters
+        self.eog_filter_vertical = EOGFilter()
+        self.notch_filter_vertical = NotchFilter()
+        self.lowpass_filter_vertical = LowPassFilter()
+        self.eog_filter_horizontal = EOGFilter()
+        self.notch_filter_horizontal = NotchFilter()
+        self.lowpass_filter_horizontal = LowPassFilter()
+        
+        # Envelope detector (100ms window)
+        envelope_window_ms = 100
+        envelope_window_size = (envelope_window_ms * self.sampling_rate) // 1000
+        self.envelope_detector = EnvelopeDetector(envelope_window_size)
+        
+        # Baseline tracker for horizontal EOG
+        self.horizontal_baseline = BaselineTracker(window_size=512)
+        
+        self.current_envelope = 0.0
+        self.horizontal_signal = 0.0
+        
+        self.stream_active = True
+        self.last_data_time = None
+        
+        print("\n===================================")
+        print("EOG Morse Code Decoder")
+        print("===================================")
+        print("Left Eye  = DOT (.)")
+        print("Right Eye = DASH (-)")
+        print("2x Blink  = SEND Letter")
+        print("3x Blink  = BACKSPACE")
+        print("===================================\n")
 
-        # Left/Right data structures
-        self.circular_buffer = deque(maxlen=self.BUFFER_SIZE)
-        self.baseline = None
-        self.baseline_std = None
-        self.current_state = "NEUTRAL"
-        self.movement_samples = 0
-        self.cooldown_counter = 0
-        self.last_movement = None
-        self.movement_sequence = deque(maxlen=4)
+    def add_dot(self):
+        if len(self.morse_buffer) >= self.MAX_MORSE_LENGTH:
+            print("\nBuffer full! Resetting...")
+            self.morse_buffer = ""
         
-        # Filter parameters for left/right detection
-        self.NOTCH_FREQ = 50.0
-        self.NOTCH_Q = 20.0
-        self.BANDPASS_LOW = 1.0
-        self.BANDPASS_HIGH = 20.0
+        self.morse_buffer += "."
+        print(".", end="", flush=True)
+        self.update_buffer_gui()
+    
+    def add_dash(self):
+        if len(self.morse_buffer) >= self.MAX_MORSE_LENGTH:
+            print("\nBuffer full! Resetting...")
+            self.morse_buffer = ""
         
-        # Initialize filters for left/right detection
-        self.initialize_filters()
+        self.morse_buffer += "-"
+        print("-", end="", flush=True)
+        self.update_buffer_gui()
+    
+    def send_morse_as_letter(self):
+        if len(self.morse_buffer) == 0:
+            print("\nBuffer empty")
+            return
         
-        print("Right movement -> Dot (.)")
-        print("Left movement -> Dash (-)")
-        print("Double blink -> Process morse code and clear buffer")
-        print("=" * 50)
-
-    def initialize_filters(self):
-        """Initialize filters for left/right detection"""
-        self.notch_b, self.notch_a = iirnotch(self.NOTCH_FREQ, self.NOTCH_Q, self.sampling_rate)
-        nyq = 0.5 * self.sampling_rate
-        low = self.BANDPASS_LOW / nyq
-        high = self.BANDPASS_HIGH / nyq
-        self.bandpass_b, self.bandpass_a = butter(2, [low, high], btype='band')
-        self.filter_state_notch = np.zeros(max(len(self.notch_a), len(self.notch_b)) - 1)
-        self.filter_state_bandpass = np.zeros(max(len(self.bandpass_a), len(self.bandpass_b)) - 1)
-
-    def apply_filters(self, sample):
-        """Apply notch and bandpass filters to sample"""
-        if self.filter_state_notch[0] == -1:
-            filtered, self.filter_state_notch = lfilter(self.notch_b, self.notch_a, [sample], zi=None)
-        else:
-            filtered, self.filter_state_notch = lfilter(self.notch_b, self.notch_a, [sample], zi=self.filter_state_notch)
-        
-        if self.filter_state_bandpass[0] == -1:
-            filtered, self.filter_state_bandpass = lfilter(self.bandpass_b, self.bandpass_a, filtered, zi=None)
-        else:
-            filtered, self.filter_state_bandpass = lfilter(self.bandpass_b, self.bandpass_a, filtered, zi=self.filter_state_bandpass)
-        
-        return filtered[0]
-
-    def update_baseline_stats(self):
-        """Update baseline statistics for left/right detection"""
-        self.baseline = np.median(self.circular_buffer)
-        self.baseline_std = np.std(self.circular_buffer)
-        print(f"Baseline set: {self.baseline:.2f}μV")
-
-    def get_movement_type(self, current_value):
-        """Determine movement type based on current value"""
-        deviation = current_value - self.baseline
-        threshold = self.DEVIATION_SIGMA * self.baseline_std
-        
-        if deviation < -threshold:
-            return "LEFT"
-        elif deviation > threshold:
-            return "RIGHT"
-        else:
-            return "NEUTRAL"
-
-    def check_movement_completion(self):
-        """Check if a complete movement sequence has been detected"""
-        if len(self.movement_sequence) != 4:
-            return False
-        
-        seq = tuple(self.movement_sequence)
-        
-        # Right movement -> Dot (.)
-        if seq == ("RIGHT", "NEUTRAL", "LEFT", "NEUTRAL"):
-            print(".", end="", flush=True)
-            self.morse_buffer += "."
-            self.movement_sequence.clear()
-            self.last_input_time = time.time()  # Update last input time
-            return True
-        
-        # Left movement -> Dash (-)
-        if seq == ("LEFT", "NEUTRAL", "RIGHT", "NEUTRAL"):
-            print("-", end="", flush=True)
-            self.morse_buffer += "-"
-            self.movement_sequence.clear()
-            self.last_input_time = time.time()  # Update last input time
-            return True
-        
-        self.movement_sequence.popleft()   # If we have 4 elements but no match, clear the oldest one
-        return False
-
-    def process_morse_code(self):
-        """Process the current morse buffer and convert to character"""
         if self.morse_buffer in self.morse_code:
-            character = self.morse_code[self.morse_buffer]
-            print(f" -> {character}")
-            # Append character to the decoded word and update GUI
-            self.decoded_word += character
-            self.update_gui(self.decoded_word)
-            self.morse_buffer = ""
-            self.last_input_time = None  # Reset last input time after decoding
+            decoded = self.morse_code[self.morse_buffer]
+            print(f" -> {decoded}")
+            self.decoded_word += decoded
+            self.update_word_gui(self.decoded_word)
         else:
-            # print(f" -> Unknown morse code: {self.morse_buffer}")
-            self.morse_buffer = ""
-            self.last_input_time = None  # Reset last input time after decoding
-
-    def update_gui(self, text):
-        # Update the label in the tkinter window with the decoded word
+            print(f"\nInvalid: {self.morse_buffer}")
+        
+        self.morse_buffer = ""
+        self.update_buffer_gui()
+    
+    def send_backspace(self):
+        print("\n>>> BACKSPACE")
+        self.morse_buffer = ""
+        if len(self.decoded_word) > 0:
+            self.decoded_word = self.decoded_word[:-1]
+            self.update_word_gui(self.decoded_word)
+        self.update_buffer_gui()
+    
+    def update_word_gui(self, text):
         if self.gui_label and self.gui_root:
             def set_label():
                 self.gui_label.config(text=text)
             self.gui_root.after(0, set_label)
-
-    def detect_peaks(self, signal, threshold):
-        """Detect peaks in the signal for blink detection"""
-        peaks = []
-        prev_peak_time = None
-        min_peak_gap = 0.1  # Minimum time gap between two peaks in seconds
-        
-        for i in range(1, len(signal) - 1):
-            if signal[i] > signal[i - 1] and signal[i] > signal[i + 1] and signal[i] > threshold:
-                current_peak_time = i / self.sampling_rate
-                if prev_peak_time is not None:
-                    time_gap = current_peak_time - prev_peak_time
-                    if time_gap < min_peak_gap:
-                        continue
-                peaks.append(i)
-                prev_peak_time = current_peak_time
-        
-        return peaks
-
-    def detect_blinks(self, filtered_eog):
-        """Detect blinks and check for double blinks"""
-        mean_signal = np.mean(filtered_eog)
-        stdev_signal = np.std(filtered_eog)
-        threshold = mean_signal + (1.5 * stdev_signal)
-        
-        window_size = 1 * self.sampling_rate
-        start_index = self.current_index - window_size
-        if start_index < 0:
-            start_index = 0
-        
-        end_index = self.current_index
-        filtered_window = filtered_eog[start_index:end_index]
-        peaks = self.detect_peaks(filtered_window, threshold)
-        
-        for peak in peaks:
-            full_peak_index = start_index + peak
-            peak_time = time.time() - (self.current_index - full_peak_index) / self.sampling_rate
-            self.detected_peaks.append((full_peak_index, peak_time))
-        
-        # Double blink detection using actual peak times
-        if len(self.detected_peaks) >= 2:
-            last_peak_index, last_peak_time = self.detected_peaks[-1]
-            prev_peak_index, prev_peak_time = self.detected_peaks[-2]
-            time_diff = last_peak_time - prev_peak_time
+    
+    def update_status_gui(self, text):
+        if self.status_label and self.gui_root:
+            def set_status():
+                self.status_label.config(text=text)
+            self.gui_root.after(0, set_status)
+    
+    def update_buffer_gui(self):
+        if self.buffer_label and self.gui_root:
+            buffer_text = f"{self.morse_buffer if self.morse_buffer else '(empty)'}"
+            def set_buffer():
+                self.buffer_label.config(text=buffer_text)
+            self.gui_root.after(0, set_buffer)
+    
+    def update_blink_threshold(self, value):
+        """Update blink threshold from slider"""
+        self.BLINK_THRESHOLD = float(value)
+        self.update_blink_bar()
+    
+    def update_eye_threshold(self, value):
+        """Update eye movement threshold from slider"""
+        self.EYE_MOVEMENT_THRESHOLD = float(value)
+        self.update_eye_bar()
+    
+    def on_blink_canvas_click(self, event):
+        """Handle click on blink canvas to adjust threshold"""
+        if hasattr(self, 'blink_canvas'):
+            canvas_width = self.blink_canvas.winfo_width()
+            # Calculate threshold from click position (scale 0-260, but clamp to 40-260)
+            new_threshold = (event.x / canvas_width) * 260
+            new_threshold = max(40, min(260, new_threshold))  # Clamp to 40-260
+            self.BLINK_THRESHOLD = new_threshold
+            self.update_blink_bar()
+    
+    def on_eye_canvas_click(self, event):
+        """Handle click on eye canvas to adjust threshold"""
+        if hasattr(self, 'eye_canvas'):
+            canvas_width = self.eye_canvas.winfo_width()
+            # Calculate threshold from click position (scale 0-260, but clamp to 40-260)
+            new_threshold = (event.x / canvas_width) * 260
+            new_threshold = max(40, min(260, new_threshold))  # Clamp to 40-260
+            self.EYE_MOVEMENT_THRESHOLD = new_threshold
+            self.update_eye_bar()
+    
+    def update_blink_bar(self):
+        """Update the blink envelope bar display"""
+        if hasattr(self, 'blink_canvas') and self.gui_root:
+            def update_bar():
+                canvas_width = self.blink_canvas.winfo_width()
+                if canvas_width <= 1:  # Canvas not yet sized
+                    canvas_width = 600
+                
+                value = min(self.current_envelope, 260)  # Cap at max display value
+                # Clear canvas
+                self.blink_canvas.delete("all")
+                
+                # Draw background
+                self.blink_canvas.create_rectangle(0, 0, canvas_width, 40, fill="#ecf0f1", outline="#bdc3c7")
+                
+                # Draw filled bar (scale: 0-260, shows all values)
+                fill_width = (value / 260) * canvas_width
+                color = "#27ae60" if value < self.BLINK_THRESHOLD else "#e74c3c"
+                self.blink_canvas.create_rectangle(0, 0, fill_width, 40, fill=color, outline="")
+                
+                # Draw scale markers every 20 units (0, 20, 40, ..., 240, 260)
+                for i in range(0, 261, 20):
+                    x = (i / 260) * canvas_width
+                    self.blink_canvas.create_line(x, 35, x, 40, fill="#7f8c8d", width=1)
+                    # Offset text slightly inward for first and last markers
+                    if i == 0:
+                        self.blink_canvas.create_text(x + 8, 52, text=str(i), font=("Arial", 8), fill="#34495e")
+                    elif i == 260:
+                        self.blink_canvas.create_text(x - 10, 52, text=str(i), font=("Arial", 8), fill="#34495e")
+                    else:
+                        self.blink_canvas.create_text(x, 52, text=str(i), font=("Arial", 8), fill="#34495e")
+                
+                # Draw draggable threshold marker (adjustable from 40-260)
+                threshold_x = (self.BLINK_THRESHOLD / 260) * canvas_width
+                # Clamp threshold_x to keep text visible
+                threshold_x = max(20, min(canvas_width - 20, threshold_x))
+                
+                # Draw threshold line
+                self.blink_canvas.create_line(threshold_x, 0, threshold_x, 40, fill="#e67e22", width=6)
+                # Draw wider draggable handle/slider
+                self.blink_canvas.create_rectangle(threshold_x - 15, 0, threshold_x + 15, 40, 
+                                                   fill="#e67e22", outline="#d35400", width=2)
+                # Draw threshold value text (centered in the slider)
+                self.blink_canvas.create_text(threshold_x, 20, text=f"{int(self.BLINK_THRESHOLD)}", 
+                                             font=("Arial", 10, "bold"), fill="white",
+                                             tags="threshold_text")
+                
+                # Update value label (no extra indicators)
+                self.blink_value_label.config(text=f"{value:.1f}")
             
-            if (self.min_interblink_gap <= time_diff <= self.max_interblink_gap and 
-                time.time() - self.last_double_blink_time > self.double_blink_cooldown):
+            self.gui_root.after(0, update_bar)
+    
+    def update_eye_bar(self):
+        """Update the eye movement deviation bar display"""
+        if hasattr(self, 'eye_canvas') and self.gui_root:
+            def update_bar():
+                canvas_width = self.eye_canvas.winfo_width()
+                if canvas_width <= 1:  # Canvas not yet sized
+                    canvas_width = 600
+                
+                baseline = self.horizontal_baseline.get_baseline()
+                deviation = self.horizontal_signal - baseline
+                abs_deviation = min(abs(deviation), 260)  # Cap at max display value
+                
+                # Clear canvas
+                self.eye_canvas.delete("all")
+                
+                # Draw background
+                self.eye_canvas.create_rectangle(0, 0, canvas_width, 40, fill="#ecf0f1", outline="#bdc3c7")
+                
+                # Draw filled bar (scale: 0-260, shows all values)
+                fill_width = (abs_deviation / 260) * canvas_width
+                
+                # Color based on direction and threshold
+                if abs_deviation < self.EYE_MOVEMENT_THRESHOLD:
+                    color = "#3498db"  # Blue when below threshold
+                elif deviation < 0:
+                    color = "#9b59b6"  # Purple for LEFT
+                else:
+                    color = "#e74c3c"  # Red for RIGHT
+                
+                self.eye_canvas.create_rectangle(0, 0, fill_width, 40, fill=color, outline="")
+                
+                # Draw scale markers every 20 units (0, 20, 40, ..., 240, 260)
+                for i in range(0, 261, 20):
+                    x = (i / 260) * canvas_width
+                    self.eye_canvas.create_line(x, 35, x, 40, fill="#7f8c8d", width=1)
+                    # Offset text slightly inward for first and last markers
+                    if i == 0:
+                        self.eye_canvas.create_text(x + 8, 52, text=str(i), font=("Arial", 8), fill="#34495e")
+                    elif i == 260:
+                        self.eye_canvas.create_text(x - 10, 52, text=str(i), font=("Arial", 8), fill="#34495e")
+                    else:
+                        self.eye_canvas.create_text(x, 52, text=str(i), font=("Arial", 8), fill="#34495e")
+                
+                # Draw draggable threshold marker (adjustable from 40-260)
+                threshold_x = (self.EYE_MOVEMENT_THRESHOLD / 260) * canvas_width
+                # Clamp threshold_x to keep text visible
+                threshold_x = max(20, min(canvas_width - 20, threshold_x))
+                
+                # Draw threshold line
+                self.eye_canvas.create_line(threshold_x, 0, threshold_x, 40, fill="#e67e22", width=6)
+                # Draw wider draggable handle/slider
+                self.eye_canvas.create_rectangle(threshold_x - 15, 0, threshold_x + 15, 40, 
+                                                fill="#e67e22", outline="#d35400", width=2)
+                # Draw threshold value text (centered in the slider)
+                self.eye_canvas.create_text(threshold_x, 20, text=f"{int(self.EYE_MOVEMENT_THRESHOLD)}", 
+                                           font=("Arial", 10, "bold"), fill="white",
+                                           tags="threshold_text")
+                
+                # Update value label with direction indicator (removed to avoid flickering)
+                self.eye_value_label.config(text=f"{abs_deviation:.1f}")
             
-                print("\nDOUBLE BLINK DETECTED!")
-                self.process_morse_code()
-                self.last_double_blink_time = time.time()
+            self.gui_root.after(0, update_bar)
+    
+    def detect_blinks(self, now_ms):
+        envelope_high = self.current_envelope > self.BLINK_THRESHOLD
+        envelope_low = self.current_envelope < self.BLINK_RELEASE_THRESHOLD
+        
+        # Track release state - envelope must drop below release threshold before next blink
+        if envelope_low and self.blink_active:
+            self.blink_released = True
+            self.blink_active = False
+        
+        # Only detect new blink if:
+        # 1. Envelope is high (crossing threshold upward)
+        # 2. Previous blink has been released (envelope went low)
+        # 3. Sufficient time has passed (debounce) OR blink was released
+        # The key: allow quick blinks if they properly released, ignore bouncing if too fast
+        time_since_last = now_ms - self.last_blink_time
+        can_detect = self.blink_released and (time_since_last >= self.BLINK_DEBOUNCE_MS)
+        
+        if envelope_high and not self.blink_active and can_detect:
+            self.last_blink_time = now_ms
+            self.blink_released = False  # Mark as not released until envelope drops
+            self.blink_active = True
+            
+            if self.blink_count == 0:
+                self.first_blink_time = now_ms
+                self.blink_count = 1
+                self.update_status_gui("Blink detected (1)")
+                print("\n[BLINK 1]", end="", flush=True)
+            elif self.blink_count == 1 and (now_ms - self.first_blink_time) <= self.DOUBLE_BLINK_MS:
+                self.second_blink_time = now_ms
+                self.blink_count = 2
+                self.update_status_gui("Double Blink detected (2)")
+                print(" [BLINK 2]", end="", flush=True)
+            elif self.blink_count == 2 and (now_ms - self.second_blink_time) <= self.TRIPLE_BLINK_MS:
+                print("\n>>> TRIPLE BLINK <<<")
+                self.update_status_gui(">>> TRIPLE BLINK - BACKSPACE <<<")
+                self.send_backspace()
+                self.blink_count = 0
+            else:
+                # Reset if timing doesn't match double/triple blink pattern
+                self.first_blink_time = now_ms
+                self.blink_count = 1
+                self.update_status_gui("Blink detected (1)")
+                print("\n[BLINK 1]", end="", flush=True)
+        
+        # Check for double blink timeout
+        if self.blink_count == 2 and (now_ms - self.second_blink_time) > self.TRIPLE_BLINK_MS:
+            print("\n>>> DOUBLE BLINK <<<")
+            self.update_status_gui(">>> DOUBLE BLINK - SEND LETTER <<<")
+            self.send_morse_as_letter()
+            self.blink_count = 0
+        
+        # Check for single blink timeout
+        if self.blink_count == 1 and (now_ms - self.first_blink_time) > self.DOUBLE_BLINK_MS:
+            self.blink_count = 0
+            self.update_status_gui("Ready")
+    
+    def detect_eye_movement(self, now_ms):
+        baseline = self.horizontal_baseline.get_baseline()
+        deviation = self.horizontal_signal - baseline
+        abs_deviation = abs(deviation)
+        
+        # Determine current direction
+        if deviation < -self.EYE_MOVEMENT_THRESHOLD:
+            current_direction = "LEFT"
+        elif deviation > self.EYE_MOVEMENT_THRESHOLD:
+            current_direction = "RIGHT"
+        else:
+            current_direction = None
+        
+        # Track release state - must return to low deviation before next movement
+        if abs_deviation < self.EYE_MOVEMENT_RELEASE_THRESHOLD and self.eye_movement_active:
+            self.eye_movement_released = True
+            self.eye_movement_active = False
+            self.last_direction = None  # Clear direction when fully released
+        
+        # Check if deviation is increasing (moving away from baseline)
+        # This prevents detecting overshoot when returning to center
+        deviation_increasing = False
+        if current_direction == "LEFT" and deviation < self.previous_deviation:
+            deviation_increasing = True  # Moving more negative (away from baseline to left)
+        elif current_direction == "RIGHT" and deviation > self.previous_deviation:
+            deviation_increasing = True  # Moving more positive (away from baseline to right)
+        
+        # Store current deviation for next comparison
+        self.previous_deviation = deviation
+        
+        # Only detect new movement if:
+        # 1. Deviation exceeds threshold in a direction
+        # 2. Previous movement has been released
+        # 3. Sufficient time has passed (debounce)
+        # 4. Direction is different from last detected OR last_direction is None
+        # 5. Deviation is increasing (moving away from baseline, not returning)
+        if not self.eye_movement_active and current_direction is not None and \
+           self.eye_movement_released and \
+           (now_ms - self.last_eye_movement_time) >= self.EYE_MOVEMENT_DEBOUNCE_MS and \
+           (self.last_direction is None or current_direction != self.last_direction) and \
+           deviation_increasing:
+            
+            self.eye_movement_active = True
+            self.eye_movement_released = False  # Mark as not released
+            self.last_eye_movement_time = now_ms
+            self.last_direction = current_direction  # Store the direction
+            
+            if current_direction == "LEFT":
+                print("\n>>> LEFT <<<")
+                self.update_status_gui(">>> LEFT - DOT <<<")
+                self.add_dot()
+            else:  # RIGHT
+                print("\n>>> RIGHT <<<")
+                self.update_status_gui(">>> RIGHT - DASH <<<")
+                self.add_dash()
 
     def run(self):
         try:
@@ -253,89 +579,197 @@ class MorseCodeEOGSystem:
                 
                 if samples:
                     self.last_data_time = time.time()
+                    now_ms = int(time.time() * 1000)
                     
                     for sample in samples:
-                        # Store data for blink detection (channel 1)
-                        self.eog_data[self.current_index] = sample[1]
-                        # Filter only the new sample and update filtered_eog_data
-                        filtered_sample, self.zi = lfilter(self.b, self.a, [sample[1]], zi=self.zi)
-                        self.filtered_eog_data[self.current_index] = filtered_sample[0]
-                        self.current_index = (self.current_index + 1) % self.buffer_size
+                        # Get raw ADC values and center them
+                        # sample[0] = Vertical EOG (blinks)
+                        # sample[1] = Horizontal EOG (left/right)
+                        raw_vertical = sample[0] - self.adc_mid
+                        raw_horizontal = sample[1] - self.adc_mid
                         
-                        # Process for left/right detection (channel 0)
-                        filtered_sample_lr = sample[0]  # Using raw signal for left/right
-                        self.circular_buffer.append(filtered_sample_lr)
+                        # Process vertical EOG (channel 0) for blink detection
+                        filt_vertical = self.notch_filter_vertical.process(raw_vertical)
+                        filt_vertical = self.eog_filter_vertical.process(filt_vertical)
+                        filt_vertical = self.lowpass_filter_vertical.process(filt_vertical)
+                        self.current_envelope = self.envelope_detector.update(filt_vertical)
                         
-                        # Set baseline for left/right detection
-                        if len(self.circular_buffer) == self.BASELINE_SAMPLES and self.baseline is None:
-                            self.update_baseline_stats()
-                            continue
-                        
-                        if self.baseline is None:
-                            continue
-                        
-                        # Left/Right movement detection
-                        detected_state = self.get_movement_type(filtered_sample_lr)
-                        
-                        if self.cooldown_counter > 0:
-                            self.cooldown_counter -= 1
-                            continue
-                        
-                        # Movement validation
-                        if detected_state != "NEUTRAL":
-                            if detected_state == self.last_movement or self.last_movement is None:
-                                self.movement_samples += 1
-                            else:
-                                self.movement_samples = 1
-                            
-                            if self.movement_samples >= self.MIN_MOVEMENT_SAMPLES:
-                                if detected_state != self.current_state:
-                                    self.movement_sequence.append(detected_state)
-                                    self.current_state = detected_state
-                                    self.last_movement = detected_state
-                                    self.cooldown_counter = self.COOLDOWN_SAMPLES
-                                    self.movement_samples = 0
-                                    self.check_movement_completion()
-                        else:
-                            if self.current_state != "NEUTRAL":
-                                self.movement_sequence.append("NEUTRAL")
-                                self.current_state = "NEUTRAL"
-                                self.check_movement_completion()
-                            self.movement_samples = 0
-                            self.last_movement = None
+                        # Process horizontal EOG (channel 1) for left/right detection
+                        filt_horizontal = self.notch_filter_horizontal.process(raw_horizontal)
+                        filt_horizontal = self.eog_filter_horizontal.process(filt_horizontal)
+                        filt_horizontal = self.lowpass_filter_horizontal.process(filt_horizontal)
+                        self.horizontal_signal = filt_horizontal
+                        self.horizontal_baseline.update(filt_horizontal)
                     
-                    # Blink detection
-                    if time.time() - self.start_time >= 2:
-                        # Use only the filtered_eog_data buffer
-                        self.detect_blinks(self.filtered_eog_data)
+                    self.detect_blinks(now_ms)
+                    self.detect_eye_movement(now_ms)
                     
-                    # Clear out old peaks from the circular buffer
-                    current_time = time.time()
-                    while self.detected_peaks and (current_time - self.detected_peaks[0][1] > 4):
-                        self.detected_peaks.popleft()
+                    # Update real-time bars
+                    self.update_blink_bar()
+                    self.update_eye_bar()
                 
                 else:
                     if self.last_data_time and (time.time() - self.last_data_time) > 2:
                         self.stream_active = False
-                        print("LSL stream disconnected!")
-                if self.morse_buffer and self.last_input_time:
-                    if time.time() - self.last_input_time > self.inactivity_timeout:
-                        print(f"\nBuffer timeout. Clearing morse buffer: {self.morse_buffer}")
-                        self.morse_buffer = ""
-                        self.last_input_time = None
+                        print("\nLSL stream disconnected!")
+                        self.update_status_gui("Stream disconnected!")
                         
         except KeyboardInterrupt:
             print("\nExiting...")
 
 if __name__ == "__main__":
     gui_root = tk.Tk()
-    gui_root.title("Morse Output")
+    gui_root.title("EOG Morse Code Decoder")
     gui_root.configure(bg="white")
-    gui_root.geometry("500x300+220+280")
-    gui_label = tk.Label(gui_root, text="", font=("Arial", 48), bg="white", fg="black")
-    gui_label.pack(expand=True)
+    gui_root.geometry("1000x750+100+50")
+    
+    # Title
+    title_label = tk.Label(gui_root, text="EOG Morse Code Decoder", 
+                           font=("Arial", 20, "bold"), bg="white", fg="#2c3e50")
+    title_label.pack(pady=10)
+    
+    # Instructions
+    instructions = tk.Label(gui_root, 
+                           text="Left Eye = DOT (.)  |  Right Eye = DASH (-)  |  2x Blink = SEND  |  3x Blink = BACKSPACE\nClick on the orange threshold marker to adjust detection sensitivity",
+                           font=("Arial", 10), bg="white", fg="#7f8c8d")
+    instructions.pack(pady=5)
+    
+    # Status label
+    status_label = tk.Label(gui_root, text="Initializing...", 
+                           font=("Arial", 14), bg="white", fg="#27ae60")
+    status_label.pack(pady=10)
+    
+    # Buffer display - redesigned with label and value box (consistent with other bars)
+    buffer_frame = tk.Frame(gui_root, bg="white", padx=20, pady=10)
+    buffer_frame.pack(fill=tk.X, padx=10)
+    
+    buffer_title_label = tk.Label(buffer_frame, text="Buffer:", 
+                                  font=("Arial", 12, "bold"), bg="white", fg="#34495e")
+    buffer_title_label.pack(anchor=tk.W, pady=(0, 5))
+    
+    buffer_container = tk.Frame(buffer_frame, bg="white")
+    buffer_container.pack(fill=tk.X, pady=5)
+    
+    buffer_value_box = tk.Label(buffer_container, text="Input:", 
+                                font=("Arial", 12, "bold"), bg="#fef5e7", fg="#f39c12",
+                                width=8, anchor=tk.CENTER, relief=tk.RAISED, borderwidth=2)
+    buffer_value_box.pack(side=tk.LEFT, padx=(0, 10), ipady=2, anchor='n')  # ipady for exact height control
+    
+    buffer_label = tk.Label(buffer_container, text="(empty)", 
+                           font=("Courier", 14, "bold"), bg="#ecf0f1", fg="#2980b9",
+                           relief=tk.GROOVE, padx=15, anchor=tk.W)
+    buffer_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipady=2)
+    
+    # Create system instance first (needed for threshold values)
+    system = MorseCodeEOGSystem(gui_label=None, gui_root=gui_root, 
+                                status_label=status_label, buffer_label=buffer_label)
+    
+    # Function to resize canvases when window resizes
+    def on_window_resize(event=None):
+        # Get window width
+        window_width = gui_root.winfo_width()
+        # Calculate canvas width (70% of window, minus padding and label width)
+        canvas_width = int((window_width * 0.70) - 100)  # 100 for value label and padding
+        canvas_width = max(400, canvas_width)  # Minimum width
+        
+        # Update canvas widths
+        if hasattr(system, 'blink_canvas'):
+            system.blink_canvas.config(width=canvas_width)
+        if hasattr(system, 'eye_canvas'):
+            system.eye_canvas.config(width=canvas_width)
+        
+        # Trigger bar updates to redraw with new width
+        system.update_blink_bar()
+        system.update_eye_bar()
+    
+    # Blink Detection Section
+    blink_frame = tk.Frame(gui_root, bg="white", padx=20, pady=10)
+    blink_frame.pack(fill=tk.X, padx=10)
+    
+    blink_title = tk.Label(blink_frame, text="Blink Detection (click orange marker to adjust threshold)", 
+                          font=("Arial", 12, "bold"), bg="white", fg="#2c3e50")
+    blink_title.pack(anchor=tk.W, pady=(0, 5))
+    
+    # Blink bar with value label
+    blink_bar_container = tk.Frame(blink_frame, bg="white")
+    blink_bar_container.pack(fill=tk.X, pady=5)
+    
+    blink_value_label = tk.Label(blink_bar_container, text="0.0", 
+                                 font=("Arial", 11, "bold"), bg="#d5f4e6", fg="#27ae60",
+                                 width=8, anchor=tk.CENTER, relief=tk.RAISED, borderwidth=2,
+                                 padx=5, pady=8)
+    blink_value_label.pack(side=tk.LEFT, padx=(0, 10), anchor='n')
+    
+    blink_canvas = tk.Canvas(blink_bar_container, width=750, height=65, bg="white", 
+                            highlightthickness=0, cursor="hand2")
+    blink_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    
+    # Bind click event to adjust threshold
+    blink_canvas.bind("<Button-1>", system.on_blink_canvas_click)
+    blink_canvas.bind("<B1-Motion>", system.on_blink_canvas_click)  # Allow dragging
+    
+    # Store references in system
+    system.blink_canvas = blink_canvas
+    system.blink_value_label = blink_value_label
+    
+    # Separator
+    tk.Frame(gui_root, height=1, bg="#bdc3c7").pack(fill=tk.X, padx=30, pady=15)
+    
+    # Eye Movement Detection Section
+    eye_frame = tk.Frame(gui_root, bg="white", padx=20, pady=10)
+    eye_frame.pack(fill=tk.X, padx=10)
+    
+    eye_title = tk.Label(eye_frame, text="Eye Movement Detection (click orange marker to adjust threshold)", 
+                        font=("Arial", 12, "bold"), bg="white", fg="#2c3e50")
+    eye_title.pack(anchor=tk.W, pady=(0, 5))
+    
+    # Eye movement bar with value label
+    eye_bar_container = tk.Frame(eye_frame, bg="white")
+    eye_bar_container.pack(fill=tk.X, pady=5)
+    
+    eye_value_label = tk.Label(eye_bar_container, text="0.0", 
+                               font=("Arial", 11, "bold"), bg="#dfe6f5", fg="#3498db",
+                               width=8, anchor=tk.CENTER, relief=tk.RAISED, borderwidth=2,
+                               padx=5, pady=8)
+    eye_value_label.pack(side=tk.LEFT, padx=(0, 10), anchor='n')
+    
+    eye_canvas = tk.Canvas(eye_bar_container, width=750, height=65, bg="white", 
+                          highlightthickness=0, cursor="hand2")
+    eye_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    
+    # Bind click event to adjust threshold
+    eye_canvas.bind("<Button-1>", system.on_eye_canvas_click)
+    eye_canvas.bind("<B1-Motion>", system.on_eye_canvas_click)  # Allow dragging
+    
+    # Store references in system
+    system.eye_canvas = eye_canvas
+    system.eye_value_label = eye_value_label
+    
+    # Separator
+    tk.Frame(gui_root, height=2, bg="#bdc3c7").pack(fill=tk.X, padx=30, pady=15)
+    
+    # Decoded word display
+    word_frame = tk.Frame(gui_root, bg="white")
+    word_frame.pack(pady=10, fill=tk.BOTH, expand=True, padx=20)
+    
+    word_title = tk.Label(word_frame, text="Decoded Message:", 
+                         font=("Arial", 12, "bold"), bg="white", fg="#34495e")
+    word_title.pack(anchor=tk.W)
+    
+    gui_label = tk.Label(word_frame, text="", font=("Arial", 36, "bold"), 
+                        bg="#ffffff", fg="#2c3e50", relief=tk.GROOVE, 
+                        padx=20, pady=20, anchor=tk.NW, justify=tk.LEFT)
+    gui_label.pack(fill=tk.BOTH, expand=True, anchor=tk.NW)
+    
+    # Update system with gui_label
+    system.gui_label = gui_label
+    
+    # Bind window resize event
+    gui_root.bind("<Configure>", on_window_resize)
+    
+    # Initial resize after a short delay to ensure proper sizing
+    gui_root.after(100, on_window_resize)
 
-    system = MorseCodeEOGSystem(gui_label=gui_label, gui_root=gui_root)
     system_thread = threading.Thread(target=system.run, daemon=True)
     system_thread.start()
 
