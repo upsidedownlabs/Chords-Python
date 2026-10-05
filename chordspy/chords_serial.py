@@ -53,7 +53,8 @@ class Chords_USB:
         "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16, "resolution": 10},
         "MEGA-2560-CLONE": {"sampling_rate": 250, "Num_channels": 16, "resolution": 10},
         "GIGA-R1": {"sampling_rate": 500, "Num_channels": 6, "resolution": 16},
-        "NPG-LITE": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},
+        "NPG-LITE-3CH": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},
+        "NPG-LITE-6CH": {"sampling_rate": 500, "Num_channels": 6, "resolution": 12},
     }
 
     def __init__(self):
