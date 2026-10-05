@@ -68,6 +68,16 @@ class Chords_BLE:
         
         return filtered
 
+    def set_channels_from_name(self, device_name):
+        """
+        Set the channel count from the advertised device name.
+        Args:
+            device_name (str): BLE device name, e.g. NPG-Lite-3CH:XX:XX or NPG-Lite-6CH:XX:XX
+        """
+        self.NUM_CHANNELS = 6 if device_name and "6CH" in device_name.upper() else 3
+        self.SINGLE_SAMPLE_LEN = (self.NUM_CHANNELS * 2) + 1
+        self.NEW_PACKET_LEN = self.SINGLE_SAMPLE_LEN * self.BLOCK_COUNT
+
     def process_sample(self, sample_data: bytearray):
         """
         Process a single sample packet.

@@ -404,7 +404,7 @@ class Connection:
                 print(f"\nUSB data handler error: {str(e)}")
                 break
 
-    def connect_ble(self, device_address=None):
+    def connect_ble(self, device_address=None, device_name=None):
         """
         Establishes and manages a Bluetooth Low Energy (BLE) connection with a device.
         The method handles the complete BLE lifecycle including:
@@ -414,6 +414,7 @@ class Connection:
         - Real-time data processing pipeline
         Args:
             device_address (str, optional): MAC address in "XX:XX:XX:XX:XX:XX" format. If None, initiates interactive device selection.
+            device_name (str, optional): Advertised device name, used to set the channel count (NPG-Lite-3CH / NPG-Lite-6CH).
         Returns:
             bool: True if connection succeeds, False on failure
         Workflow: Initialize BLE handler instance -> Configure custom data notification handler -> Establish connection (direct or interactive) -> Set up data processing pipeline -> Maintain connection until termination.
@@ -425,7 +426,7 @@ class Connection:
         def notification_handler(sender, data):
             if len(data) == self.ble_connection.NEW_PACKET_LEN:
                 if not self.lsl_connection:
-                    self.setup_lsl(num_channels=3, sampling_rate=500)
+                    self.setup_lsl(num_channels=self.ble_connection.NUM_CHANNELS, sampling_rate=500)
                 
                 original_notification_handler(sender, data)
                 
@@ -448,12 +449,14 @@ class Connection:
         
         try:
             if device_address:
-                print(f"Connecting to BLE device: {device_address}")
+                self.ble_connection.set_channels_from_name(device_name)    # Set channel count from device name
+                print(f"Connecting to BLE device: {device_name or device_address}")
                 self.ble_connection.connect(device_address)
             else:
                 selected_device = asyncio.run(self.get_ble_device())
                 if not selected_device:
                     return False
+                self.ble_connection.set_channels_from_name(selected_device.name)    # Set channel count from device name
                 print(f"Connecting to BLE device: {selected_device.name}")
                 self.ble_connection.connect(selected_device.address)
 
