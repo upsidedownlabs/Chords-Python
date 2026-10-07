@@ -9,6 +9,7 @@ import sys
 import websocket
 import socket
 import struct
+import psutil
 
 class Chords_WIFI:
     """
@@ -82,7 +83,8 @@ class Chords_WIFI:
                    for name in self.HOSTNAMES]
 
         # Send from every network adapter, the device may not be on the default one ("0.0.0.0" = default adapter)
-        local_ips = {info[4][0] for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)} | {"0.0.0.0"}
+        local_ips = {addr.address for addrs in psutil.net_if_addrs().values() for addr in addrs
+                     if addr.family == socket.AF_INET} | {"0.0.0.0"}
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.settimeout(0.5)

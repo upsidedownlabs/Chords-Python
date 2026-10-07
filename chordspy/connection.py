@@ -24,6 +24,7 @@ from chordspy.chords_ble import Chords_BLE       # BLE protocol handler
 import argparse                                  # For command-line argument parsing
 import time                                      # For timing operations and timestamps
 import asyncio                                   # For asynchronous BLE operations
+from bleak import BleakScanner                   # For looking up a BLE device name by address
 import csv                                       # For CSV file recording
 from datetime import datetime                    # For timestamp generation
 import threading                                 # For multi-threaded operations
@@ -449,6 +450,9 @@ class Connection:
         
         try:
             if device_address:
+                if not device_name:    # Only the address is known, look up the advertised name
+                    device = asyncio.run(BleakScanner.find_device_by_address(device_address))
+                    device_name = device.name if device else None
                 self.ble_connection.set_channels_from_name(device_name)    # Set channel count from device name
                 print(f"Connecting to BLE device: {device_name or device_address}")
                 self.ble_connection.connect(device_address)
