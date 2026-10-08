@@ -8,6 +8,8 @@ import time
 import sys
 import websocket
 import socket
+import struct
+import psutil
 
 class Chords_WIFI:
     """
@@ -29,7 +31,10 @@ class Chords_WIFI:
         cleanup_done (bool): Flag indicating if cleanup was performed
         ws (websocket.WebSocket): WebSocket connection object
     """
-    
+
+    # Device hostnames and their channel count (multi-emg is the older firmware)
+    HOSTNAMES = {"npg-lite-3ch.local": 3, "npg-lite-6ch.local": 6, "multi-emg.local": 3}
+
     def __init__(self, stream_name='NPG', channels=3, sampling_rate=500, block_size=13, timeout_sec=1):
         """
         Initialize the WiFi client with connection parameters.
@@ -57,13 +62,68 @@ class Chords_WIFI:
         self.cleanup_done = False
         self.ws = None
 
+    @staticmethod
+    def encode_name(name):
+        """
+        Encode a hostname the way DNS writes it, e.g. npg-lite-3ch.local -> \\x0cnpg-lite-3ch\\x05local\\x00
+        """
+        return b"".join(bytes([len(part)]) + part.encode() for part in name.split(".")) + b"\0"
+
+    def resolve_host(self, timeout=3):
+        """
+        Find the device by sending mDNS queries directly. This is much faster than the OS lookup,
+        which can take over 10 seconds on Windows. All hostnames are asked for at once and the first reply is used.
+        Args:
+            timeout (float): Seconds to keep searching (default: 3)
+        Returns:
+            tuple: (hostname, ip address)
+        """
+        # mDNS query: header with 1 question + hostname + type A + class IN with the "reply directly to me" bit
+        queries = [struct.pack(">6H", 0, 0, 1, 0, 0, 0) + self.encode_name(name) + struct.pack(">HH", 1, 0x8001)
+                   for name in self.HOSTNAMES]
+
+        # Send from every network adapter, the device may not be on the default one ("0.0.0.0" = default adapter)
+        local_ips = {addr.address for addrs in psutil.net_if_addrs().values() for addr in addrs
+                     if addr.family == socket.AF_INET} | {"0.0.0.0"}
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(0.5)
+        try:
+            end_time = time.time() + timeout
+            while time.time() < end_time:
+                # Send the queries (repeated every 0.5 s in case a packet is lost)
+                for ip in local_ips:
+                    try:
+                        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(ip))
+                        for query in queries:
+                            sock.sendto(query, ("224.0.0.251", 5353))
+                    except OSError:
+                        continue    # Adapter not usable, try the next one
+
+                # Wait for a reply, the device answers from its own IP address
+                try:
+                    data, (device_ip, _) = sock.recvfrom(1500)
+                except socket.timeout:
+                    continue
+                for name in self.HOSTNAMES:
+                    if self.encode_name(name) in data:
+                        return name, device_ip
+        finally:
+            sock.close()
+        raise ConnectionError("No NPG-Lite device found")
+
     def connect(self):
         """
-        Establish WebSocket connection to the CHORDS device. It Attempts to resolve the hostname 'multi-emg.local' and connect to its WebSocket server.
+        Establish WebSocket connection to the CHORDS device. It resolves the device hostname, sets the channel count from it and connects to its WebSocket server.
         """
         try:
-            host_ip = socket.gethostbyname("multi-emg.local")    # Resolve hostname to IP address
-            
+            hostname, host_ip = self.resolve_host()    # Resolve hostname to IP address
+
+            # Channel count from hostname: 3CH = 13 byte blocks, 6CH = 15 byte blocks
+            self.channels = self.HOSTNAMES[hostname]
+            self.block_size = 15 if self.channels == 6 else 13
+            print(f"Found {hostname} ({self.channels} channels)")
+
             # Create and connect WebSocket
             self.ws = websocket.WebSocket()
             self.ws.connect(f"ws://{host_ip}:81")

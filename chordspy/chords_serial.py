@@ -53,7 +53,9 @@ class Chords_USB:
         "MEGA-2560-R3": {"sampling_rate": 250, "Num_channels": 16, "resolution": 10},
         "MEGA-2560-CLONE": {"sampling_rate": 250, "Num_channels": 16, "resolution": 10},
         "GIGA-R1": {"sampling_rate": 500, "Num_channels": 6, "resolution": 16},
-        "NPG-LITE": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},
+        "NPG-LITE": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},      # Older firmware
+        "NPG-LITE-3CH": {"sampling_rate": 500, "Num_channels": 3, "resolution": 12},
+        "NPG-LITE-6CH": {"sampling_rate": 500, "Num_channels": 6, "resolution": 12},
     }
 
     def __init__(self):
@@ -90,7 +92,7 @@ class Chords_USB:
         4. Configures parameters based on detected board
         """
         try:
-            self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)   # Initialize serial connection
+            self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout, write_timeout=1)   # Initialize serial connection (write_timeout: don't hang on ports that don't accept data)
             retry_counter = 0
             response = None
 
@@ -128,7 +130,7 @@ class Chords_USB:
             bool: True if hardware was detected and connected, False otherwise
         """
         baudrates = [230400, 115200]                # Common baud rates to try with
-        ports = serial.tools.list_ports.comports()  # Get list of available serial ports
+        ports = [p for p in serial.tools.list_ports.comports() if p.vid is not None]  # Only USB serial ports (skips Bluetooth and other non-USB ports)
 
         # Try all ports and baud rates
         for port in ports:

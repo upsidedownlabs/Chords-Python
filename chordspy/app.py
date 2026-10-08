@@ -272,7 +272,9 @@ def connect_device():
                 # For BLE, we need to run in an event loop
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                success = connection_manager.connect_ble(device_address)
+                # Get the device name from the last scan, it tells the channel count (NPG-Lite-3CH / NPG-Lite-6CH)
+                device_name = next((d['name'] for d in ble_devices if d['address'] == device_address), None)
+                success = connection_manager.connect_ble(device_address, device_name)
             
             if success:
                 post_console_message("LSL stream started")
