@@ -22,6 +22,7 @@ import yaml                                                 # For loading applic
 from pathlib import Path                                    # For handling file paths in a platform-independent way
 import os                                                   # For file and directory operations
 import webbrowser                                           # For opening the web interface in a browser
+from importlib.metadata import version, PackageNotFoundError  # For reading the installed chordspy version
 
 console_queue = queue.Queue()            # Global queue for console messages to be displayed in the web interface
 app = Flask(__name__)                    # Initialize Flask application
@@ -35,6 +36,14 @@ connection_thread = None   # Thread for connection management
 ble_devices = []           # List of discovered BLE devices
 stream_active = False      # Flag indicating if data stream is active
 running_apps = {}          # Dictionary to track running applications
+
+# Route to get the installed chordspy version (from pyproject.toml at install time), shown by the info button.
+@app.route('/version')
+def get_version():
+    try:
+        return jsonify({'version': version('chordspy')})
+    except PackageNotFoundError:
+        return jsonify({'version': 'unknown'})
 
 # Error logging endpoint. This allows the frontend to send error messages to be logged.
 @app.route('/log_error', methods=['POST'])
