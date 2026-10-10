@@ -81,7 +81,7 @@ def plot_lsl_data():
 def init_gui():
     global plots, curves, app, win, timer, status_bar, lsl_label
 
-    app = QtWidgets.QApplication(sys.argv)  # Create the Qt application
+    app = pg.mkQApp()  # Create the Qt application with high-DPI scaling, so plots scale correctly when moved to another monitor
     win = QtWidgets.QWidget()  # Create the main window
     layout = QtWidgets.QVBoxLayout()  # Create a vertical layout for the window
     win.setLayout(layout)  # Set the layout to the window

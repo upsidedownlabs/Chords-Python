@@ -137,7 +137,7 @@ class EMGMonitor(QMainWindow):
                 self.close()
                   
 def main():
-    app = QApplication(sys.argv)
+    app = pg.mkQApp()    # Enables high-DPI scaling, so plots scale correctly when moved to another monitor
     window = EMGMonitor()  
     window.show()
     sys.exit(app.exec_())
