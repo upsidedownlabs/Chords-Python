@@ -161,7 +161,7 @@ class ECGMonitor(QMainWindow):
         self.r_peak_curve.setData(r_peak_times, r_peak_values)  # Plot R-peaks as red dots
 
 def main():
-    app = QApplication(sys.argv)
+    app = pg.mkQApp()    # Enables high-DPI scaling, so plots scale correctly when moved to another monitor
     window = ECGMonitor()  
     window.show()
     sys.exit(app.exec_())    

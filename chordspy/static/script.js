@@ -963,7 +963,13 @@ document.getElementById('github-btn').addEventListener('click', () => {
     window.open('https://github.com/upsidedownlabs/Chords-Python', '_blank');
 });
 
-document.getElementById('info-btn').addEventListener('click', () => {
-    alert('Chords Python - Bio-potential Data Acquisition System\nVersion 0.1.0');
+document.getElementById('info-btn').addEventListener('click', async () => {
+    let version = 'unknown';
+    try {
+        version = (await (await fetch('/version')).json()).version;    // Installed chordspy version
+    } catch (error) {
+        logError('Version fetch error:', error);
+    }
+    alert(`Chords Python - Bio-potential Data Acquisition System\nVersion ${version}`);
 });
 });
