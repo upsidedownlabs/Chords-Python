@@ -258,7 +258,7 @@ class EOGMonitor(QMainWindow):
         return peaks
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    app = pg.mkQApp()    # Enables high-DPI scaling, so plots scale correctly when moved to another monitor
     window = EOGMonitor()
     print("Note: There will be a 2s calibration delay before peak detection starts.")
     window.show()

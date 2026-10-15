@@ -1,12 +1,18 @@
 import tkinter as tk
 from tkinter import PhotoImage
 import threading
-import pyautogui
+import sys
 import numpy as np
 from scipy.signal import butter, lfilter
 import pylsl
 import time
 import os
+
+# Keystrokes: keyboard on Windows (no added delay), pyautogui elsewhere (keyboard needs root on Linux)
+if sys.platform == "win32":
+    import keyboard
+else:
+    import pyautogui
 
 class EOGPeakDetector:
     def __init__(self, blink_button, keystroke_action, connect_button):
@@ -152,7 +158,10 @@ def quit_action(detector):
 def keystroke_action():
     """Perform the keystroke action (press spacebar)."""
     print("Spacebar pressed!")
-    pyautogui.press('space')
+    if sys.platform == "win32":
+        keyboard.press_and_release('space')
+    else:
+        pyautogui.press('space')
 
 def connect_start_stop_action(detector, connect_button):
     """Handle the connect/start/stop action for the GUI."""

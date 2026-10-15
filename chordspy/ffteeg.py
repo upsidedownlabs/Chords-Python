@@ -419,7 +419,7 @@ class EEGMonitor(QMainWindow):
             self.brainwave_bars.setOpts(height=relative_powers)
 
 def main():
-    app = QApplication(sys.argv)
+    app = pg.mkQApp()    # Enables high-DPI scaling, so plots scale correctly when moved to another monitor
     window = EEGMonitor()  
     window.show()
     sys.exit(app.exec_())

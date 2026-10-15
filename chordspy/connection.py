@@ -422,18 +422,21 @@ class Connection:
         """
         # Initialize BLE protocol handler
         self.ble_connection = Chords_BLE()
-        original_notification_handler = self.ble_connection.notification_handler
+        ble = self.ble_connection    # Local reference, cleanup() sets self.ble_connection to None
+        original_notification_handler = ble.notification_handler
 
         def notification_handler(sender, data):
-            if len(data) == self.ble_connection.NEW_PACKET_LEN:
+            if ble.stop_event.is_set():    # Disconnecting: ignore packets that still arrive
+                return
+            if len(data) == ble.NEW_PACKET_LEN:
                 if not self.lsl_connection:
-                    self.setup_lsl(num_channels=self.ble_connection.NUM_CHANNELS, sampling_rate=500)
-                
+                    self.setup_lsl(num_channels=ble.NUM_CHANNELS, sampling_rate=500)
+
                 original_notification_handler(sender, data)
-                
-                for i in range(0, self.ble_connection.NEW_PACKET_LEN, self.ble_connection.SINGLE_SAMPLE_LEN):
-                    sample_data = data[i:i+self.ble_connection.SINGLE_SAMPLE_LEN]
-                    if len(sample_data) == self.ble_connection.SINGLE_SAMPLE_LEN:
+
+                for i in range(0, ble.NEW_PACKET_LEN, ble.SINGLE_SAMPLE_LEN):
+                    sample_data = data[i:i+ble.SINGLE_SAMPLE_LEN]
+                    if len(sample_data) == ble.SINGLE_SAMPLE_LEN:
                         channels = [
                             int.from_bytes(sample_data[i:i + 2], byteorder='big', signed=True)
                             for i in range(1, len(sample_data), 2)
@@ -581,6 +584,8 @@ class Connection:
         The cleanup process follows this sequence: First stop data recording -> Then stop LSL streaming -> Next terminate all threads -> Finally close all hardware connections.
         """
         self.running = False         # Signal all threads to stop
+        if self.ble_connection:
+            self.ble_connection.stop()    # Signal BLE first, so packets still arriving are ignored
         self.stop_csv_recording()    # Stop CSV recording if active
 
         # Clean up LSL stream if active

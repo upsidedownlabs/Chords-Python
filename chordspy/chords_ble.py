@@ -181,30 +181,30 @@ class Chords_BLE:
             if not self.client.is_connected:
                 print("Failed to connect")
                 return False
-            
+
             print(f"Connected to {device_address}", flush=True)
             self.connection_event.set()
-            
+
             # Initialize monitoring tasks
             self.last_received_time = time.time()
             self.monitor_task = asyncio.create_task(self.monitor_connection())
             self.print_rate_task = asyncio.create_task(self.print_rate())
-            
+
             # Send start command to device
             await self.client.write_gatt_char(self.CONTROL_CHAR_UUID, b"START", response=True)
             print("Sent START command")
-            
+
             # Subscribe to data notifications
             await self.client.start_notify(self.DATA_CHAR_UUID, self.notification_handler)
             print("Subscribed to data notifications")
-            
+
             # Main loop
             self.running = True
             while self.running and not self.stop_event.is_set():
                 await asyncio.sleep(1)
-            
+
             return True
-            
+
         except Exception as e:
             print(f"Connection error: {str(e)}")
             return False
@@ -241,11 +241,12 @@ class Chords_BLE:
                 self.loop.close()
 
     def stop(self):
-        """Stop all operations and clean up resources."""
+        """
+        Stop all operations. The connection loop sees the stop flag within a second
+        and runs its cleanup, which disconnects from the device.
+        """
         self.stop_event.set()
         self.running = False
-        if self.loop and self.loop.is_running():
-            self.loop.call_soon_threadsafe(self.loop.stop)
 
 def parse_args():
     """Parse command line arguments."""

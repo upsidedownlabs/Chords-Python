@@ -3,6 +3,7 @@ import pylsl
 import numpy as np
 import time
 import sys
+import os
 from pylsl import StreamInlet, resolve_streams, resolve_byprop
 from scipy.signal import iirnotch, butter, lfilter
 import math
@@ -55,7 +56,8 @@ focus_threshold = None
 calibration_duration = 10
 
 sprite_count = 10
-beetle_sprites = [pygame.image.load(f'C:/Users/PAYAL/Desktop/Chords-Python/chordspy/media/Beetle{i}.png') for i in range(1, sprite_count + 1)]
+media_dir = os.path.join(os.path.dirname(__file__), "media")    # Sprites ship with the package, next to this file
+beetle_sprites = [pygame.image.load(os.path.join(media_dir, f"Beetle{i}.png")) for i in range(1, sprite_count + 1)]
 beetle_sprites = [pygame.transform.smoothscale(sprite, (140, 160)) for sprite in beetle_sprites]
 
 # Animation Variables
