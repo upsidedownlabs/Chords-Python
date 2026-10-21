@@ -12,7 +12,14 @@ apps:
     script: "emgenvelope"
     description: "Monitor electromyography (EMG) signals with envelope detection for muscle activity."
     category: "EMG"
-    
+
+  - title: "EMG Weighing Scale"
+    icon: "fa-weight-scale"
+    color: "red"
+    script: "emgweighing"
+    description: "Estimate the weight of a held object from EMG envelope after a quick calibration."
+    category: "EMG"
+
   - title: "EOG with Blinks"
     icon: "fa-eye"
     color: "purple"
