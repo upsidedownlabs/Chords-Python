@@ -514,7 +514,8 @@ class Connection:
         self.wifi_thread.daemon = True
         self.wifi_thread.start()
         threading.Thread(target=self.lsl_rate_checker, daemon=True).start()    # Start independent rate monitoring
-        
+        self.wifi_connection.ws.settimeout(2)    # recv() raises if no data for 2 s, so a device that is turned off is detected
+
         try:
             print("\nConnected! (Press Ctrl+C to stop)")
             while True:
@@ -547,6 +548,12 @@ class Connection:
                     
         except KeyboardInterrupt:
             print("\nDisconnected")
+        except Exception as e:
+            # recv() timed out or the connection closed. If the user did not disconnect, the device was lost:
+            # clean up so stream_active goes False and the interface shows it as disconnected.
+            if self.running:
+                print(f"\nWiFi device disconnected: {e}")
+                self.cleanup()
         finally:
             self.stop_csv_recording()            # Ensure resources are released
 
