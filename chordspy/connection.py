@@ -401,9 +401,16 @@ class Connection:
 
                             if self.recording_active:
                                 self.log_to_csv(channel_data)
+                else:
+                    break    # Port was closed (device unplugged or stopped sending)
             except Exception as e:
                 print(f"\nUSB data handler error: {str(e)}")
                 break
+
+        # If the loop ended without the user disconnecting, the device was lost: clean up so stream_active goes False
+        if self.running:
+            print("\nUSB device disconnected")
+            self.cleanup()
 
     def connect_ble(self, device_address=None, device_name=None):
         """
@@ -607,7 +614,8 @@ class Connection:
             
         # Wait for threads to finish (with timeout to prevent hanging)
         for t in threads:
-            t.join(timeout=1)  # 1 second timeout per thread
+            if t is not threading.current_thread():    # cleanup() can run from a data thread when its device disconnects
+                t.join(timeout=1)  # 1 second timeout per thread
         
         # Clean up USB connection
         if self.usb_connection:
