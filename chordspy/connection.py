@@ -450,7 +450,8 @@ class Connection:
                             self.log_to_csv(channels)
             
         self.ble_connection.notification_handler = notification_handler
-        
+        ble.on_disconnect = self.cleanup    # Mark the stream inactive as soon as the device is lost, not after the slow BLE teardown
+
         try:
             if device_address:
                 if not device_name:    # Only the address is known, look up the advertised name
@@ -467,12 +468,13 @@ class Connection:
                 print(f"Connecting to BLE device: {selected_device.name}")
                 self.ble_connection.connect(selected_device.address)
 
-            self.running = True
-            self.ble_thread = threading.Thread(target=self.ble_data_handler)
-            self.ble_thread.daemon = True
-            self.ble_thread.start()
-            threading.Thread(target=self.lsl_rate_checker, daemon=True).start()    # Start independent rate monitoring
-            return True
+            # connect() blocks for the whole session and returns once the device is gone (turned off, out of range)
+            # or stop() was called. A lost device is normally cleaned up already by on_disconnect; this is the
+            # fallback for sessions that ended any other way, so stream_active always goes False.
+            if not ble.stop_event.is_set():
+                print("\nBLE device disconnected")
+                self.cleanup()
+            return False
         except Exception as e:
             print(f"BLE connection failed: {str(e)}")
             return False
