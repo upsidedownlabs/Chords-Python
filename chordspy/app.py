@@ -10,7 +10,7 @@ The application uses Server-Sent Events (SSE) for real-time updates to the front
 """
 
 # Importing Necessary Libraries
-from flask import Flask, render_template, request, jsonify  # Flask web framework
+from flask import Flask, render_template, request, jsonify, send_from_directory  # Flask web framework
 from chordspy.connection import Connection                  # Connection management module
 import threading                                            # For running connection management in a separate thread
 import asyncio                                              # For asynchronous operations, especially with BLE           
@@ -36,6 +36,11 @@ connection_thread = None   # Thread for connection management
 ble_devices = []           # List of discovered BLE devices
 stream_active = False      # Flag indicating if data stream is active
 running_apps = {}          # Dictionary to track running applications
+
+# Route to serve files from the package media folder (e.g. the logo shown in the header).
+@app.route('/media/<path:filename>')
+def media(filename):
+    return send_from_directory(Path(__file__).parent / 'media', filename)
 
 # Route to get the installed chordspy version (from pyproject.toml at install time), shown by the info button.
 @app.route('/version')
