@@ -81,27 +81,29 @@
     <!-- 
       Header Section - Contains app title, theme toggle, and action buttons
     -->
-    <header class="bg-gray-900 dark:border-b dark:border-gray-700 text-white sticky top-0 z-50">
+    <header class="bg-gray-200 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white sticky top-0 z-50">
         <div class="max-w-full px-8 py-3 flex justify-between items-center">
             <!-- App logo and title -->
-            <div class="flex items-center space-x-3">
-                <img src="/media/ChordsWhite.svg" alt="Chords logo" class="h-8 w-8 rounded-lg">
-                <span class="text-2xl font-bold text-white">
+            <div class="flex items-center gap-3">
+                <!-- Black logo in light mode, white logo in dark mode -->
+                <img src="/media/ChordsBlack.svg" alt="Chords logo" class="h-8 w-8 rounded-lg dark:hidden">
+                <img src="/media/ChordsWhite.svg" alt="Chords logo" class="h-8 w-8 rounded-lg hidden dark:block">
+                <span class="text-2xl font-bold text-gray-900 dark:text-white">
                     Chords Python
                 </span>
             </div>
             <!-- Header action buttons -->
             <div class="flex space-x-4 items-center">
                 <!-- Theme toggle button -->
-                <button id="theme-toggle" class="text-white hover:text-cyan-400 transition-colors">
+                <button id="theme-toggle" class="text-gray-700 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
                     <i class="fas fa-moon text-xl"></i>
                 </button>
                 <!-- GitHub link button -->
-                <button id="github-btn" class="text-white hover:text-cyan-400 transition-colors">
+                <button id="github-btn" class="text-gray-700 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
                     <i class="fab fa-github text-xl"></i>
                 </button>
                 <!-- Info button -->
-                <button id="info-btn" class="text-white hover:text-cyan-400 transition-colors">
+                <button id="info-btn" class="text-gray-700 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
                     <i class="fas fa-info-circle text-xl"></i>
                 </button>
             </div>
@@ -173,7 +175,7 @@
     -->
     <!-- App popup (information / very important warnings), filled by showPopup() in script.js -->
     <div id="popup-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100] hidden">
-        <div class="bg-white dark:bg-gray-850 dark:border dark:border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-lg" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+        <div class="bg-white dark:bg-gray-850 border border-transparent dark:border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-lg" role="dialog" aria-modal="true" aria-labelledby="popup-title">
             <h3 id="popup-title" class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2"></h3>
             <p id="popup-message" class="text-sm text-gray-600 dark:text-gray-400"></p>
             <div class="mt-5 flex justify-end">
@@ -213,7 +215,7 @@
     -->
     <main class="flex-1 overflow-y-auto px-8 py-6">
         <!-- Applications Section -->
-        <div class="bg-white dark:bg-gray-900 dark:border dark:border-gray-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+        <div class="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <!-- Section header with title and filter dropdown -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Applications</h2>
@@ -237,9 +239,9 @@
     <!-- 
       Footer Section - Simple sticky footer with attribution
     -->
-    <footer class="bg-gray-900 dark:border-t dark:border-gray-700 text-white sticky bottom-0 z-50">
+    <footer class="bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white sticky bottom-0 z-50">
         <div class="max-w-full px-8 py-3 text-center">
-            Made with ❤️ at Upside Down Labs
+            Made with <i class="fas fa-heart text-red-500 mx-0.5" aria-label="love"></i> at Upside Down Labs
         </div>
     </footer>
 
