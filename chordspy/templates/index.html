@@ -10,6 +10,71 @@
     <title>Chords Python</title>
     <!-- Font Awesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Toast notifications, matching Chords-Web (Sonner with rich colours). Toasts are built by showToast() in script.js. -->
+    <style>
+        #toaster {
+            position: fixed; right: 24px; bottom: calc(3rem + 24px); width: 356px; z-index: 1000;    /* 3rem = footer height */
+            margin: 0; padding: 0; list-style: none;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+        @media (max-width: 600px) {
+            #toaster { left: 16px; right: 16px; bottom: calc(3rem + 16px); width: auto; }
+        }
+        .toast {
+            position: absolute; right: 0; bottom: 0; width: 100%; box-sizing: border-box;
+            display: flex; align-items: center; gap: 6px; padding: 16px;
+            font-size: 13px; overflow-wrap: anywhere;
+            background: var(--toast-bg); border: 1px solid var(--toast-border); color: var(--toast-text);
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            opacity: 0; transform: translateY(100%);
+            transition: transform 400ms, opacity 400ms, height 400ms, box-shadow 200ms;
+        }
+        .toast[data-mounted] { opacity: 1; }
+        .toast > * { transition: opacity 400ms; }
+        .toast[data-behind] > * { opacity: 0; }    /* Older toasts tucked behind the front one only show their edge */
+        .toast[data-expanded]::after {             /* Keeps the stack expanded while the mouse crosses the gaps */
+            content: ''; position: absolute; left: 0; bottom: 100%; width: 100%; height: 15px;
+        }
+        .toast-icon { display: flex; align-items: center; width: 16px; height: 16px; margin: 0 4px 0 -3px; flex-shrink: 0; }
+        .toast-icon svg { margin-left: -1px; flex-shrink: 0; }
+        .toast-content { display: flex; flex-direction: column; gap: 2px; }
+        .toast-title { font-weight: 500; line-height: 1.5; }
+        .toast-time { display: block; margin-top: 4px; font-size: 12px; line-height: 1.4; opacity: 0.7; }
+        .toast-close {
+            position: absolute; top: 0; right: 0; transform: translate(35%, -35%); z-index: 1;
+            display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0;
+            border-radius: 50%; border: 1px solid var(--toast-border); background: var(--toast-bg); color: var(--toast-text);
+            cursor: pointer; transition: opacity 100ms, background 200ms, border-color 200ms;
+        }
+        /* Toast colours: a frosted-glass surface, with the toast type's colour on a glowing round icon badge */
+        :root {
+            --toast-surface: rgba(255, 255, 255, 0.78); --toast-line: rgba(15, 23, 42, 0.28); --toast-fg: #1e293b;
+            --toast-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); --toast-glow: 6px;
+            --toast-success: #16a34a; --toast-error: #dc2626; --toast-warning: #d97706; --toast-message: #64748b;
+        }
+        .dark {
+            --toast-surface: rgba(39, 39, 42, 0.72); --toast-line: rgba(255, 255, 255, 0.34); --toast-fg: #e4e4e7;
+            --toast-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); --toast-glow: 14px;
+            --toast-success: #4ade80; --toast-error: #f87171; --toast-warning: #fbbf24; --toast-message: #a1a1aa;
+        }
+        .toast-success { --toast-accent: var(--toast-success); }
+        .toast-error { --toast-accent: var(--toast-error); }
+        .toast-warning { --toast-accent: var(--toast-warning); }
+        .toast-message { --toast-accent: var(--toast-message); }
+        .toast {
+            --toast-bg: var(--toast-surface); --toast-border: color-mix(in srgb, var(--toast-accent) 35%, var(--toast-line)); --toast-text: var(--toast-fg);
+            gap: 12px; padding: 14px 16px; border-radius: 14px; box-shadow: var(--toast-shadow);
+            backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5);
+        }
+        .toast-title { font-weight: 600; }
+        .toast-icon {
+            width: 28px; height: 28px; margin: 0; justify-content: center; border-radius: 50%; color: var(--toast-accent);
+            background: color-mix(in srgb, var(--toast-accent) 16%, transparent);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-accent) 40%, transparent),
+                        0 0 var(--toast-glow) color-mix(in srgb, var(--toast-accent) 30%, transparent);
+        }
+        .toast-icon svg { margin: 0; width: 16px; height: 16px; }
+    </style>
 </head>
 
 <!-- Main body with flex layout and dark mode background classes -->
@@ -17,12 +82,12 @@
     <!-- 
       Header Section - Contains app title, theme toggle, and action buttons
     -->
-    <header class="bg-gray-900 dark:bg-gray-800 text-white sticky top-0 z-50">
+    <header class="bg-gray-900 dark:border-b dark:border-gray-700 text-white sticky top-0 z-50">
         <div class="max-w-full px-8 py-3 flex justify-between items-center">
-            <!-- App logo and title with gradient text effect -->
+            <!-- App logo and title -->
             <div class="flex items-center space-x-3">
                 <img src="/media/ChordsWhite.svg" alt="Chords logo" class="h-8 w-8 rounded-lg">
-                <span class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                <span class="text-2xl font-bold text-white">
                     Chords Python
                 </span>
             </div>
@@ -102,11 +167,6 @@
             <div id="recording-status" class="flex items-center hidden">
             </div>
         </div>
-        <!-- Connection status popup (fixed position) -->
-        <div id="connection-status" class="fixed bottom-[3rem] right-1 bg-[#001F0E] shadow-lg rounded-lg p-3 text-sm hidden z-50 border border-gray-200 dark:border-gray-700 min-w-[200px] flex items-center text-white">
-            <span id="status-icon" class="mr-2"></span>
-            <span id="status-text" class="text-white">Connecting...</span>
-        </div>
     </section>
 
     <!-- 
@@ -143,7 +203,7 @@
     -->
     <main class="flex-1 overflow-y-auto px-8 py-6">
         <!-- Applications Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+        <div class="bg-white dark:bg-gray-900 dark:border dark:border-gray-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <!-- Section header with title and filter dropdown -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Applications</h2>
@@ -166,11 +226,14 @@
     <!-- 
       Footer Section - Simple sticky footer with attribution
     -->
-    <footer class="bg-gray-900 dark:bg-gray-800 text-white sticky bottom-0 z-50">
+    <footer class="bg-gray-900 dark:border-t dark:border-gray-700 text-white sticky bottom-0 z-50">
         <div class="max-w-full px-8 py-3 text-center">
             Made with ❤️ at Upside Down Labs
         </div>
     </footer>
+
+    <!-- Toast notifications stack (bottom right, above the footer), filled by showToast() in script.js -->
+    <ol id="toaster" aria-label="Notifications"></ol>
 
     <!-- 
       JavaScript Resources - Tailwind CSS configuration, Main application script.
@@ -180,6 +243,19 @@
         // Configure Tailwind to use class-based dark mode
         tailwind.config = {
             darkMode: 'class',
+            theme: {
+                extend: {
+                    // Gray is a neutral graphite (zinc) theme. In dark mode 900 is the page, 850 the cards,
+                    // 800 the inputs, 700 the borders, 200 the text and 400 the muted text.
+                    // Remapping it here recolours the whole interface consistently.
+                    colors: {
+                        gray: {
+                            50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a',
+                            600: '#52525b', 700: '#34343a', 800: '#27272a', 850: '#1f1f22', 900: '#18181b',
+                        },
+                    },
+                },
+            },
         }
     </script>
     <!-- Link to the main JavaScript file (served from Flask static files) -->

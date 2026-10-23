@@ -96,13 +96,13 @@ function renderApps(apps) {
     
     apps.forEach(app => {
         const card = document.createElement('div');
-        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 overflow-hidden cursor-pointer`;
+        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:bg-none dark:bg-gray-850 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 overflow-hidden cursor-pointer`;
         card.id = `card-${app.script}`;
         
         card.innerHTML = `
             <div class="relative h-full flex flex-col">
-                <div class="w-full h-32 bg-${app.color}-100 dark:bg-${app.color}-900 rounded-t-lg flex items-center justify-center transition-all duration-300 group-hover:opacity-90">
-                    <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
+                <div class="w-full h-32 bg-${app.color}-500/10 dark:bg-${app.color}-500/20 rounded-t-lg flex items-center justify-center transition-all duration-300 group-hover:opacity-90">
+                    <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-400"></i>
                 </div>
                 <div class="p-4 flex-1 flex flex-col">
                     <div class="flex items-center justify-between">
@@ -113,7 +113,7 @@ function renderApps(apps) {
                     </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
                     <button onclick="launchApp('${app.script}')" 
-                            class="w-full py-2 bg-${app.color}-500 hover:bg-${app.color}-600 text-white rounded-lg transition-colors">
+                            class="w-full py-2 bg-${app.color}-500/85 hover:bg-${app.color}-500 text-white rounded-lg transition-colors">
                         Launch
                     </button>
                 </div>
@@ -322,9 +322,6 @@ const disconnectingBtn = document.getElementById('disconnecting-btn');
 const recordBtn = document.getElementById('record-btn');
 const filenameInput = document.getElementById('filename');
 const recordingStatus = document.getElementById('recording-status');
-const statusDiv = document.getElementById('connection-status');
-const statusText = document.getElementById('status-text');
-const statusIcon = document.getElementById('status-icon');
 const bleModal = document.getElementById('ble-modal');
 const bleDevicesList = document.getElementById('ble-devices-list');
 const closeBleModal = document.getElementById('close-ble-modal');
@@ -580,7 +577,7 @@ connectBtn.addEventListener('click', async () => {
         }
     } catch (error) {
         logError('Connection error:', error);
-        showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+        showToast('error', `Connection failed: ${error.message}`);
         // Return to connect state
         connectingBtn.classList.add('hidden');
         connectBtn.classList.remove('hidden');
@@ -621,7 +618,7 @@ async function pollConnectionStatus() {
             }
         } catch (error) {
             logError('Connection polling error:', error);
-            showStatus(`Connection failed: Try again`, 'fa-times-circle', 'text-red-500');
+            showToast('error', 'Connection failed: Try again');
             // Return to connect state
             connectingBtn.classList.add('hidden');
             connectBtn.classList.remove('hidden');
@@ -655,7 +652,7 @@ function handleConnectionSuccess() {
         btn.disabled = true;
     });
     
-    showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle');
+    showToast('success', `Connected via ${selectedProtocol.toUpperCase()}`);
     
     // Start console updates
     startConsoleUpdates();
@@ -696,7 +693,7 @@ disconnectBtn.addEventListener('click', async () => {
             // Return to connect state
             disconnectingBtn.classList.add('hidden');
             connectBtn.classList.remove('hidden');
-            showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
+            showToast('message', 'Disconnected!');
             
             // Reset all protocol buttons
             connectionBtns.forEach(btn => {
@@ -712,8 +709,7 @@ disconnectBtn.addEventListener('click', async () => {
                     'cursor-pointer'
                 );
             });
-            
-            statusDiv.classList.add('hidden');
+
             selectedProtocol = null;
             selectedBleDevice = null;
             
@@ -737,7 +733,7 @@ disconnectBtn.addEventListener('click', async () => {
         // Return to disconnect state if disconnection failed
         disconnectingBtn.classList.add('hidden');
         disconnectBtn.classList.remove('hidden');
-        showStatus(`Disconnection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+        showToast('error', `Disconnection failed: ${error.message}`);
     }
 });
 
@@ -797,7 +793,7 @@ function toggleRecording() {
                     filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.add('dark:bg-gray-800');
                     updateFilenameTimestamp()
-                    showStatus('Recording stopped', 'fa-stop-circle', 'text-red-500');
+                    showToast('message', 'Recording stopped');
                 }
             })
             .catch(error => {
@@ -823,7 +819,7 @@ function toggleRecording() {
                     filenameInput.disabled = true;
                     filenameInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.remove('dark:bg-gray-800');
-                    showStatus('Recording started', 'fa-record-vinyl', 'text-green-500');
+                    showToast('success', 'Recording started');
                 }
             })
             .catch(error => {
@@ -837,15 +833,148 @@ function toggleRecording() {
 connectBtn.disabled = true; // Disable connect button until protocol is selected
 initializeFilename(); // Set default filename with timestamp
 
-function showStatus(text, icon, colorClass) {
-    const statusDiv = document.getElementById('connection-status');
-    statusText.textContent = text;
-    statusIcon.innerHTML = `<i class="fas ${icon} text-white"></i>`; 
-    statusDiv.classList.remove('hidden');
-    setTimeout(() => {
-        statusDiv.classList.add('hidden');
-    }, 3000);
+// Toast notifications, matching Chords-Web (Sonner with rich colours, see the styles in index.html).
+// The newest toast is in front, older ones are tucked behind it and spread out while hovered.
+// Success and message toasts close after 4 s (paused while hovered); error and warning toasts stay until
+// closed and show how long ago they appeared. A repeat of a toast that is showing replaces it.
+const TOAST_LIFETIME = 4000;    // ms before a success/message toast closes
+const TOAST_GAP = 14;           // px between toasts when the stack is spread out
+const VISIBLE_TOASTS = 3;       // Toasts shown in the stack at once
+const TOAST_ICONS = {           // Sonner's icons (a message toast has none)
+    success: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"/></svg>',
+    warning: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"/></svg>',
+    error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"/></svg>',
+};
+const TOAST_CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+const toaster = document.getElementById('toaster');
+let toasts = [];                // Toasts showing, newest first
+let toastsExpanded = false;     // True while the mouse is over the stack
+
+// type: 'success' | 'error' | 'warning' | 'message'
+function showToast(type, title) {
+    const persistent = type === 'error' || type === 'warning';
+    const id = `${type}:${title}`;
+    let toast = toasts.find(t => t.id === id);
+    if (toast) {
+        // Repeat: bring the showing toast to the front and restart its time instead of adding a copy
+        toasts = [toast, ...toasts.filter(t => t !== toast)];
+        toast.since = Date.now();
+        if (!persistent) startToastTimer(toast);
+        updateToastTimes();
+        layoutToasts();
+        return;
+    }
+
+    const el = document.createElement('li');
+    el.className = `toast toast-${type}`;
+    el.setAttribute('role', persistent ? 'alert' : 'status');
+    el.innerHTML = (TOAST_ICONS[type] ? `<div class="toast-icon">${TOAST_ICONS[type]}</div>` : '') +
+        `<div class="toast-content"><div class="toast-title"></div>${persistent ? '<time class="toast-time"></time>' : ''}</div>` +
+        (persistent ? `<button type="button" class="toast-close" aria-label="Close notification">${TOAST_CLOSE_ICON}</button>` : '');
+    el.querySelector('.toast-title').textContent = title;
+
+    toast = { id, el, persistent, since: Date.now(), timer: null, remaining: 0, startedAt: 0 };
+    if (persistent) el.querySelector('.toast-close').addEventListener('click', () => removeToast(toast));
+    toaster.appendChild(el);
+    toast.height = el.offsetHeight;    // Natural height, measured before the toast is stacked
+    toasts.unshift(toast);
+    if (!persistent) startToastTimer(toast);
+    updateToastTimes();
+    requestAnimationFrame(() => {      // Start from below, then slide up into place
+        el.dataset.mounted = '';
+        layoutToasts();
+    });
 }
+
+// Position every toast: collapsed (older toasts tucked behind the front one) or spread out while hovered
+function layoutToasts() {
+    const frontHeight = toasts.length ? toasts[0].height : 0;
+    let offset = 0;    // Distance from the bottom when spread out: heights of the newer toasts plus gaps
+    toasts.forEach((toast, i) => {
+        const el = toast.el;
+        if (!('mounted' in el.dataset)) return;    // Still waiting for its slide-in
+        el.style.zIndex = toasts.length - i;
+        el.style.opacity = i < VISIBLE_TOASTS ? '' : '0';
+        el.style.pointerEvents = i < VISIBLE_TOASTS ? '' : 'none';
+        if (toastsExpanded) {
+            el.style.transform = `translateY(${-offset}px)`;
+            el.style.height = `${toast.height}px`;
+            el.dataset.expanded = '';
+            delete el.dataset.behind;
+        } else {
+            el.style.transform = i === 0 ? 'translateY(0)' : `translateY(${-TOAST_GAP * i}px) scale(${1 - 0.05 * i})`;
+            el.style.height = `${i === 0 ? toast.height : frontHeight}px`;
+            delete el.dataset.expanded;
+            if (i === 0) delete el.dataset.behind; else el.dataset.behind = '';
+        }
+        offset += toast.height + TOAST_GAP;
+    });
+}
+
+function removeToast(toast) {
+    if (!toasts.includes(toast)) return;
+    clearTimeout(toast.timer);
+    const wasFront = toasts[0] === toast;
+    toasts = toasts.filter(t => t !== toast);
+    const el = toast.el;
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0';
+    el.style.transform = wasFront || toastsExpanded ? `${el.style.transform} translateY(100%)` : 'translateY(40%)';
+    setTimeout(() => el.remove(), 400);
+    layoutToasts();
+}
+
+function startToastTimer(toast) {
+    clearTimeout(toast.timer);
+    toast.timer = null;
+    toast.remaining = TOAST_LIFETIME;
+    if (!toastsExpanded) runToastTimer(toast);    // While hovered, the timer starts when the mouse leaves
+}
+
+function runToastTimer(toast) {
+    toast.startedAt = Date.now();
+    toast.timer = setTimeout(() => removeToast(toast), toast.remaining);
+}
+
+// "just now", "2 min ago", ... like Chords-Web; the exact time shows on hover
+function formatTimeAgo(since) {
+    const s = Math.max(0, Math.round((Date.now() - since) / 1000));
+    if (s < 45) return 'just now';
+    const m = Math.round(s / 60);
+    if (m < 60) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h} h ago`;
+    return new Date(since).toLocaleString();
+}
+
+function updateToastTimes() {
+    toasts.forEach(toast => {
+        const time = toast.el.querySelector('.toast-time');
+        if (time) {
+            time.textContent = formatTimeAgo(toast.since);
+            time.dateTime = new Date(toast.since).toISOString();
+            time.title = new Date(toast.since).toLocaleString();
+        }
+    });
+}
+setInterval(updateToastTimes, 15000);
+
+// Spread the stack out and pause the close timers while hovered
+toaster.addEventListener('mouseenter', () => {
+    toastsExpanded = true;
+    toasts.filter(t => t.timer).forEach(t => {
+        clearTimeout(t.timer);
+        t.timer = null;
+        t.remaining -= Date.now() - t.startedAt;
+    });
+    layoutToasts();
+});
+toaster.addEventListener('mouseleave', () => {
+    toastsExpanded = false;
+    toasts.filter(t => !t.persistent && !t.timer).forEach(runToastTimer);
+    layoutToasts();
+});
 
 function showAlert(message) {
     alert(message);
@@ -876,7 +1005,6 @@ function checkStreamStatus() {
                     disconnectingBtn.classList.add('hidden');
                     connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
-                    showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
                     
                     // Re-enable protocol buttons
                     setProtocolButtonsDisabled(false);
@@ -893,7 +1021,7 @@ function checkStreamStatus() {
                         filenameInput.disabled = false;
                         filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                         filenameInput.classList.add('dark:bg-gray-800');
-                        showStatus('Recording stopped (connection lost)', 'fa-stop-circle', 'text-red-500');
+                        showToast('warning', 'Recording stopped (connection lost)');
                     }
                     
                     // Stop console updates
@@ -915,7 +1043,7 @@ function handleDisconnection() {
     disconnectingBtn.classList.add('hidden');
     connectingBtn.classList.add('hidden');
     connectBtn.classList.remove('hidden');
-    showStatus('Stream disconnected!', 'fa-times-circle', 'text-red-500');
+    showToast('error', 'Stream disconnected!');
     
     // Reset protocol buttons
     connectionBtns.forEach(btn => {
@@ -932,7 +1060,7 @@ function handleDisconnection() {
         recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
         recordingStatus.classList.add('hidden');
         filenameInput.disabled = false;
-        showStatus('Recording stopped (stream lost)', 'fa-stop-circle', 'text-red-500');
+        showToast('warning', 'Recording stopped (stream lost)');
     }
     
     if (eventSource) {
