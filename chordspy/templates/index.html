@@ -13,7 +13,7 @@
     <!-- Toast notifications, matching Chords-Web (Sonner with rich colours). Toasts are built by showToast() in script.js. -->
     <style>
         #toaster {
-            position: fixed; right: 24px; bottom: calc(3rem + 24px); width: 356px; z-index: 1000;    /* 3rem = footer height */
+            position: fixed; right: 24px; bottom: calc(3rem + 24px); width: 356px; z-index: 1200;    /* 3rem = footer height */
             margin: 0; padding: 0; list-style: none;
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
         }
@@ -46,18 +46,19 @@
             border-radius: 50%; border: 1px solid var(--toast-border); background: var(--toast-bg); color: var(--toast-text);
             cursor: pointer; transition: opacity 100ms, background 200ms, border-color 200ms;
         }
-        /* Toast colours: a frosted-glass surface, with the toast type's colour on a glowing round icon badge */
+        /* Toast colours: a frosted-glass surface, with the toast type's colour on a flat round icon badge */
         :root {
             --toast-surface: rgba(255, 255, 255, 0.78); --toast-line: rgba(15, 23, 42, 0.28); --toast-fg: #1e293b;
-            --toast-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); --toast-glow: 6px;
-            --toast-success: #16a34a; --toast-error: #dc2626; --toast-warning: #d97706; --toast-message: #64748b;
+            --toast-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            --toast-success: #16a34a; --toast-info: #2563eb; --toast-error: #dc2626; --toast-warning: #d97706; --toast-message: #64748b;
         }
         .dark {
             --toast-surface: rgba(39, 39, 42, 0.72); --toast-line: rgba(255, 255, 255, 0.34); --toast-fg: #e4e4e7;
-            --toast-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); --toast-glow: 14px;
-            --toast-success: #4ade80; --toast-error: #f87171; --toast-warning: #fbbf24; --toast-message: #a1a1aa;
+            --toast-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            --toast-success: #4ade80; --toast-info: #60a5fa; --toast-error: #f87171; --toast-warning: #fbbf24; --toast-message: #a1a1aa;
         }
         .toast-success { --toast-accent: var(--toast-success); }
+        .toast-info { --toast-accent: var(--toast-info); }
         .toast-error { --toast-accent: var(--toast-error); }
         .toast-warning { --toast-accent: var(--toast-warning); }
         .toast-message { --toast-accent: var(--toast-message); }
@@ -70,8 +71,6 @@
         .toast-icon {
             width: 28px; height: 28px; margin: 0; justify-content: center; border-radius: 50%; color: var(--toast-accent);
             background: color-mix(in srgb, var(--toast-accent) 16%, transparent);
-            box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-accent) 40%, transparent),
-                        0 0 var(--toast-glow) color-mix(in srgb, var(--toast-accent) 30%, transparent);
         }
         .toast-icon svg { margin: 0; width: 16px; height: 16px; }
     </style>
@@ -172,6 +171,17 @@
     <!-- 
       BLE Device Selection Modal - Hidden by default, shown when Bluetooth connection is selected
     -->
+    <!-- App popup (information / very important warnings), filled by showPopup() in script.js -->
+    <div id="popup-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100] hidden">
+        <div class="bg-white dark:bg-gray-850 dark:border dark:border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-lg" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+            <h3 id="popup-title" class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2"></h3>
+            <p id="popup-message" class="text-sm text-gray-600 dark:text-gray-400"></p>
+            <div class="mt-5 flex justify-end">
+                <button id="popup-close" class="h-10 px-6 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold">OK</button>
+            </div>
+        </div>
+    </div>
+
     <div id="ble-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <!-- Modal header with title and close button -->

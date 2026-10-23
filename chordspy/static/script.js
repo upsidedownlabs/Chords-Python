@@ -136,9 +136,9 @@ async function launchApp(appScript) {
         
         if (result.status === 'error') {
             if (result.code === 'ALREADY_RUNNING') {
-                alert(`Application is already running.`);
+                showToast('info', 'Application is already running');
             } else {
-                alert(`Failed to launch application: ${result.message}`);
+                showToast('error', `Failed to launch application: ${result.message}`);
             }   
         } else {
             console.log(`Launched ${appScript}`);
@@ -155,7 +155,7 @@ async function handleAppClick(app, card) {
     }
     
     if (!isConnected) {
-        showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
+        showToast('info', 'Connect your device first');
         return;
     }
     
@@ -181,7 +181,7 @@ async function handleAppClick(app, card) {
         updateAppStatus(app.script); // Update status after launch
     } catch (error) {
         logError('Error launching app:', error);
-        showAlert(`Failed to launch ${app.title}: ${error.message}`);
+        showToast('error', `Failed to launch ${app.title}: ${error.message}`);
         card.innerHTML = originalContent;
     }
 }
@@ -536,13 +536,13 @@ rescanBle.addEventListener('click', scanBleDevices);
 // Handle connect button
 connectBtn.addEventListener('click', async () => {
     if (!selectedProtocol) {
-        showAlert('Please select a protocol before connecting.');
+        showToast('info', 'Select a protocol before connecting');
         return;
     }
 
     // For BLE, ensure a device is selected
     if (selectedProtocol === 'ble' && !selectedBleDevice) {
-        showAlert('Please select a BLE device before connecting.');
+        showToast('info', 'Select a Bluetooth device before connecting');
         return;
     }
 
@@ -668,13 +668,13 @@ function launchApplication(appName) {
     .then(data => {
         if (data.status === 'success') {
         } else if (data.code === 'ALREADY_RUNNING') {
-            showAlert(data.message);
+            showToast('info', data.message);
         } else {
-            showAlert(`Failed to launch ${appName}: ${data.message}`);
+            showToast('error', `Failed to launch ${appName}: ${data.message}`);
         }
     })
     .catch(error => {
-        showAlert(`Error launching ${appName}: ${error.message}`);
+        showToast('error', `Error launching ${appName}: ${error.message}`);
     });
 }
 
@@ -764,7 +764,7 @@ recordBtn.addEventListener('click', toggleRecording);
 // In the toggleRecording function
 function toggleRecording() {
     if (!isConnected) {
-        showAlert('Please Start a stream before recording.');
+        showToast('info', 'Connect your device first');
         return;
     }
 
@@ -824,7 +824,7 @@ function toggleRecording() {
             })
             .catch(error => {
                 logError('Error starting recording:', error);
-                showAlert('Failed to start recording: ' + error.message);
+                showToast('error', 'Failed to start recording: ' + error.message);
             });
     }
 }
@@ -835,8 +835,8 @@ initializeFilename(); // Set default filename with timestamp
 
 // Toast notifications, matching Chords-Web (Sonner with rich colours, see the styles in index.html).
 // The newest toast is in front, older ones are tucked behind it and spread out while hovered.
-// Success and message toasts close after 4 s (paused while hovered); error and warning toasts stay until
-// closed and show how long ago they appeared. A repeat of a toast that is showing replaces it.
+// Success, info and message toasts close after 4 s (paused while hovered); only error and warning toasts (failures)
+// stay until closed and show how long ago they appeared. A repeat of a toast that is showing replaces it.
 const TOAST_LIFETIME = 4000;    // ms before a success/message toast closes
 const TOAST_GAP = 14;           // px between toasts when the stack is spread out
 const VISIBLE_TOASTS = 3;       // Toasts shown in the stack at once
@@ -845,13 +845,14 @@ const TOAST_ICONS = {           // Sonner's icons (a message toast has none)
     warning: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"/></svg>',
     error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"/></svg>',
 };
+TOAST_ICONS.info = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"/></svg>';
 const TOAST_CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
 const toaster = document.getElementById('toaster');
 let toasts = [];                // Toasts showing, newest first
 let toastsExpanded = false;     // True while the mouse is over the stack
 
-// type: 'success' | 'error' | 'warning' | 'message'
+// type: 'success' | 'info' | 'error' | 'warning' | 'message'
 function showToast(type, title) {
     const persistent = type === 'error' || type === 'warning';
     const id = `${type}:${title}`;
@@ -976,9 +977,19 @@ toaster.addEventListener('mouseleave', () => {
     layoutToasts();
 });
 
-function showAlert(message) {
-    alert(message);
+// In-app popup, only for information or very important warnings that must not be missed (everything else is a toast)
+function showPopup(title, messageHtml) {
+    document.getElementById('popup-title').textContent = title;
+    document.getElementById('popup-message').innerHTML = messageHtml;
+    document.getElementById('popup-modal').classList.remove('hidden');
 }
+document.getElementById('popup-close').addEventListener('click', () => document.getElementById('popup-modal').classList.add('hidden'));
+document.getElementById('popup-modal').addEventListener('click', e => {
+    if (e.target.id === 'popup-modal') e.target.classList.add('hidden');    // Click outside to close
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('popup-modal').classList.add('hidden');
+});
 
 function checkStreamStatus() {
     fetch('/check_stream')
@@ -1098,6 +1109,6 @@ document.getElementById('info-btn').addEventListener('click', async () => {
     } catch (error) {
         logError('Version fetch error:', error);
     }
-    alert(`Chords Python - Bio-potential Data Acquisition System\nVersion ${version}`);
+    showPopup('Chords Python', `Bio-potential Data Acquisition System<br>Version ${version}`);
 });
 });
