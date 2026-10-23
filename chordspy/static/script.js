@@ -58,7 +58,7 @@ async function loadApps() {
                 <p class="text-gray-600 dark:text-gray-400 max-w-md">
                     Could not load application configuration. Please try refreshing the page.
                 </p>
-                <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors">
+                <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-cyan-600 dark:bg-cyan-700 text-white rounded-lg hover:bg-cyan-700 dark:hover:bg-cyan-800 transition-colors">
                     <i class="fas fa-sync-alt mr-2"></i> Refresh
                 </button>
             </div>
@@ -113,7 +113,7 @@ function renderApps(apps) {
                     </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
                     <button onclick="launchApp('${app.script}')" 
-                            class="w-full py-2 bg-${app.color}-500/85 hover:bg-${app.color}-500 text-white rounded-lg transition-colors">
+                            class="w-full py-2 bg-${app.color}-600/90 hover:bg-${app.color}-700 dark:bg-${app.color}-700/90 dark:hover:bg-${app.color}-800 text-white rounded-lg transition-colors">
                         Launch
                     </button>
                 </div>
@@ -236,33 +236,80 @@ function checkAllAppStatuses() {
 
 // Set up category filter with fixed options
 function setupCategoryFilter(apps) {
-    const categorySelect = document.querySelector('select');
-    
-    const fixedCategories = ['All', 'ECG', 'EMG', 'EOG', 'EEG', 'Tools']; // Fixed filter options
-    categorySelect.innerHTML = '';        // Clear existing options
-    
-    // Add fixed options
-    fixedCategories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        
-        // Disable option if no apps exist for this category (except 'All')
-        if (category !== 'All') {
-            const hasApps = apps.some(app => app.category === category);
-            option.disabled = !hasApps;
-            if (!hasApps) {
-                option.textContent += ' (0)';
-            }
-        }
-        
-        categorySelect.appendChild(option);
-    });
+    const dropdown = document.getElementById('category-dropdown');
+    const button = document.getElementById('category-btn');
+    const menu = document.getElementById('category-menu');
+    const label = document.getElementById('category-label');
 
-    // Add event listener for filtering
-    categorySelect.addEventListener('change', (e) => {
-        const selectedCategory = e.target.value;
-        filterAppsByCategory(selectedCategory, apps);
+    const fixedCategories = ['All', 'ECG', 'EMG', 'EOG', 'EEG', 'Tools']; // Fixed filter options
+    menu.innerHTML = '';        // Clear existing options
+    const items = [];
+
+    const closeMenu = (returnFocus = false) => {
+        menu.classList.add('hidden');
+        button.setAttribute('aria-expanded', 'false');
+        if (returnFocus) button.focus();
+    };
+    const openMenu = () => {
+        menu.classList.remove('hidden');
+        button.setAttribute('aria-expanded', 'true');
+    };
+    const choose = (category, userAction = true) => {
+        label.textContent = category;
+        items.forEach(item => {
+            const selected = item.dataset.value === category;
+            item.setAttribute('aria-selected', String(selected));
+            item.querySelector('i').classList.toggle('invisible', !selected);
+        });
+        if (userAction) {    // Not on the initial setup: the grid is already showing all apps
+            closeMenu(true);
+            filterAppsByCategory(category, apps);
+        }
+    };
+
+    fixedCategories.forEach(category => {
+        const item = document.createElement('li');
+        item.setAttribute('role', 'option');
+        item.dataset.value = category;
+        item.tabIndex = -1;
+        item.className = 'flex items-center justify-between gap-4 px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-200 outline-none';
+
+        // Disable the option if no apps exist for this category (except 'All')
+        const hasApps = category === 'All' || apps.some(app => app.category === category);
+        item.innerHTML = `<span>${category}${hasApps ? '' : ' (0)'}</span><i class="fas fa-check text-xs text-cyan-600 dark:text-cyan-400 invisible"></i>`;
+        if (hasApps) {
+            item.classList.add('cursor-pointer', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'focus:bg-gray-100', 'dark:focus:bg-gray-700');
+            item.addEventListener('click', () => choose(category));
+        } else {
+            item.setAttribute('aria-disabled', 'true');
+            item.classList.add('opacity-40', 'cursor-not-allowed');
+        }
+        menu.appendChild(item);
+        items.push(item);
+    });
+    choose('All', false);    // Mark 'All' as selected
+    closeMenu();
+
+    // Open/close the menu, keyboard navigation (arrows, Enter, Escape) and click outside to close
+    button.addEventListener('click', () => menu.classList.contains('hidden') ? openMenu() : closeMenu());
+    button.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            openMenu();
+            const enabled = items.filter(item => !item.hasAttribute('aria-disabled'));
+            (e.key === 'ArrowDown' ? enabled[0] : enabled[enabled.length - 1]).focus();
+        }
+    });
+    menu.addEventListener('keydown', (e) => {
+        const enabled = items.filter(item => !item.hasAttribute('aria-disabled'));
+        const index = enabled.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); enabled[(index + 1) % enabled.length].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); enabled[(index - 1 + enabled.length) % enabled.length].focus(); }
+        else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (index >= 0) choose(enabled[index].dataset.value); }
+        else if (e.key === 'Escape') { closeMenu(true); }
+    });
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) closeMenu();
     });
 }
 
@@ -374,19 +421,19 @@ function setProtocolButtonsDisabled(disabled) {
             btn.classList.add('cursor-not-allowed');
             // Only keep the connected protocol button highlighted
             if (btn.dataset.protocol !== selectedProtocol) {
-                btn.classList.remove('bg-cyan-500', 'text-white');
+                btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white');
                 // Set to original colors (dark mode aware)
                 btn.classList.add('text-gray-700', 'dark:text-gray-200');
-                btn.classList.remove('hover:bg-cyan-500', 'hover:text-white');
+                btn.classList.remove('hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
             } else {
                 // Make connected protocol button darker
-                btn.classList.remove('bg-cyan-500');
-                btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700');
+                btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700');
+                btn.classList.add('bg-cyan-700', 'dark:bg-cyan-800');
             }
         } else {
             btn.classList.remove('cursor-not-allowed');
-            btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
-            btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700');
+            btn.classList.add('hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
+            btn.classList.remove('bg-cyan-700', 'dark:bg-cyan-800');
         }
     });
 }
@@ -424,8 +471,8 @@ filenameInput.addEventListener('input', function() {
 // Handle protocol selection
 connectionBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
-        btn.classList.add('bg-cyan-500', 'text-white');
+        connectionBtns.forEach(b => b.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white'));
+        btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700', 'text-white');
         selectedProtocol = btn.dataset.protocol;
         
         // For BLE, show device selection modal
@@ -524,7 +571,7 @@ function renderBleDevices(devices) {
 // Close BLE modal
 closeBleModal.addEventListener('click', () => {
     bleModal.classList.add('hidden');
-    connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
+    connectionBtns.forEach(b => b.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white'));
     selectedProtocol = null;
     selectedBleDevice = null;
     connectBtn.disabled = true;
@@ -641,12 +688,12 @@ function handleConnectionSuccess() {
     connectionBtns.forEach(btn => {
         if (btn.dataset.protocol === selectedProtocol) {
             // Connected protocol - make it darker
-            btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-500');
-            btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
+            btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'hover:bg-cyan-600', 'dark:hover:bg-cyan-700');
+            btn.classList.add('bg-cyan-700', 'dark:bg-cyan-800', 'cursor-default');
             btn.classList.add('text-white');
         } else {
             // Other protocols - disable and make less prominent
-            btn.classList.remove('bg-cyan-500', 'text-white', 'hover:bg-cyan-500', 'hover:text-white');
+            btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white', 'hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
             btn.classList.add('cursor-not-allowed', 'text-gray-400', 'dark:text-gray-500');
         }
         btn.disabled = true;
@@ -699,12 +746,12 @@ disconnectBtn.addEventListener('click', async () => {
             connectionBtns.forEach(btn => {
                 btn.disabled = false;
                 btn.classList.remove(
-                    'bg-cyan-500', 'bg-cyan-600', 'dark:bg-cyan-700', 
+                    'bg-cyan-600', 'dark:bg-cyan-700', 'bg-cyan-700', 'dark:bg-cyan-800', 
                     'text-white', 'cursor-not-allowed', 'cursor-default',
                     'text-gray-400', 'dark:text-gray-500'
                 );
                 btn.classList.add(
-                    'hover:bg-cyan-500', 'hover:text-white',
+                    'hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white',
                     'text-gray-700', 'dark:text-gray-200',
                     'cursor-pointer'
                 );
@@ -1059,8 +1106,8 @@ function handleDisconnection() {
     // Reset protocol buttons
     connectionBtns.forEach(btn => {
         btn.disabled = false;
-        btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
-        btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
+        btn.classList.remove('bg-cyan-700', 'dark:bg-cyan-800', 'cursor-default');
+        btn.classList.add('hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
     });
     
     // Handle recording state

@@ -116,32 +116,32 @@
             <!-- Connection protocol buttons (WiFi, Bluetooth, Serial) -->
             <div class="flex gap-2 flex-wrap">
                 <!-- WiFi connection button -->
-                <button data-protocol="wifi" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                <button data-protocol="wifi" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-600 dark:hover:bg-cyan-700 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-wifi text-lg"></i>
                     <span class="text-sm font-medium">WiFi</span>
                 </button>
                 <!-- Bluetooth connection button -->
-                <button data-protocol="ble" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                <button data-protocol="ble" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-600 dark:hover:bg-cyan-700 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fab fa-bluetooth text-lg"></i>
                     <span class="text-sm font-medium">Bluetooth</span>
                 </button>
                 <!-- Serial (USB) connection button -->
-                <button data-protocol="usb" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-500 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
+                <button data-protocol="usb" class="connection-btn h-10 px-4 border-2 border-cyan-500 rounded-lg flex items-center gap-2 hover:bg-cyan-600 dark:hover:bg-cyan-700 hover:text-white transition-colors text-gray-700 dark:text-gray-200 cursor-pointer">
                     <i class="fas fa-microchip text-lg"></i>
                     <span class="text-sm font-medium">Serial</span>
                 </button>
             </div>
             <!-- Connection action buttons (dynamically shown/hidden) -->
-            <button id="connect-btn" class="h-10 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold px-6">
+            <button id="connect-btn" class="h-10 bg-cyan-600 dark:bg-cyan-700 text-white rounded-lg hover:bg-cyan-700 dark:hover:bg-cyan-800 transition-colors font-semibold px-6">
                 Connect Device
             </button>
-            <button id="connecting-btn" class="h-10 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+            <button id="connecting-btn" class="h-10 bg-yellow-600 text-white rounded-lg font-semibold px-6 hidden" disabled>
                 <i class="fas fa-spinner fa-spin mr-2"></i> Connecting...
             </button>
             <button id="disconnect-btn" class="h-10 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold px-6 hidden">
                 Disconnect
             </button>
-            <button id="disconnecting-btn" class="h-10 bg-yellow-500 text-white rounded-lg font-semibold px-6 hidden" disabled>
+            <button id="disconnecting-btn" class="h-10 bg-yellow-600 text-white rounded-lg font-semibold px-6 hidden" disabled>
                 <i class="fas fa-spinner fa-spin mr-2"></i> Disconnecting...
             </button>
           
@@ -177,7 +177,7 @@
             <h3 id="popup-title" class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2"></h3>
             <p id="popup-message" class="text-sm text-gray-600 dark:text-gray-400"></p>
             <div class="mt-5 flex justify-end">
-                <button id="popup-close" class="h-10 px-6 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-semibold">OK</button>
+                <button id="popup-close" class="h-10 px-6 bg-cyan-600 dark:bg-cyan-700 text-white rounded-lg hover:bg-cyan-700 dark:hover:bg-cyan-800 transition-colors font-semibold">OK</button>
             </div>
         </div>
     </div>
@@ -217,14 +217,15 @@
             <!-- Section header with title and filter dropdown -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Applications</h2>
-                <select class="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:ring-cyan-500 focus:outline-none dark:bg-gray-700">
-                    <option value="">All</option>
-                    <option value="ECG">ECG</option>
-                    <option value="EMG">EMG</option>
-                    <option value="EOG">EOG</option>
-                    <option value="EEG">EEG</option>
-                    <option value="Tools">Tools</option>
-                </select>
+                <!-- Category filter: a custom dropdown (a native select list cannot be given rounded corners). Filled by setupCategoryFilter() -->
+                <div id="category-dropdown" class="relative">
+                    <button id="category-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="category-menu"
+                            class="flex items-center justify-between gap-3 min-w-[7rem] border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-700 dark:text-gray-200 dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                        <span id="category-label">All</span>
+                        <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
+                    </button>
+                    <ul id="category-menu" role="listbox" class="hidden absolute right-0 mt-2 min-w-full w-max z-30 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg"></ul>
+                </div>
             </div>
 
             <!-- Grid that will be populated with application cards -->
