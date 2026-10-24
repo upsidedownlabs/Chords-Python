@@ -13,7 +13,8 @@ RepForge EnvelopeFilter (moving average of |EMG| over 64 samples). Everything is
 never change retroactively.
 
 Each hold is analysed in 1-second chunks after a settling period: the step value is the median chunk average and the
-stability is the spread of the chunk averages. Every recording is saved to a CSV in weighing_logs for debugging.
+stability is the spread of the chunk averages. Every recording is saved to a CSV in ChordsPy/weighing_logs in the
+user's home folder for debugging.
 """
 import csv
 import math
@@ -47,7 +48,7 @@ ABOVE_RANGE_FACTOR = 1.5       # Warn when a prediction exceeds this many times 
 ESTIMATE_RANGE = 0.15          # The weight is shown as a range: estimate minus/plus this fraction of it
 DISPLAY_DURATION = 10          # Seconds of signal shown in the plots (same as EMG with Envelope)
 HIGH_PASS_CUTOFF = 70.0        # EMG high-pass cutoff in Hz (Chords-Web EMG filter)
-LOG_DIR = Path(__file__).parent / "weighing_logs"   # Debug CSVs of every calibration step and weigh
+LOG_DIR = Path.home() / "ChordsPy" / "weighing_logs"   # Debug CSVs of every calibration step and weigh (user folder: always writable)
 CHORDS_STREAM_NAME = "BioAmpDataStream"             # LSL stream name published by Chords Python (connection.py)
 
 # Filter coefficients copied from Chords-Web src/components/filters.tsx, as second-order sections:
