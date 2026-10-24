@@ -1038,6 +1038,54 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.getElementById('popup-modal').classList.add('hidden');
 });
 
+// Update popup: shown only when a newer release than the installed one exists (checked by the server).
+// Closing it (X, click outside or Escape) remembers that version, so it is not shown again until a newer release appears.
+const UPDATE_DISMISSED_KEY = 'chordspy-update-dismissed';
+const updateModal = document.getElementById('update-modal');
+let updateLatest = null;
+
+function closeUpdatePopup() {
+    updateModal.classList.add('hidden');
+    try { localStorage.setItem(UPDATE_DISMISSED_KEY, updateLatest); } catch (e) { /* storage unavailable: it will just show again next time */ }
+}
+
+async function checkForUpdate() {
+    try {
+        const info = await (await fetch('/check_update')).json();
+        if (!info.update_available) return;
+        let dismissed = null;
+        try { dismissed = localStorage.getItem(UPDATE_DISMISSED_KEY); } catch (e) { /* storage unavailable */ }
+        if (dismissed === info.latest) return;
+
+        updateLatest = info.latest;
+        document.getElementById('update-message').textContent = `Version ${info.latest.replace(/^v/, '')} is available. You are using ${info.current}.`;
+        document.getElementById('update-command').textContent = info.command;
+        const notes = document.getElementById('update-notes');
+        if (info.url) notes.href = info.url; else notes.classList.add('hidden');
+        updateModal.classList.remove('hidden');
+    } catch (error) {
+        console.warn('Update check failed:', error);    // Offline or GitHub unreachable: no popup
+    }
+}
+
+document.getElementById('update-close').addEventListener('click', closeUpdatePopup);
+updateModal.addEventListener('click', e => {
+    if (e.target === updateModal) closeUpdatePopup();    // Click outside to close
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !updateModal.classList.contains('hidden')) closeUpdatePopup();
+});
+document.getElementById('update-copy').addEventListener('click', async () => {
+    const command = document.getElementById('update-command').textContent;
+    try {
+        await navigator.clipboard.writeText(command);
+        showToast('success', 'Command copied');
+    } catch (error) {
+        showToast('error', 'Could not copy, select the command and copy it manually');
+    }
+});
+checkForUpdate();
+
 function checkStreamStatus() {
     fetch('/check_stream')
         .then(response => response.json())

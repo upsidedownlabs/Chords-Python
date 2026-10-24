@@ -81,7 +81,7 @@
     <!-- 
       Header Section - Contains app title, theme toggle, and action buttons
     -->
-    <header class="bg-gray-200 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white sticky top-0 z-50">
+    <header class="bg-gray-200 dark:bg-[#1b1b1e] border-b border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white sticky top-0 z-50">
         <div class="max-w-full px-8 py-3 flex justify-between items-center">
             <!-- App logo and title -->
             <div class="flex items-center gap-3">
@@ -184,6 +184,23 @@
         </div>
     </div>
 
+    <!-- Update popup, shown only when a newer release exists. Filled by checkForUpdate() in script.js -->
+    <div id="update-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100] hidden">
+        <div class="relative bg-white dark:bg-gray-850 border border-transparent dark:border-gray-700 rounded-xl p-6 w-full max-w-md shadow-lg" role="dialog" aria-modal="true" aria-labelledby="update-title">
+            <button id="update-close" type="button" aria-label="Close" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 id="update-title" class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 pr-8">Update available</h3>
+            <p id="update-message" class="text-sm text-gray-600 dark:text-gray-400"></p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-4 mb-2">Close Chords Python, run this command in your terminal, then start it again:</p>
+            <div class="flex items-center gap-2">
+                <code id="update-command" class="flex-1 overflow-x-auto whitespace-nowrap rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-mono text-gray-800 dark:text-gray-200"></code>
+                <button id="update-copy" type="button" class="h-10 px-4 bg-cyan-600 dark:bg-cyan-700 text-white rounded-lg hover:bg-cyan-700 dark:hover:bg-cyan-800 transition-colors font-semibold text-sm">Copy</button>
+            </div>
+            <a id="update-notes" href="#" target="_blank" rel="noopener" class="inline-block mt-4 text-sm text-cyan-600 dark:text-cyan-400 hover:underline">View release notes <i class="fas fa-arrow-up-right-from-square text-xs"></i></a>
+        </div>
+    </div>
+
     <div id="ble-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <!-- Modal header with title and close button -->
@@ -239,7 +256,7 @@
     <!-- 
       Footer Section - Simple sticky footer with attribution
     -->
-    <footer class="bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white sticky bottom-0 z-50">
+    <footer class="bg-gray-200 dark:bg-[#1b1b1e] border-t border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white sticky bottom-0 z-50">
         <div class="max-w-full px-8 py-3 text-center">
             Made with <i class="fas fa-heart text-red-500 mx-0.5" aria-label="love"></i> at Upside Down Labs
         </div>
