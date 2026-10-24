@@ -69,7 +69,7 @@ apps:
     description: "Decode EOG Signals into Alphabets based on Morse Code."
     category: "EOG"
 
-  - title: "EMG Weighing Scale"
+  - title: "EMG Weighing Scale (Experimental)"
     icon: "fa-weight-scale"
     color: "indigo"
     script: "emgweighing"

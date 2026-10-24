@@ -7,12 +7,19 @@ of known mass M_i (E_i). The model
 is fitted to those points (fixed p = WEIGHT_EXPONENT for one weight, least-squares log-log fit for two or more),
 and a held object is weighed by recording its envelope level E.
 
-Filtering and the envelope method are the same as the "EMG with Envelope" app (emgenvelope.py), plus a mains notch.
-Everything is applied causally (lfilter with stored state), so recorded envelope values never change retroactively.
+The signal pipeline reproduces Chords-Web, which the weight formula was validated on: the exact biquad filters of
+src/components/filters.tsx (mains band-stop notch, then the EMG 70 Hz high-pass) run sample by sample, followed by the
+RepForge EnvelopeFilter (moving average of |EMG| over 64 samples). Everything is causal, so recorded envelope values
+never change retroactively.
+
+Each hold is analysed in 1-second chunks after a settling period: the step value is the median chunk average and the
+stability is the spread of the chunk averages. Every recording is saved to a CSV in weighing_logs for debugging.
 """
+import csv
 import math
+from datetime import datetime
+from pathlib import Path
 import numpy as np
-from scipy.signal import butter, iirnotch, lfilter, lfilter_zi
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QMainWindow, QWidget, QLabel, QComboBox, QPushButton, QLineEdit, QProgressBar, QFrame)
 from PyQt5.QtCore import Qt
 from pyqtgraph import PlotWidget
@@ -20,7 +27,6 @@ import pyqtgraph as pg
 import pylsl
 import sys
 import time
-from chordspy.emgenvelope import EMGMonitor
 
 # Constants
 WEIGHT_EXPONENT = 0.8          # Default exponent p (used for one known weight, or when the fit is unreliable)
@@ -28,16 +34,36 @@ P_MIN = 0.5                    # Smallest fitted exponent accepted
 P_MAX = 1.5                    # Largest fitted exponent accepted
 COUNTDOWN_SECONDS = 3          # Countdown before each recording so the user can get into position
 RECORD_SECONDS = 20            # Seconds of envelope recorded for each calibration/weighing step
-SETTLE_SECONDS = 5             # First seconds of each recording discarded (pickup and settling)
+SETTLE_SECONDS = 8             # First seconds of each recording discarded (pickup and settling): seconds 8-20 are used
+CHUNK_SECONDS = 1              # The analysed part is averaged in chunks of this length
 MOVING_AVERAGE_SECONDS = 2     # Window of the live moving average drawn over the envelope
-STABILITY_LIMIT = 0.25         # Maximum std/mean of the analysed segment before asking the user to repeat
+STABILITY_LIMIT = 0.15         # Maximum std/mean of the 1-second chunk averages before asking the user to repeat
+REST_MOVEMENT_FACTOR = 2.0     # Empty-hand step: a chunk above this many times the median chunk means the arm moved
+ENVELOPE_SAMPLES = 64          # Envelope window in samples (Chords-Web RepForge EnvelopeFilter)
 MIN_KNOWN_RATIO = 1.5          # Every E_i must be at least this many times E_rest
 MIN_KNOWN_MASS_KG = 0.5        # Smallest accepted known calibration mass
 MAX_KNOWN_WEIGHTS = 5          # Most known weights used in one calibration
 ABOVE_RANGE_FACTOR = 1.5       # Warn when a prediction exceeds this many times the largest calibrated mass
 DISPLAY_DURATION = 10          # Seconds of signal shown in the plots (same as EMG with Envelope)
-HIGH_PASS_CUTOFF = 70.0        # High-pass cutoff in Hz (same as EMG with Envelope)
-NOTCH_QUALITY = 30             # Notch quality factor (same as EEG with FFT)
+HIGH_PASS_CUTOFF = 70.0        # EMG high-pass cutoff in Hz (Chords-Web EMG filter)
+LOG_DIR = Path(__file__).parent / "weighing_logs"   # Debug CSVs of every calibration step and weigh
+
+# Filter coefficients copied from Chords-Web src/components/filters.tsx, as second-order sections:
+# ((b0, b1, b2), (a1, a2)) for each section, in the order they are applied.
+EMG_HIGH_PASS = {    # EXGFilter type 4 (EMG): high-pass 70 Hz, order 2
+    500: [((0.52996723, -1.05993445, 0.52996723), (-0.82523238, 0.29463653))],
+    250: [((0.23976966, -0.47953932, 0.23976966), (0.22115344, 0.18023207))],
+}
+MAINS_NOTCH = {      # Notch types 1 and 2: band-stop 48-52 Hz (50 Hz mains) and 58-62 Hz (60 Hz mains), order 2
+    (500, 50): [((0.96508099, -1.56202714, 0.96508099), (-1.56858163, 0.96424138)),
+                ((1.0, -1.61854514, 1.0), (-1.61100358, 0.96592171))],
+    (500, 60): [((0.96508099, -1.40747202, 0.96508099), (-1.40810535, 0.96443153)),
+                ((1.0, -1.45839783, 1.0), (-1.45687509, 0.96573127))],
+    (250, 50): [((0.93137886, -0.57635175, 0.93137886), (-0.53127491, 0.93061518)),
+                ((1.0, -0.61881558, 1.0), (-0.66243374, 0.93214913))],
+    (250, 60): [((0.93137886, -0.11711144, 0.93137886), (-0.05269865, 0.93123336)),
+                ((1.0, -0.12573985, 1.0), (-0.18985625, 0.93153034))],
+}
 
 # Session phases
 PHASE_IDLE = "idle"            # Nothing in progress
@@ -69,14 +95,42 @@ COLOR_TEXT = "#222222"
 COLOR_OK = "#1e8449"
 COLOR_WARN = "#c0392b"
 
-class EMGWeighingScale(QMainWindow):
-    # Reuse the moving RMS envelope from the EMG with Envelope app instead of duplicating it
-    calculate_moving_rms = EMGMonitor.calculate_moving_rms
+class Biquad:
+    """One second-order filter section, in the same direct form as Chords-Web filters.tsx:
+    x = input - a1*z1 - a2*z2;  output = b0*x + b1*z1 + b2*z2;  z2 = z1;  z1 = x"""
+    def __init__(self, b, a):
+        self.b0, self.b1, self.b2 = b
+        self.a1, self.a2 = a
+        self.z1 = 0.0
+        self.z2 = 0.0
 
+    def process(self, value):
+        x = value - self.a1 * self.z1 - self.a2 * self.z2
+        output = self.b0 * x + self.b1 * self.z1 + self.b2 * self.z2
+        self.z2 = self.z1
+        self.z1 = x
+        return output
+
+class EnvelopeFilter:
+    """Chords-Web RepForge EnvelopeFilter: moving average of |EMG| over a circular buffer (not RMS)."""
+    def __init__(self, size):
+        self.size = size
+        self.buffer = [0.0] * size
+        self.sum = 0.0
+        self.index = 0
+
+    def process(self, abs_value):
+        self.sum -= self.buffer[self.index]
+        self.sum += abs_value
+        self.buffer[self.index] = abs_value
+        self.index = (self.index + 1) % self.size
+        return self.sum / self.size
+
+class EMGWeighingScale(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("EMG Weighing Scale")
+        self.setWindowTitle("EMG Weighing Scale (Experimental)")
         self.setGeometry(100, 100, 1200, 700)
 
         self.stream_active = True   # Flag to check if the stream is active
@@ -108,12 +162,13 @@ class EMGWeighingScale(QMainWindow):
         print(f"Sampling rate: {self.sampling_rate} Hz")
         print(f"Number of channels: {self.num_channels}")
 
+        if self.sampling_rate not in EMG_HIGH_PASS:   # Chords-Web has filter coefficients for these rates only
+            print(f"Unsupported sampling rate {self.sampling_rate} Hz (supported: 250 and 500 Hz)! Exiting...")
+            sys.exit(0)
+
         # Signal settings
         self.channel = 0       # Selected channel index (Channel 1)
         self.notch_freq = 50   # Selected mains frequency in Hz
-        self.b_hp, self.a_hp = butter(4, HIGH_PASS_CUTOFF / (0.5 * self.sampling_rate), btype='high')
-        self.design_notch()
-        self.rms_window_size = int(0.1 * self.sampling_rate)  # Same envelope window as EMG with Envelope
         self.avg_window_size = MOVING_AVERAGE_SECONDS * self.sampling_rate
 
         # Display buffers (circular, like EMG with Envelope)
@@ -143,6 +198,8 @@ class EMGWeighingScale(QMainWindow):
         self.step = None
         self.countdown_end = 0.0
         self.recorded = []             # Envelope chunks recorded in the current step
+        self.recorded_raw = []         # Raw and filtered chunks of the same recording (for the debug CSV)
+        self.recorded_filtered = []
         self.recorded_count = 0
         self.record_target = RECORD_SECONDS * self.sampling_rate
 
@@ -206,7 +263,7 @@ class EMGWeighingScale(QMainWindow):
         self.envelope_plot.setBackground('w')
         self.envelope_plot.showGrid(x=True, y=True)
         self.envelope_plot.setMouseEnabled(x=False, y=False)  # Disable zoom
-        self.envelope_plot.setTitle(f"EMG Envelope (Samples Average:10%) with {MOVING_AVERAGE_SECONDS} s Moving Average")
+        self.envelope_plot.setTitle(f"EMG Envelope (average of |EMG| over {ENVELOPE_SAMPLES} samples) with {MOVING_AVERAGE_SECONDS} s Moving Average")
         self.envelope_plot.addLegend(offset=(10, 10), labelTextColor='k', brush=pg.mkBrush(255, 255, 255, 200))
 
         # Set fixed axis ranges
@@ -453,14 +510,14 @@ class EMGWeighingScale(QMainWindow):
         return "Pick up the object and hold it in position"
 
     # Signal processing
-    def design_notch(self):
-        self.b_notch, self.a_notch = iirnotch(self.notch_freq, NOTCH_QUALITY, self.sampling_rate)
+    def build_filters(self):
+        # Fresh Chords-Web filters (zero state, as in Chords-Web): mains notch, EMG high-pass and envelope
+        self.notch_filter = [Biquad(b, a) for b, a in MAINS_NOTCH[(self.sampling_rate, self.notch_freq)]]
+        self.high_pass_filter = [Biquad(b, a) for b, a in EMG_HIGH_PASS[self.sampling_rate]]
+        self.envelope_filter = EnvelopeFilter(ENVELOPE_SAMPLES)
 
     def reset_signal_state(self):
-        # Filter states are primed from the first sample after a reset to avoid a start-up transient
-        self.zi_notch = None
-        self.zi_hp = None
-        self.rms_tail = np.zeros(self.rms_window_size - 1)   # Last window-1 rectified samples for the causal envelope
+        self.build_filters()
         self.avg_history = np.zeros(0)                       # Last window-1 envelope samples for the moving average
         self.emg_data[:] = 0
         self.envelope_data[:] = 0
@@ -469,19 +526,16 @@ class EMGWeighingScale(QMainWindow):
         self.average_label.setText(f"{MOVING_AVERAGE_SECONDS} s average: --")
 
     def process_chunk(self, raw):
-        if self.zi_notch is None:
-            self.zi_notch = lfilter_zi(self.b_notch, self.a_notch) * raw[0]
-            self.zi_hp = lfilter_zi(self.b_hp, self.a_hp) * raw[0]
-
-        # Causal, stateful filtering: notch then the same high-pass as EMG with Envelope
-        notched, self.zi_notch = lfilter(self.b_notch, self.a_notch, raw, zi=self.zi_notch)
-        filtered, self.zi_hp = lfilter(self.b_hp, self.a_hp, notched, zi=self.zi_hp)
-
-        # Envelope: same method as EMG with Envelope (absolute value + moving RMS).
-        # Prepending the previous window-1 samples makes the 'valid' part line up exactly with the new samples.
-        extended = np.concatenate([self.rms_tail, np.abs(filtered)])
-        envelope = self.calculate_moving_rms(extended, self.rms_window_size)[-len(filtered):]
-        self.rms_tail = extended[-(self.rms_window_size - 1):]
+        # Chords-Web pipeline, sample by sample with stateful filters: notch, then EMG high-pass, then envelope of |x|
+        filtered = np.empty(len(raw))
+        envelope = np.empty(len(raw))
+        for i, value in enumerate(raw):
+            for section in self.notch_filter:
+                value = section.process(value)
+            for section in self.high_pass_filter:
+                value = section.process(value)
+            filtered[i] = value
+            envelope[i] = self.envelope_filter.process(abs(value))
 
         # Causal moving average of the envelope (uses fewer samples until the window has filled)
         history = np.concatenate([self.avg_history, envelope])
@@ -511,6 +565,8 @@ class EMGWeighingScale(QMainWindow):
 
             if self.phase == PHASE_RECORDING:
                 self.recorded.append(envelope)
+                self.recorded_raw.append(raw)
+                self.recorded_filtered.append(filtered)
                 self.recorded_count += len(envelope)
 
             # Update curves and readout
@@ -593,6 +649,8 @@ class EMGWeighingScale(QMainWindow):
     def begin_recording(self):
         self.phase = PHASE_RECORDING
         self.recorded = []
+        self.recorded_raw = []
+        self.recorded_filtered = []
         self.recorded_count = 0
         self.progress_bar.setValue(0)
         self.progress_bar.show()
@@ -618,26 +676,69 @@ class EMGWeighingScale(QMainWindow):
                 self.info_label.setText("<p>Recording, keep your hand and arm still.<br>Measuring...</p>")
 
     def analyse_segment(self, envelope):
-        # Discard the settling period, then use the median as the step value and std/mean as stability
+        # Use seconds SETTLE_SECONDS..RECORD_SECONDS, averaged in 1-second chunks. Returns (value, stability, peak):
+        # value = median chunk average, stability = std / mean of the chunk averages,
+        # peak = highest chunk average relative to the median (a large peak means the arm moved)
         segment = envelope[SETTLE_SECONDS * self.sampling_rate:]
-        value = float(np.median(segment))
-        mean = float(np.mean(segment))
-        stability = float(np.std(segment) / mean) if mean > 0 else float('inf')
-        return value, stability
+        size = int(CHUNK_SECONDS * self.sampling_rate)
+        chunks = segment[:(len(segment) // size) * size].reshape(-1, size).mean(axis=1)
+        value = float(np.median(chunks))
+        mean = float(np.mean(chunks))
+        stability = float(np.std(chunks) / mean) if mean > 0 else float('inf')
+        peak = float(np.max(chunks) / value) if value > 0 else float('inf')
+        return value, stability, peak
+
+    def save_log(self, raw, filtered, envelope):
+        # Debug CSV of this recording (the whole hold, including the settling period). Returns (path, error).
+        step = {STEP_REST: 'rest', STEP_KNOWN: 'known', STEP_WEIGH: 'weigh'}[self.step]
+        if self.step == STEP_REST:
+            mass = 0.0                                          # Empty hand / empty container
+        elif self.step == STEP_KNOWN:
+            mass = self.pending_masses[self.known_index]
+        else:
+            mass = None                                         # Unknown object: left blank
+        stem = datetime.now().strftime('%Y%m%d-%H%M%S') + f"_{step}" + (f"_{mass:.2f}kg" if self.step == STEP_KNOWN else "")
+        try:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            path = LOG_DIR / f"{stem}.csv"
+            count = 2
+            while path.exists():                                # Never overwrite an earlier log
+                path = LOG_DIR / f"{stem}_{count}.csv"
+                count += 1
+            with open(path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['time_s', 'raw', 'filtered', 'envelope', 'step', 'mass_kg'])
+                mass_text = '' if mass is None else f"{mass:g}"
+                for i in range(len(envelope)):
+                    writer.writerow([f"{i / self.sampling_rate:.4f}", raw[i], filtered[i], envelope[i], step, mass_text])
+            return path, None
+        except OSError as e:
+            return None, str(e)
 
     def finish_recording(self):
-        envelope = np.concatenate(self.recorded)[:self.record_target]
-        value, stability = self.analyse_segment(envelope)
+        n = self.record_target
+        envelope = np.concatenate(self.recorded)[:n]
+        log_path, log_error = self.save_log(np.concatenate(self.recorded_raw)[:n], np.concatenate(self.recorded_filtered)[:n], envelope)
+        log_note = (f"<p style='color:#666666'>Log saved: {log_path}</p>" if log_path
+                    else f"<p style='color:{COLOR_WARN}'>Could not save the log: {log_error}</p>")
+        value, stability, peak = self.analyse_segment(envelope)
         self.phase = PHASE_READY
         self.progress_bar.hide()
         self.set_busy(False)
 
-        if stability > STABILITY_LIMIT:
+        # The empty-hand level is tiny, so its relative spread means little: only a clear movement fails it
+        if self.step == STEP_REST:
+            unstable = peak > REST_MOVEMENT_FACTOR
+            reason = f"One second was {peak:.1f}x the typical level (limit {REST_MOVEMENT_FACTOR:g}x): the arm moved."
+        else:
+            unstable = stability > STABILITY_LIMIT
+            reason = f"Stability: {stability:.2f} (limit {STABILITY_LIMIT})"
+        if unstable:
             # Let the user repeat the same step
             self.set_status(self.step_title(), "Unstable",
                             f"<p style='color:{COLOR_WARN}'><b>Signal unstable, keep your arm still and repeat.</b></p>"
-                            f"<p>Envelope: {value:.1f}<br>Stability: {stability:.2f} (limit {STABILITY_LIMIT})</p>"
-                            "<p>Rest about 1 minute, then press <b>Retry</b>.</p>", COLOR_WARN)
+                            f"<p>Envelope: {value:.1f}<br>{reason}</p>"
+                            "<p>Rest about 1 minute, then press <b>Retry</b>.</p>" + log_note, COLOR_WARN)
             self.show_action("Retry")
             return
 
@@ -647,6 +748,7 @@ class EMGWeighingScale(QMainWindow):
             self.finish_known(value, stability)
         elif self.step == STEP_WEIGH:
             self.finish_weigh(value, stability)
+        self.info_label.setText(self.info_label.text() + log_note)
 
     def prompt_next_known(self, message):
         mass = self.pending_masses[self.known_index]
@@ -741,9 +843,8 @@ class EMGWeighingScale(QMainWindow):
     def on_notch_changed(self, index):
         # Calibration values depend on the exact filter chain, so they are invalidated as well
         self.notch_freq = 50 if index == 0 else 60
-        self.design_notch()
         self.update_emg_title()
-        self.reset_signal_state()
+        self.reset_signal_state()    # Rebuilds the filters with the new notch
         self.clear_calibration()
         self.show_idle(f"Notch set to {self.notch_freq} Hz. Filters and calibration were reset. Press Calibrate to begin.")
 
