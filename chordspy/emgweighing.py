@@ -44,6 +44,7 @@ MIN_KNOWN_RATIO = 1.5          # Every E_i must be at least this many times E_re
 MIN_KNOWN_MASS_KG = 0.5        # Smallest accepted known calibration mass
 MAX_KNOWN_WEIGHTS = 5          # Most known weights used in one calibration
 ABOVE_RANGE_FACTOR = 1.5       # Warn when a prediction exceeds this many times the largest calibrated mass
+ESTIMATE_RANGE = 0.15          # The weight is shown as a range: estimate minus/plus this fraction of it
 DISPLAY_DURATION = 10          # Seconds of signal shown in the plots (same as EMG with Envelope)
 HIGH_PASS_CUTOFF = 70.0        # EMG high-pass cutoff in Hz (Chords-Web EMG filter)
 LOG_DIR = Path(__file__).parent / "weighing_logs"   # Debug CSVs of every calibration step and weigh
@@ -806,7 +807,11 @@ class EMGWeighingScale(QMainWindow):
 
     def finish_weigh(self, value, stability):
         weight = self.predict_weight(value)
-        info = f"<p>Measured envelope: {value:.1f}<br>Stability: {stability:.2f}</p>"
+        low, high = weight * (1 - ESTIMATE_RANGE), weight * (1 + ESTIMATE_RANGE)
+        # Show the weight as a range around the estimate (no range when no load was detected)
+        result = f"{low:.2f} - {high:.2f} kg" if weight > 0 else "0.00 kg"
+        info = (f"<p>Estimate: {weight:.2f} kg (&plusmn;{ESTIMATE_RANGE * 100:.0f}%)</p>"
+                f"<p>Measured envelope: {value:.1f}<br>Stability: {stability:.2f}</p>")
         if value <= self.e_rest:
             info += "<p><b>No load detected.</b></p>"
         elif weight > ABOVE_RANGE_FACTOR * self.cal_masses.max():
@@ -814,7 +819,7 @@ class EMGWeighingScale(QMainWindow):
         info += f"{self.calibration_html()}<p>Press <b>Weigh</b> to weigh another object.</p>"
 
         self.show_idle("")
-        self.set_status("Estimated weight", f"{weight:.2f} kg", info, COLOR_OK)
+        self.set_status("Estimated weight", result, info, COLOR_OK)
 
     def clear_calibration(self):
         self.calibrated = False
