@@ -50,6 +50,7 @@ class Chords_BLE:
         self.loop = None                           # Asyncio event loop
         self.connection_event = threading.Event()  # Event for connection status
         self.stop_event = threading.Event()        # Event for stopping operations
+        self.on_disconnect = None                  # Optional callback, run as soon as a disconnection is detected
 
     @classmethod
     async def scan_devices(cls):
@@ -156,11 +157,15 @@ class Chords_BLE:
                 print("\nData Interrupted")
                 print("Cleanup Completed.")
                 self.running = False
+                if self.on_disconnect:
+                    self.on_disconnect()
                 break
             if self.client and not self.client.is_connected:
                 print("\nData Interrupted (Bluetooth disconnected)")
                 print("Cleanup Completed.")
                 self.running = False
+                if self.on_disconnect:
+                    self.on_disconnect()
                 break
             await asyncio.sleep(0.5)
 

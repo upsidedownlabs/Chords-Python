@@ -401,9 +401,16 @@ class Connection:
 
                             if self.recording_active:
                                 self.log_to_csv(channel_data)
+                else:
+                    break    # Port was closed (device unplugged or stopped sending)
             except Exception as e:
                 print(f"\nUSB data handler error: {str(e)}")
                 break
+
+        # If the loop ended without the user disconnecting, the device was lost: clean up so stream_active goes False
+        if self.running:
+            print("\nUSB device disconnected")
+            self.cleanup()
 
     def connect_ble(self, device_address=None, device_name=None):
         """
@@ -450,7 +457,8 @@ class Connection:
                             self.log_to_csv(channels)
             
         self.ble_connection.notification_handler = notification_handler
-        
+        ble.on_disconnect = self.cleanup    # Mark the stream inactive as soon as the device is lost, not after the slow BLE teardown
+
         try:
             if device_address:
                 if not device_name:    # Only the address is known, look up the advertised name
@@ -467,12 +475,13 @@ class Connection:
                 print(f"Connecting to BLE device: {selected_device.name}")
                 self.ble_connection.connect(selected_device.address)
 
-            self.running = True
-            self.ble_thread = threading.Thread(target=self.ble_data_handler)
-            self.ble_thread.daemon = True
-            self.ble_thread.start()
-            threading.Thread(target=self.lsl_rate_checker, daemon=True).start()    # Start independent rate monitoring
-            return True
+            # connect() blocks for the whole session and returns once the device is gone (turned off, out of range)
+            # or stop() was called. A lost device is normally cleaned up already by on_disconnect; this is the
+            # fallback for sessions that ended any other way, so stream_active always goes False.
+            if not ble.stop_event.is_set():
+                print("\nBLE device disconnected")
+                self.cleanup()
+            return False
         except Exception as e:
             print(f"BLE connection failed: {str(e)}")
             return False
@@ -505,7 +514,8 @@ class Connection:
         self.wifi_thread.daemon = True
         self.wifi_thread.start()
         threading.Thread(target=self.lsl_rate_checker, daemon=True).start()    # Start independent rate monitoring
-        
+        self.wifi_connection.ws.settimeout(2)    # recv() raises if no data for 2 s, so a device that is turned off is detected
+
         try:
             print("\nConnected! (Press Ctrl+C to stop)")
             while True:
@@ -538,6 +548,12 @@ class Connection:
                     
         except KeyboardInterrupt:
             print("\nDisconnected")
+        except Exception as e:
+            # recv() timed out or the connection closed. If the user did not disconnect, the device was lost:
+            # clean up so stream_active goes False and the interface shows it as disconnected.
+            if self.running:
+                print(f"\nWiFi device disconnected: {e}")
+                self.cleanup()
         finally:
             self.stop_csv_recording()            # Ensure resources are released
 
@@ -605,7 +621,8 @@ class Connection:
             
         # Wait for threads to finish (with timeout to prevent hanging)
         for t in threads:
-            t.join(timeout=1)  # 1 second timeout per thread
+            if t is not threading.current_thread():    # cleanup() can run from a data thread when its device disconnects
+                t.join(timeout=1)  # 1 second timeout per thread
         
         # Clean up USB connection
         if self.usb_connection:

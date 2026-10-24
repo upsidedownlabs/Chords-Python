@@ -58,7 +58,7 @@ async function loadApps() {
                 <p class="text-gray-600 dark:text-gray-400 max-w-md">
                     Could not load application configuration. Please try refreshing the page.
                 </p>
-                <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors">
+                <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-cyan-600 dark:bg-cyan-700 text-white rounded-lg hover:bg-cyan-700 dark:hover:bg-cyan-800 transition-colors">
                     <i class="fas fa-sync-alt mr-2"></i> Refresh
                 </button>
             </div>
@@ -96,13 +96,13 @@ function renderApps(apps) {
     
     apps.forEach(app => {
         const card = document.createElement('div');
-        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 overflow-hidden cursor-pointer`;
+        card.className = `group bg-gradient-to-b from-white to-gray-50 dark:bg-none dark:bg-gray-850 rounded-xl shadow border hover:shadow-lg transition-all duration-300 dark:border-gray-700 overflow-hidden cursor-pointer`;
         card.id = `card-${app.script}`;
         
         card.innerHTML = `
             <div class="relative h-full flex flex-col">
-                <div class="w-full h-32 bg-${app.color}-100 dark:bg-${app.color}-900 rounded-t-lg flex items-center justify-center transition-all duration-300 group-hover:opacity-90">
-                    <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-300"></i>
+                <div class="w-full h-32 bg-${app.color}-500/10 dark:bg-${app.color}-500/20 rounded-t-lg flex items-center justify-center transition-all duration-300 group-hover:opacity-90">
+                    <i class="fas ${app.icon} text-4xl text-${app.color}-600 dark:text-${app.color}-400"></i>
                 </div>
                 <div class="p-4 flex-1 flex flex-col">
                     <div class="flex items-center justify-between">
@@ -113,7 +113,7 @@ function renderApps(apps) {
                     </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-1">${app.description}</p>
                     <button onclick="launchApp('${app.script}')" 
-                            class="w-full py-2 bg-${app.color}-500 hover:bg-${app.color}-600 text-white rounded-lg transition-colors">
+                            class="w-full py-2 bg-${app.color}-600/90 hover:bg-${app.color}-700 dark:bg-${app.color}-700/90 dark:hover:bg-${app.color}-800 text-white rounded-lg transition-colors">
                         Launch
                     </button>
                 </div>
@@ -136,9 +136,9 @@ async function launchApp(appScript) {
         
         if (result.status === 'error') {
             if (result.code === 'ALREADY_RUNNING') {
-                alert(`Application is already running.`);
+                showToast('info', 'Application is already running');
             } else {
-                alert(`Failed to launch application: ${result.message}`);
+                showToast('error', `Failed to launch application: ${result.message}`);
             }   
         } else {
             console.log(`Launched ${appScript}`);
@@ -155,7 +155,7 @@ async function handleAppClick(app, card) {
     }
     
     if (!isConnected) {
-        showAlert('Please connect to a device first using USB, WiFi or Bluetooth');
+        showToast('info', 'Connect your device first');
         return;
     }
     
@@ -181,7 +181,7 @@ async function handleAppClick(app, card) {
         updateAppStatus(app.script); // Update status after launch
     } catch (error) {
         logError('Error launching app:', error);
-        showAlert(`Failed to launch ${app.title}: ${error.message}`);
+        showToast('error', `Failed to launch ${app.title}: ${error.message}`);
         card.innerHTML = originalContent;
     }
 }
@@ -236,33 +236,80 @@ function checkAllAppStatuses() {
 
 // Set up category filter with fixed options
 function setupCategoryFilter(apps) {
-    const categorySelect = document.querySelector('select');
-    
-    const fixedCategories = ['All', 'ECG', 'EMG', 'EOG', 'EEG', 'Tools']; // Fixed filter options
-    categorySelect.innerHTML = '';        // Clear existing options
-    
-    // Add fixed options
-    fixedCategories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        
-        // Disable option if no apps exist for this category (except 'All')
-        if (category !== 'All') {
-            const hasApps = apps.some(app => app.category === category);
-            option.disabled = !hasApps;
-            if (!hasApps) {
-                option.textContent += ' (0)';
-            }
-        }
-        
-        categorySelect.appendChild(option);
-    });
+    const dropdown = document.getElementById('category-dropdown');
+    const button = document.getElementById('category-btn');
+    const menu = document.getElementById('category-menu');
+    const label = document.getElementById('category-label');
 
-    // Add event listener for filtering
-    categorySelect.addEventListener('change', (e) => {
-        const selectedCategory = e.target.value;
-        filterAppsByCategory(selectedCategory, apps);
+    const fixedCategories = ['All', 'ECG', 'EMG', 'EOG', 'EEG', 'Tools']; // Fixed filter options
+    menu.innerHTML = '';        // Clear existing options
+    const items = [];
+
+    const closeMenu = (returnFocus = false) => {
+        menu.classList.add('hidden');
+        button.setAttribute('aria-expanded', 'false');
+        if (returnFocus) button.focus();
+    };
+    const openMenu = () => {
+        menu.classList.remove('hidden');
+        button.setAttribute('aria-expanded', 'true');
+    };
+    const choose = (category, userAction = true) => {
+        label.textContent = category;
+        items.forEach(item => {
+            const selected = item.dataset.value === category;
+            item.setAttribute('aria-selected', String(selected));
+            item.querySelector('i').classList.toggle('invisible', !selected);
+        });
+        if (userAction) {    // Not on the initial setup: the grid is already showing all apps
+            closeMenu(true);
+            filterAppsByCategory(category, apps);
+        }
+    };
+
+    fixedCategories.forEach(category => {
+        const item = document.createElement('li');
+        item.setAttribute('role', 'option');
+        item.dataset.value = category;
+        item.tabIndex = -1;
+        item.className = 'flex items-center justify-between gap-4 px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-200 outline-none';
+
+        // Disable the option if no apps exist for this category (except 'All')
+        const hasApps = category === 'All' || apps.some(app => app.category === category);
+        item.innerHTML = `<span>${category}${hasApps ? '' : ' (0)'}</span><i class="fas fa-check text-xs text-cyan-600 dark:text-cyan-400 invisible"></i>`;
+        if (hasApps) {
+            item.classList.add('cursor-pointer', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'focus:bg-gray-100', 'dark:focus:bg-gray-700');
+            item.addEventListener('click', () => choose(category));
+        } else {
+            item.setAttribute('aria-disabled', 'true');
+            item.classList.add('opacity-40', 'cursor-not-allowed');
+        }
+        menu.appendChild(item);
+        items.push(item);
+    });
+    choose('All', false);    // Mark 'All' as selected
+    closeMenu();
+
+    // Open/close the menu, keyboard navigation (arrows, Enter, Escape) and click outside to close
+    button.addEventListener('click', () => menu.classList.contains('hidden') ? openMenu() : closeMenu());
+    button.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            openMenu();
+            const enabled = items.filter(item => !item.hasAttribute('aria-disabled'));
+            (e.key === 'ArrowDown' ? enabled[0] : enabled[enabled.length - 1]).focus();
+        }
+    });
+    menu.addEventListener('keydown', (e) => {
+        const enabled = items.filter(item => !item.hasAttribute('aria-disabled'));
+        const index = enabled.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); enabled[(index + 1) % enabled.length].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); enabled[(index - 1 + enabled.length) % enabled.length].focus(); }
+        else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (index >= 0) choose(enabled[index].dataset.value); }
+        else if (e.key === 'Escape') { closeMenu(true); }
+    });
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) closeMenu();
     });
 }
 
@@ -322,9 +369,6 @@ const disconnectingBtn = document.getElementById('disconnecting-btn');
 const recordBtn = document.getElementById('record-btn');
 const filenameInput = document.getElementById('filename');
 const recordingStatus = document.getElementById('recording-status');
-const statusDiv = document.getElementById('connection-status');
-const statusText = document.getElementById('status-text');
-const statusIcon = document.getElementById('status-icon');
 const bleModal = document.getElementById('ble-modal');
 const bleDevicesList = document.getElementById('ble-devices-list');
 const closeBleModal = document.getElementById('close-ble-modal');
@@ -377,19 +421,19 @@ function setProtocolButtonsDisabled(disabled) {
             btn.classList.add('cursor-not-allowed');
             // Only keep the connected protocol button highlighted
             if (btn.dataset.protocol !== selectedProtocol) {
-                btn.classList.remove('bg-cyan-500', 'text-white');
+                btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white');
                 // Set to original colors (dark mode aware)
                 btn.classList.add('text-gray-700', 'dark:text-gray-200');
-                btn.classList.remove('hover:bg-cyan-500', 'hover:text-white');
+                btn.classList.remove('hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
             } else {
                 // Make connected protocol button darker
-                btn.classList.remove('bg-cyan-500');
-                btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700');
+                btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700');
+                btn.classList.add('bg-cyan-700', 'dark:bg-cyan-800');
             }
         } else {
             btn.classList.remove('cursor-not-allowed');
-            btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
-            btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700');
+            btn.classList.add('hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
+            btn.classList.remove('bg-cyan-700', 'dark:bg-cyan-800');
         }
     });
 }
@@ -427,8 +471,8 @@ filenameInput.addEventListener('input', function() {
 // Handle protocol selection
 connectionBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
-        btn.classList.add('bg-cyan-500', 'text-white');
+        connectionBtns.forEach(b => b.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white'));
+        btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700', 'text-white');
         selectedProtocol = btn.dataset.protocol;
         
         // For BLE, show device selection modal
@@ -527,7 +571,7 @@ function renderBleDevices(devices) {
 // Close BLE modal
 closeBleModal.addEventListener('click', () => {
     bleModal.classList.add('hidden');
-    connectionBtns.forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
+    connectionBtns.forEach(b => b.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white'));
     selectedProtocol = null;
     selectedBleDevice = null;
     connectBtn.disabled = true;
@@ -539,13 +583,13 @@ rescanBle.addEventListener('click', scanBleDevices);
 // Handle connect button
 connectBtn.addEventListener('click', async () => {
     if (!selectedProtocol) {
-        showAlert('Please select a protocol before connecting.');
+        showToast('info', 'Select a protocol before connecting');
         return;
     }
 
     // For BLE, ensure a device is selected
     if (selectedProtocol === 'ble' && !selectedBleDevice) {
-        showAlert('Please select a BLE device before connecting.');
+        showToast('info', 'Select a Bluetooth device before connecting');
         return;
     }
 
@@ -580,7 +624,7 @@ connectBtn.addEventListener('click', async () => {
         }
     } catch (error) {
         logError('Connection error:', error);
-        showStatus(`Connection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+        showToast('error', `Connection failed: ${error.message}`);
         // Return to connect state
         connectingBtn.classList.add('hidden');
         connectBtn.classList.remove('hidden');
@@ -621,7 +665,7 @@ async function pollConnectionStatus() {
             }
         } catch (error) {
             logError('Connection polling error:', error);
-            showStatus(`Connection failed: Try again`, 'fa-times-circle', 'text-red-500');
+            showToast('error', 'Connection failed: Try again');
             // Return to connect state
             connectingBtn.classList.add('hidden');
             connectBtn.classList.remove('hidden');
@@ -644,19 +688,22 @@ function handleConnectionSuccess() {
     connectionBtns.forEach(btn => {
         if (btn.dataset.protocol === selectedProtocol) {
             // Connected protocol - make it darker
-            btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-500');
-            btn.classList.add('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
+            btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'hover:bg-cyan-600', 'dark:hover:bg-cyan-700');
+            btn.classList.add('bg-cyan-700', 'dark:bg-cyan-800', 'cursor-default');
             btn.classList.add('text-white');
         } else {
             // Other protocols - disable and make less prominent
-            btn.classList.remove('bg-cyan-500', 'text-white', 'hover:bg-cyan-500', 'hover:text-white');
+            btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'text-white', 'hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
             btn.classList.add('cursor-not-allowed', 'text-gray-400', 'dark:text-gray-500');
         }
         btn.disabled = true;
     });
     
-    showStatus(`Connected via ${selectedProtocol.toUpperCase()}`, 'fa-check-circle');
-    
+    // Connected again: close error toasts that are no longer true (they stay until closed otherwise)
+    toasts.filter(t => t.id === 'error:Stream disconnected!' || t.id.startsWith('error:Connection failed'))
+          .forEach(removeToast);
+    showToast('success', `Connected via ${selectedProtocol.toUpperCase()}`);
+
     // Start console updates
     startConsoleUpdates();
 }
@@ -671,13 +718,13 @@ function launchApplication(appName) {
     .then(data => {
         if (data.status === 'success') {
         } else if (data.code === 'ALREADY_RUNNING') {
-            showAlert(data.message);
+            showToast('info', data.message);
         } else {
-            showAlert(`Failed to launch ${appName}: ${data.message}`);
+            showToast('error', `Failed to launch ${appName}: ${data.message}`);
         }
     })
     .catch(error => {
-        showAlert(`Error launching ${appName}: ${error.message}`);
+        showToast('error', `Error launching ${appName}: ${error.message}`);
     });
 }
 
@@ -696,24 +743,23 @@ disconnectBtn.addEventListener('click', async () => {
             // Return to connect state
             disconnectingBtn.classList.add('hidden');
             connectBtn.classList.remove('hidden');
-            showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
+            showToast('message', 'Disconnected!');
             
             // Reset all protocol buttons
             connectionBtns.forEach(btn => {
                 btn.disabled = false;
                 btn.classList.remove(
-                    'bg-cyan-500', 'bg-cyan-600', 'dark:bg-cyan-700', 
+                    'bg-cyan-600', 'dark:bg-cyan-700', 'bg-cyan-700', 'dark:bg-cyan-800', 
                     'text-white', 'cursor-not-allowed', 'cursor-default',
                     'text-gray-400', 'dark:text-gray-500'
                 );
                 btn.classList.add(
-                    'hover:bg-cyan-500', 'hover:text-white',
+                    'hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white',
                     'text-gray-700', 'dark:text-gray-200',
                     'cursor-pointer'
                 );
             });
-            
-            statusDiv.classList.add('hidden');
+
             selectedProtocol = null;
             selectedBleDevice = null;
             
@@ -737,7 +783,7 @@ disconnectBtn.addEventListener('click', async () => {
         // Return to disconnect state if disconnection failed
         disconnectingBtn.classList.add('hidden');
         disconnectBtn.classList.remove('hidden');
-        showStatus(`Disconnection failed: ${error.message}`, 'fa-times-circle', 'text-red-500');
+        showToast('error', `Disconnection failed: ${error.message}`);
     }
 });
 
@@ -768,7 +814,7 @@ recordBtn.addEventListener('click', toggleRecording);
 // In the toggleRecording function
 function toggleRecording() {
     if (!isConnected) {
-        showAlert('Please Start a stream before recording.');
+        showToast('info', 'Connect your device first');
         return;
     }
 
@@ -797,7 +843,7 @@ function toggleRecording() {
                     filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.add('dark:bg-gray-800');
                     updateFilenameTimestamp()
-                    showStatus('Recording stopped', 'fa-stop-circle', 'text-red-500');
+                    showToast('message', 'Recording stopped');
                 }
             })
             .catch(error => {
@@ -823,12 +869,12 @@ function toggleRecording() {
                     filenameInput.disabled = true;
                     filenameInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                     filenameInput.classList.remove('dark:bg-gray-800');
-                    showStatus('Recording started', 'fa-record-vinyl', 'text-green-500');
+                    showToast('success', 'Recording started');
                 }
             })
             .catch(error => {
                 logError('Error starting recording:', error);
-                showAlert('Failed to start recording: ' + error.message);
+                showToast('error', 'Failed to start recording: ' + error.message);
             });
     }
 }
@@ -837,19 +883,211 @@ function toggleRecording() {
 connectBtn.disabled = true; // Disable connect button until protocol is selected
 initializeFilename(); // Set default filename with timestamp
 
-function showStatus(text, icon, colorClass) {
-    const statusDiv = document.getElementById('connection-status');
-    statusText.textContent = text;
-    statusIcon.innerHTML = `<i class="fas ${icon} text-white"></i>`; 
-    statusDiv.classList.remove('hidden');
-    setTimeout(() => {
-        statusDiv.classList.add('hidden');
-    }, 3000);
+// Toast notifications, matching Chords-Web (Sonner with rich colours, see the styles in index.html).
+// The newest toast is in front, older ones are tucked behind it and spread out while hovered.
+// Success, info and message toasts close after 4 s (paused while hovered); only error and warning toasts (failures)
+// stay until closed and show how long ago they appeared. A repeat of a toast that is showing replaces it.
+const TOAST_LIFETIME = 4000;    // ms before a success/message toast closes
+const TOAST_GAP = 14;           // px between toasts when the stack is spread out
+const VISIBLE_TOASTS = 3;       // Toasts shown in the stack at once
+const TOAST_ICONS = {           // Sonner's icons (a message toast has none)
+    success: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"/></svg>',
+    warning: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"/></svg>',
+    error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"/></svg>',
+};
+TOAST_ICONS.info = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fill-rule="evenodd" clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"/></svg>';
+const TOAST_CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+const toaster = document.getElementById('toaster');
+let toasts = [];                // Toasts showing, newest first
+let toastsExpanded = false;     // True while the mouse is over the stack
+
+// type: 'success' | 'info' | 'error' | 'warning' | 'message'
+function showToast(type, title) {
+    const persistent = type === 'error' || type === 'warning';
+    const id = `${type}:${title}`;
+    let toast = toasts.find(t => t.id === id);
+    if (toast) {
+        // Repeat: bring the showing toast to the front and restart its time instead of adding a copy
+        toasts = [toast, ...toasts.filter(t => t !== toast)];
+        toast.since = Date.now();
+        if (!persistent) startToastTimer(toast);
+        updateToastTimes();
+        layoutToasts();
+        return;
+    }
+
+    const el = document.createElement('li');
+    el.className = `toast toast-${type}`;
+    el.setAttribute('role', persistent ? 'alert' : 'status');
+    el.innerHTML = (TOAST_ICONS[type] ? `<div class="toast-icon">${TOAST_ICONS[type]}</div>` : '') +
+        `<div class="toast-content"><div class="toast-title"></div>${persistent ? '<time class="toast-time"></time>' : ''}</div>` +
+        (persistent ? `<button type="button" class="toast-close" aria-label="Close notification">${TOAST_CLOSE_ICON}</button>` : '');
+    el.querySelector('.toast-title').textContent = title;
+
+    toast = { id, el, persistent, since: Date.now(), timer: null, remaining: 0, startedAt: 0 };
+    if (persistent) el.querySelector('.toast-close').addEventListener('click', () => removeToast(toast));
+    toaster.appendChild(el);
+    toast.height = el.offsetHeight;    // Natural height, measured before the toast is stacked
+    toasts.unshift(toast);
+    if (!persistent) startToastTimer(toast);
+    updateToastTimes();
+    requestAnimationFrame(() => {      // Start from below, then slide up into place
+        el.dataset.mounted = '';
+        layoutToasts();
+    });
 }
 
-function showAlert(message) {
-    alert(message);
+// Position every toast: collapsed (older toasts tucked behind the front one) or spread out while hovered
+function layoutToasts() {
+    const frontHeight = toasts.length ? toasts[0].height : 0;
+    let offset = 0;    // Distance from the bottom when spread out: heights of the newer toasts plus gaps
+    toasts.forEach((toast, i) => {
+        const el = toast.el;
+        if (!('mounted' in el.dataset)) return;    // Still waiting for its slide-in
+        el.style.zIndex = toasts.length - i;
+        el.style.opacity = i < VISIBLE_TOASTS ? '' : '0';
+        el.style.pointerEvents = i < VISIBLE_TOASTS ? '' : 'none';
+        if (toastsExpanded) {
+            el.style.transform = `translateY(${-offset}px)`;
+            el.style.height = `${toast.height}px`;
+            el.dataset.expanded = '';
+            delete el.dataset.behind;
+        } else {
+            el.style.transform = i === 0 ? 'translateY(0)' : `translateY(${-TOAST_GAP * i}px) scale(${1 - 0.05 * i})`;
+            el.style.height = `${i === 0 ? toast.height : frontHeight}px`;
+            delete el.dataset.expanded;
+            if (i === 0) delete el.dataset.behind; else el.dataset.behind = '';
+        }
+        offset += toast.height + TOAST_GAP;
+    });
 }
+
+function removeToast(toast) {
+    if (!toasts.includes(toast)) return;
+    clearTimeout(toast.timer);
+    const wasFront = toasts[0] === toast;
+    toasts = toasts.filter(t => t !== toast);
+    const el = toast.el;
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0';
+    el.style.transform = wasFront || toastsExpanded ? `${el.style.transform} translateY(100%)` : 'translateY(40%)';
+    setTimeout(() => el.remove(), 400);
+    layoutToasts();
+}
+
+function startToastTimer(toast) {
+    clearTimeout(toast.timer);
+    toast.timer = null;
+    toast.remaining = TOAST_LIFETIME;
+    if (!toastsExpanded) runToastTimer(toast);    // While hovered, the timer starts when the mouse leaves
+}
+
+function runToastTimer(toast) {
+    toast.startedAt = Date.now();
+    toast.timer = setTimeout(() => removeToast(toast), toast.remaining);
+}
+
+// "just now", "2 min ago", ... like Chords-Web; the exact time shows on hover
+function formatTimeAgo(since) {
+    const s = Math.max(0, Math.round((Date.now() - since) / 1000));
+    if (s < 45) return 'just now';
+    const m = Math.round(s / 60);
+    if (m < 60) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h} h ago`;
+    return new Date(since).toLocaleString();
+}
+
+function updateToastTimes() {
+    toasts.forEach(toast => {
+        const time = toast.el.querySelector('.toast-time');
+        if (time) {
+            time.textContent = formatTimeAgo(toast.since);
+            time.dateTime = new Date(toast.since).toISOString();
+            time.title = new Date(toast.since).toLocaleString();
+        }
+    });
+}
+setInterval(updateToastTimes, 15000);
+
+// Spread the stack out and pause the close timers while hovered
+toaster.addEventListener('mouseenter', () => {
+    toastsExpanded = true;
+    toasts.filter(t => t.timer).forEach(t => {
+        clearTimeout(t.timer);
+        t.timer = null;
+        t.remaining -= Date.now() - t.startedAt;
+    });
+    layoutToasts();
+});
+toaster.addEventListener('mouseleave', () => {
+    toastsExpanded = false;
+    toasts.filter(t => !t.persistent && !t.timer).forEach(runToastTimer);
+    layoutToasts();
+});
+
+// In-app popup, only for information or very important warnings that must not be missed (everything else is a toast)
+function showPopup(title, messageHtml) {
+    document.getElementById('popup-title').textContent = title;
+    document.getElementById('popup-message').innerHTML = messageHtml;
+    document.getElementById('popup-modal').classList.remove('hidden');
+}
+document.getElementById('popup-close').addEventListener('click', () => document.getElementById('popup-modal').classList.add('hidden'));
+document.getElementById('popup-modal').addEventListener('click', e => {
+    if (e.target.id === 'popup-modal') e.target.classList.add('hidden');    // Click outside to close
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('popup-modal').classList.add('hidden');
+});
+
+// Update popup: shown only when a newer release than the installed one exists (checked by the server).
+// Closing it (X, click outside or Escape) remembers that version, so it is not shown again until a newer release appears.
+const UPDATE_DISMISSED_KEY = 'chordspy-update-dismissed';
+const updateModal = document.getElementById('update-modal');
+let updateLatest = null;
+
+function closeUpdatePopup() {
+    updateModal.classList.add('hidden');
+    try { localStorage.setItem(UPDATE_DISMISSED_KEY, updateLatest); } catch (e) { /* storage unavailable: it will just show again next time */ }
+}
+
+async function checkForUpdate() {
+    try {
+        const info = await (await fetch('/check_update')).json();
+        if (!info.update_available) return;
+        let dismissed = null;
+        try { dismissed = localStorage.getItem(UPDATE_DISMISSED_KEY); } catch (e) { /* storage unavailable */ }
+        if (dismissed === info.latest) return;
+
+        updateLatest = info.latest;
+        document.getElementById('update-message').textContent = `Version ${info.latest.replace(/^v/, '')} is available. You are using ${info.current}.`;
+        document.getElementById('update-command').textContent = info.command;
+        const notes = document.getElementById('update-notes');
+        if (info.url) notes.href = info.url; else notes.classList.add('hidden');
+        updateModal.classList.remove('hidden');
+    } catch (error) {
+        console.warn('Update check failed:', error);    // Offline or GitHub unreachable: no popup
+    }
+}
+
+document.getElementById('update-close').addEventListener('click', closeUpdatePopup);
+updateModal.addEventListener('click', e => {
+    if (e.target === updateModal) closeUpdatePopup();    // Click outside to close
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !updateModal.classList.contains('hidden')) closeUpdatePopup();
+});
+document.getElementById('update-copy').addEventListener('click', async () => {
+    const command = document.getElementById('update-command').textContent;
+    try {
+        await navigator.clipboard.writeText(command);
+        showToast('success', 'Command copied');
+    } catch (error) {
+        showToast('error', 'Could not copy, select the command and copy it manually');
+    }
+});
+checkForUpdate();
 
 function checkStreamStatus() {
     fetch('/check_stream')
@@ -876,7 +1114,6 @@ function checkStreamStatus() {
                     disconnectingBtn.classList.add('hidden');
                     connectingBtn.classList.add('hidden');
                     connectBtn.classList.remove('hidden');
-                    showStatus('Disconnected!', 'fa-times-circle', 'text-red-500');
                     
                     // Re-enable protocol buttons
                     setProtocolButtonsDisabled(false);
@@ -893,7 +1130,7 @@ function checkStreamStatus() {
                         filenameInput.disabled = false;
                         filenameInput.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
                         filenameInput.classList.add('dark:bg-gray-800');
-                        showStatus('Recording stopped (connection lost)', 'fa-stop-circle', 'text-red-500');
+                        showToast('warning', 'Recording stopped (connection lost)');
                     }
                     
                     // Stop console updates
@@ -915,13 +1152,13 @@ function handleDisconnection() {
     disconnectingBtn.classList.add('hidden');
     connectingBtn.classList.add('hidden');
     connectBtn.classList.remove('hidden');
-    showStatus('Stream disconnected!', 'fa-times-circle', 'text-red-500');
+    showToast('error', 'Stream disconnected!');
     
     // Reset protocol buttons
     connectionBtns.forEach(btn => {
         btn.disabled = false;
-        btn.classList.remove('bg-cyan-600', 'dark:bg-cyan-700', 'cursor-default');
-        btn.classList.add('hover:bg-cyan-500', 'hover:text-white');
+        btn.classList.remove('bg-cyan-700', 'dark:bg-cyan-800', 'cursor-default');
+        btn.classList.add('hover:bg-cyan-600', 'dark:hover:bg-cyan-700', 'hover:text-white');
     });
     
     // Handle recording state
@@ -932,7 +1169,7 @@ function handleDisconnection() {
         recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
         recordingStatus.classList.add('hidden');
         filenameInput.disabled = false;
-        showStatus('Recording stopped (stream lost)', 'fa-stop-circle', 'text-red-500');
+        showToast('warning', 'Recording stopped (stream lost)');
     }
     
     if (eventSource) {
@@ -970,6 +1207,6 @@ document.getElementById('info-btn').addEventListener('click', async () => {
     } catch (error) {
         logError('Version fetch error:', error);
     }
-    alert(`Chords Python - Bio-potential Data Acquisition System\nVersion ${version}`);
+    showPopup('Chords Python', `Bio-potential Data Acquisition System<br>Version ${version}`);
 });
 });

@@ -10,7 +10,7 @@ The application uses Server-Sent Events (SSE) for real-time updates to the front
 """
 
 # Importing Necessary Libraries
-from flask import Flask, render_template, request, jsonify  # Flask web framework
+from flask import Flask, render_template, request, jsonify, send_from_directory  # Flask web framework
 from chordspy.connection import Connection                  # Connection management module
 import threading                                            # For running connection management in a separate thread
 import asyncio                                              # For asynchronous operations, especially with BLE           
@@ -23,6 +23,10 @@ from pathlib import Path                                    # For handling file 
 import os                                                   # For file and directory operations
 import webbrowser                                           # For opening the web interface in a browser
 from importlib.metadata import version, PackageNotFoundError  # For reading the installed chordspy version
+import json                                                 # For reading the GitHub releases response
+import re                                                   # For parsing version numbers
+import time                                                 # For caching the update check
+import urllib.request                                       # For fetching the latest release (no extra dependency)
 
 console_queue = queue.Queue()            # Global queue for console messages to be displayed in the web interface
 app = Flask(__name__)                    # Initialize Flask application
@@ -37,6 +41,11 @@ ble_devices = []           # List of discovered BLE devices
 stream_active = False      # Flag indicating if data stream is active
 running_apps = {}          # Dictionary to track running applications
 
+# Route to serve files from the package media folder (e.g. the logo shown in the header).
+@app.route('/media/<path:filename>')
+def media(filename):
+    return send_from_directory(Path(__file__).parent / 'media', filename)
+
 # Route to get the installed chordspy version (from pyproject.toml at install time), shown by the info button.
 @app.route('/version')
 def get_version():
@@ -44,6 +53,50 @@ def get_version():
         return jsonify({'version': version('chordspy')})
     except PackageNotFoundError:
         return jsonify({'version': 'unknown'})
+
+# Update check: the latest published release on GitHub is compared with the installed version.
+LATEST_RELEASE_URL = 'https://api.github.com/repos/upsidedownlabs/Chords-Python/releases/latest'
+UPDATE_COMMAND = 'pip install --upgrade chordspy'
+UPDATE_CACHE_SECONDS = 3600     # Ask GitHub at most once an hour (its unauthenticated limit is 60 requests an hour)
+update_cache = {'time': 0, 'latest': None, 'url': None}
+
+def parse_version(text):
+    """Turn a version or tag such as 'v0.2.10' into a tuple of numbers (0, 2, 10) for comparing, or None if it has none."""
+    match = re.match(r'\s*v?(\d+(?:\.\d+)*)', text or '')
+    return tuple(int(part) for part in match.group(1).split('.')) if match else None
+
+def fetch_latest_release():
+    """Return (tag, page url) of the latest GitHub release. Raises if GitHub cannot be reached."""
+    request = urllib.request.Request(LATEST_RELEASE_URL, headers={'User-Agent': 'chordspy-update-check', 'Accept': 'application/vnd.github+json'})
+    with urllib.request.urlopen(request, timeout=5) as response:
+        release = json.load(response)
+    return release['tag_name'], release.get('html_url')
+
+# Route to check whether a newer release than the installed one exists. The page shows the update popup only if it does.
+@app.route('/check_update')
+def check_update():
+    """
+    Returns JSON with the installed and latest versions, whether an update is available, the release page and the update command.
+    If the installed version is unknown or GitHub cannot be reached, update_available is False (the popup is simply not shown).
+    """
+    try:
+        current = version('chordspy')
+    except PackageNotFoundError:
+        current = None
+    if time.time() - update_cache['time'] > UPDATE_CACHE_SECONDS:
+        try:
+            update_cache['latest'], update_cache['url'] = fetch_latest_release()
+        except Exception as e:
+            logging.warning(f"Update check failed: {str(e)}")
+            update_cache['latest'], update_cache['url'] = None, None
+        # A failed check is retried after 5 minutes
+        update_cache['time'] = time.time() if update_cache['latest'] else time.time() - UPDATE_CACHE_SECONDS + 300
+    latest = update_cache['latest']
+    installed, newest = parse_version(current), parse_version(latest)
+    return jsonify({
+        'current': current, 'latest': latest, 'url': update_cache['url'], 'command': UPDATE_COMMAND,
+        'update_available': bool(installed and newest and newest > installed),
+    })
 
 # Error logging endpoint. This allows the frontend to send error messages to be logged.
 @app.route('/log_error', methods=['POST'])
