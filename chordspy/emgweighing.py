@@ -48,6 +48,7 @@ ESTIMATE_RANGE = 0.15          # The weight is shown as a range: estimate minus/
 DISPLAY_DURATION = 10          # Seconds of signal shown in the plots (same as EMG with Envelope)
 HIGH_PASS_CUTOFF = 70.0        # EMG high-pass cutoff in Hz (Chords-Web EMG filter)
 LOG_DIR = Path(__file__).parent / "weighing_logs"   # Debug CSVs of every calibration step and weigh
+CHORDS_STREAM_NAME = "BioAmpDataStream"             # LSL stream name published by Chords Python (connection.py)
 
 # Filter coefficients copied from Chords-Web src/components/filters.tsx, as second-order sections:
 # ((b0, b1, b2), (a1, a2)) for each section, in the order they are applied.
@@ -145,8 +146,17 @@ class EMGWeighingScale(QMainWindow):
             print("No LSL streams found! Exiting...")
             sys.exit(0)
 
+        # Only streams at a supported rate can be used (Chords-Web filters exist for 250 and 500 Hz). Prefer the Chords
+        # stream, then any other EXG stream, so an unrelated stream that happens to appear first is not picked.
+        candidates = [s for s in available_streams if int(s.nominal_srate()) in EMG_HIGH_PASS]
+        candidates.sort(key=lambda s: (s.name() != CHORDS_STREAM_NAME, s.type() != "EXG"))
+        if not candidates:
+            found = ", ".join(f"{s.name()} ({s.nominal_srate():g} Hz)" for s in available_streams)
+            print(f"No LSL stream at a supported rate (250 or 500 Hz). Found: {found}. Exiting...")
+            sys.exit(0)
+
         self.inlet = None
-        for stream in available_streams:
+        for stream in candidates:
             try:
                 self.inlet = pylsl.StreamInlet(stream)
                 print(f"Connected to LSL stream: {stream.name()}")
@@ -162,10 +172,6 @@ class EMGWeighingScale(QMainWindow):
         self.num_channels = self.inlet.info().channel_count()
         print(f"Sampling rate: {self.sampling_rate} Hz")
         print(f"Number of channels: {self.num_channels}")
-
-        if self.sampling_rate not in EMG_HIGH_PASS:   # Chords-Web has filter coefficients for these rates only
-            print(f"Unsupported sampling rate {self.sampling_rate} Hz (supported: 250 and 500 Hz)! Exiting...")
-            sys.exit(0)
 
         # Signal settings
         self.channel = 0       # Selected channel index (Channel 1)
