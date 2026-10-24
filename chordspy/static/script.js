@@ -699,8 +699,11 @@ function handleConnectionSuccess() {
         btn.disabled = true;
     });
     
+    // Connected again: close error toasts that are no longer true (they stay until closed otherwise)
+    toasts.filter(t => t.id === 'error:Stream disconnected!' || t.id.startsWith('error:Connection failed'))
+          .forEach(removeToast);
     showToast('success', `Connected via ${selectedProtocol.toUpperCase()}`);
-    
+
     // Start console updates
     startConsoleUpdates();
 }
